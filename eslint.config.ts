@@ -20,7 +20,6 @@ export default defineConfig([
   {
     rules: {
       camelcase: 'off',
-      eqeqeq: 'off',
       'no-unused-vars': 'off', //jsmaf, log, psn, all defined globally 
       'no-var': 'off',
       'no-undef': 'off',
