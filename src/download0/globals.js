@@ -1,11 +1,7 @@
 // NetControl Kernel Exploit - Global Constants
 // Ported from poop.java by Andy Nguyen
 
-
-
-//for vue exploit
-
-
+// for vue exploit
 
 // Kernel constants
 var KERNEL_PID = 0
