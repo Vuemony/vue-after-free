@@ -864,7 +864,7 @@ try {
 }
 
 // ============================================================================
-// NetControl Kernel Exploit (poop.java port)
+// NetControl Kernel Exploit (NetControl port based on TheFl0ws Java impl)
 // ============================================================================
 
 log('')
