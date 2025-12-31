@@ -443,8 +443,11 @@ DataView.prototype.setBigInt = function (byteOffset, value, littleEndian) {
   this.setUint32(byteOffset + 4, value.hi(), littleEndian)
 }
 
+/**
+ * @type {struct}
+ */
 var struct = {
-  register: function (name, fields) {
+  create: function (name, fields) {
     if (name in this) {
       throw new Error(`${name} already registered in struct !!`)
     }
@@ -457,8 +460,6 @@ var struct = {
       }
     }
 
-    this[name] = cls
-
     cls.tname = name
     cls.sizeof = sizeof
     cls.fields = fields
@@ -466,15 +467,8 @@ var struct = {
     for (var info of infos) {
       struct.define_property(cls, info)
     }
-  },
-  unregister: function (name) {
-    if (!(name in this)) {
-      throw new Error(`${name} not registered in struct !!`)
-    }
 
-    delete this[name]
-
-    return true
+    return cls
   },
   parse: function (fields) {
     var infos = []
@@ -663,7 +657,7 @@ var struct = {
   }
 }
 
-struct.register('NotificationRequest', [
+var NotificationRequest = struct.create('NotificationRequest', [
   { type: 'Int32', name: 'type' },
   { type: 'Int32', name: 'reqId' },
   { type: 'Int32', name: 'priority' },
@@ -804,6 +798,9 @@ master_addr = new BigInt(master[5], master[4])
 debug(`master_addr: ${master_addr}`)
 log('Achieved ARW !!')
 
+/**
+ * @type {mem}
+ */
 var mem = {
   allocs: new Map(),
   read8: function (addr) {
@@ -875,6 +872,9 @@ var mem = {
   }
 }
 
+/**
+ * @type {utils}
+ */
 var utils = {
   base_addr: function (func_addr) {
     var module_info_addr = mem.malloc(0x130)
@@ -892,9 +892,9 @@ var utils = {
     return base_addr
   },
   notify: function (msg) {
-    var notify_addr = mem.malloc(struct.NotificationRequest.sizeof)
+    var notify_addr = mem.malloc(NotificationRequest.sizeof)
 
-    var notify = new struct.NotificationRequest(notify_addr)
+    var notify = new NotificationRequest(notify_addr)
 
     for (var i = 0; i < msg.length; i++) {
       notify.message[i] = msg.charCodeAt(i) & 0xFF
@@ -902,13 +902,13 @@ var utils = {
 
     notify.message[msg.length] = 0
 
-    var fd = fn.open('/dev/notification0', 1, 0)
+    var fd = open('/dev/notification0', 1, 0)
     if (fd.lt(0)) {
       throw new Error('Unable to open /dev/notification0 !!')
     }
 
-    fn.write(fd, notify.addr, struct.NotificationRequest.sizeof)
-    fn.close(fd)
+    write(fd, notify.addr, NotificationRequest.sizeof)
+    close(fd)
 
     mem.free(notify_addr)
   },
@@ -1019,6 +1019,9 @@ var gadgets = {
   PUSH_RAX_POP_RBP_RET: jsc_addr.add(0x4E82B9)
 }
 
+/**
+ * @type {rop}
+ */
 var rop = {
   idx: 0,
   base: 0x2500,
@@ -1132,8 +1135,12 @@ var rop = {
   }
 }
 
+/**
+ * @type {fn}
+ */
 var fn = {
-  register: function (input, name, ret) {
+  // args is just for typing, not used
+  create: function (input, _args, ret) {
     if (name in this) {
       throw new Error(`${name} already registered in fn !!`)
     }
@@ -1243,23 +1250,13 @@ var fn = {
 
     Object.defineProperty(f, 'addr', { value: addr })
 
-    fn[name] = f
-  },
-  unregister (name) {
-    if (!(name in this)) {
-      log(`${name} not registered in fn !!`)
-      return false
-    }
-
-    delete fn[name]
-
-    return true
+    return f
   }
 }
 
 rop.init()
 
-fn.register(libc_addr.add(0x5F0), 'sceKernelGetModuleInfoForUnwind', 'bigint')
+var sceKernelGetModuleInfoForUnwind = fn.create(libc_addr.add(0x5F0), ['bigint'], 'bigint')
 
 var libkernel_addr = utils.base_addr(_error_addr)
 
@@ -1314,12 +1311,12 @@ syscalls.init(libkernel_addr)
 
 debug(`Found ${syscalls.map.size} syscalls`)
 
-fn.register(_error_addr, '_error', 'bigint')
-fn.register(strerror_addr, 'strerror', 'string')
-fn.register(0x14, 'getpid', 'bigint')
-fn.register(0x29, 'dup', 'bigint')
-fn.register(0x4, 'write', 'bigint')
-fn.register(0x5, 'open', 'bigint')
-fn.register(0x6, 'close', 'bigint')
+var _error = fn.create(_error_addr, [], 'bigint')
+var strerror = fn.create(strerror_addr, ['bigint'], 'string')
+var getpid = fn.create(0x14, [], 'bigint')
+var dup = fn.create(0x29, ['bigint'], 'bigint')
+var write = fn.create(0x4, ['bigint', 'bigint', 'number'], 'bigint')
+var open = fn.create(0x5, ['string', 'number', 'number'], 'bigint')
+var close = fn.create(0x6, ['bigint'], 'bigint')
 
 utils.notify('UwU')

@@ -9,7 +9,13 @@ export default defineConfig([
     files: ['**/*.{js,mjs,cjs,ts,mts,cts}'],
     plugins: { js },
     extends: ['js/recommended'],
-    languageOptions: { globals: globals.browser },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        jsmaf: 'readonly',
+        log: 'readonly',
+      }
+    },
   },
   { files: ['**/*.js'], languageOptions: { sourceType: 'script' } },
   tseslint.configs.recommended,
@@ -27,6 +33,7 @@ export default defineConfig([
       'no-unused-expressions': 'off',
       'no-fallthrough': 'off',
       'no-new-native-nonconstructor': 'off', // we use our own BigInt
+      'no-extend-native': 'off', // we extend native for better usage
 
       // TS duplicates
       '@typescript-eslint/no-unused-vars': 'off',
