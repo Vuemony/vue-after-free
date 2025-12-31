@@ -451,10 +451,6 @@ DataView.prototype.setBigInt = function (byteOffset, value, littleEndian) {
  */
 var struct = {
   create: function (name, fields) {
-    if (name in this) {
-      throw new Error(`${name} already registered in struct !!`)
-    }
-
     var [sizeof, infos] = struct.parse(fields)
 
     var cls = class {
@@ -892,7 +888,7 @@ var utils = {
 
     mem.write8(module_info_addr, new BigInt(0x130))
 
-    if (!fn.sceKernelGetModuleInfoForUnwind(func_addr, 1, module_info_addr).eq(0)) {
+    if (!sceKernelGetModuleInfoForUnwind(func_addr, 1, module_info_addr).eq(0)) {
       throw new Error(`Unable to get ${func_addr} base addr`)
     }
 
@@ -1185,10 +1181,6 @@ class SyscallError extends Error {
 var fn = {
   // args is just for typing, not used
   create: function (input, _args, ret) {
-    if (name in this) {
-      throw new Error(`${name} already registered in fn !!`)
-    }
-
     var id
     var addr
     var syscall = false
@@ -1265,11 +1257,11 @@ var fn = {
           if (result.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
             mem.free(store_addr)
 
-            var errno_addr = fn._error()
+            var errno_addr = _error()
             var errno = mem.read4(errno_addr)
-            var str = fn.strerror(errno)
+            var str = strerror(errno)
 
-            throw new SyscallError(name, errno, str)
+            throw new SyscallError(input, Number(errno), str)
           }
         }
 
