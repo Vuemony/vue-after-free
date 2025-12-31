@@ -939,7 +939,7 @@ var utils = {
       offset += 8
     }
 
-    return String.fromCharCode(chars)
+    return String.fromCharCode(...chars)
   },
   cstr: function (str) {
     var bytes = new Uint8Array(str.length + 1)
