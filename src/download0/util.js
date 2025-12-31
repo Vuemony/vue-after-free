@@ -1,5 +1,4 @@
 // Utility helper functions
-// NOTE: BigInt class is defined in inject.js and must not be redefined here
 
 function make_uaf (arr) {
   var o = {}
