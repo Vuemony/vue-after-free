@@ -110,8 +110,6 @@ var DEFAULT_TLS_SIZE = 0x40
 var SETJMP_SYMBOL = 'setjmp'
 var LONGJMP_SYMBOL = 'longjmp'
 
-
-
 // LibKernel pthread offsets (PS4 6.20)
 var SCE_PTHREAD_CREATE_OFFSET = 0x13AA0
 var SCE_PTHREAD_EXIT_OFFSET = 0x13B00
