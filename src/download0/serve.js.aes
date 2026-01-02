@@ -45,6 +45,9 @@ try {
     debug = function(msg) {
         _log(`[*] ${msg}`, false)
     }
+    error = function(msg) {
+        _log(`[-] ${msg}`, true)
+    }
     
     log("=== VUE AFTER FREE ===");
 
@@ -54,12 +57,15 @@ try {
             try {
                 jsmaf.eval(e.data[0]);
             } catch(err) {
-                log(`${err.message}: ${err.stack}`);
+                error(err.message);
+                for (var i of err.stack.split('\n')) {
+                    error(i);
+                }
             }
         } else {
-            log("Failed to receive valid message !!")
+            error("Failed to receive valid message !!")
         }
     };
 } catch(e) {
-    alert(`${e.message}: ${e.stack}`);
+    alert(`${e.message}\n${e.stack}`);
 }
