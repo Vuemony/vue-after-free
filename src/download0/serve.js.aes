@@ -3,6 +3,9 @@
 var WS_PORT = 40404;
 
 try {
+    //allow remoteplay
+    jsmaf.remotePlay = true 
+    
     // start WebSocket server listening to PS4_IP:WS_PORT 
     ws = new jsmaf.WebSocketServer();
     ws.port = WS_PORT;
