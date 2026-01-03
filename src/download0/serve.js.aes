@@ -16,25 +16,50 @@ try {
         }
     }
 
-    // Create text object for logs
-    var logText = new jsmaf.Text();
-    logText.background = "#FFFFFF";
-    logText.x = 20;
-    logText.y = 120;
-    jsmaf.root.children.push(logText);
-    
-    // Log buffer
+    // Create text objects for each line
+    var maxLines = 38;
+    var logTextLines = [];
+
+    // Rainbow colors (lighter/pastel for visibility on black)
+    var rainbowColors = [
+        "#FF6B6B", // Light Red
+        "#FFA94D", // Light Orange
+        "#FFD93D", // Light Yellow
+        "#6BCF7F", // Light Green
+        "#4DABF7", // Light Blue
+        "#9775FA", // Light Indigo
+        "#DA77F2"  // Light Violet
+    ];
+
+    // Create text object for each line
+    for (var i = 0; i < maxLines; i++) {
+        var lineText = new jsmaf.Text();
+        lineText.text = "";
+        lineText.background = rainbowColors[i % rainbowColors.length];
+        lineText.x = 20;
+        lineText.y = 120 + (i * 20);
+        jsmaf.root.children.push(lineText);
+        logTextLines.push(lineText);
+    }
+
     var logBuffer = [];
-    var maxLines = 38; 
 
     // Replace global log() to show on screen
     _log = function(msg, screen) {
         if (screen) {
             logBuffer.push(msg);
             if (logBuffer.length > maxLines) {
-                logBuffer.shift(); // Remove oldest (auto-scroll)
+                logBuffer.shift();
             }
-            logText.text = logBuffer.join("\n");
+
+            // Update each line's text
+            for (var i = 0; i < maxLines; i++) {
+                if (i < logBuffer.length) {
+                    logTextLines[i].text = logBuffer[i];
+                } else {
+                    logTextLines[i].text = "";
+                }
+            }
         }
 
         ws.broadcast(msg); // Still send to websocket too
