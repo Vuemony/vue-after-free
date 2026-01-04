@@ -14,3 +14,6 @@ declare var indexing_header: import('download0/types').BigInt
 declare var master: Uint32Array, slave: DataView, master_addr: import('download0/types').BigInt, slave_addr: import('download0/types').BigInt, slave_buf_addr: import('download0/types').BigInt
 
 declare var leak_obj: Record<string, unknown>, leak_obj_addr: import('download0/types').BigInt
+
+declare var native_executable: import('download0/types').BigInt
+declare var scope: import('download0/types').BigInt
