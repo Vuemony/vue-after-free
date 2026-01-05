@@ -1,5 +1,25 @@
 // bin_loader.js - ELF/binary loader for PS4 after vue-after-free jailbreak
 // Ported from netflix N Hack for ps4
+//
+// Usage: include('binloader.js') before userland/lapse
+//        After lapse completes, call: binloader_init()
+
+// Define binloader_init function
+binloader_init = function() {
+log("binloader_init(): Initializing binloader...");
+
+// Check dependencies
+if (typeof libc_addr === 'undefined') {
+    log("ERROR: libc_addr is undefined! Lapse may not have completed.");
+    throw new Error("libc_addr not available - cannot initialize binloader");
+}
+
+if (typeof fn === 'undefined') {
+    log("ERROR: fn object is undefined! userland.js not loaded?");
+    throw new Error("fn object not available - cannot initialize binloader");
+}
+
+log("binloader_init(): Dependencies OK, initializing...");
 
 // thrd_create and thrd_join offsets in libc
 var THRD_CREATE_OFFSET = 0x555A0;
@@ -682,5 +702,14 @@ function bin_loader_main() {
     return bl_network_loader();
 }
 
-// Run binloader
+// End of binloader_init() function
+// Call bin_loader_main() to start binloader
 bin_loader_main();
+};
+
+// Verify function is defined
+if (typeof binloader_init === 'function') {
+    log("binloader.js loaded - binloader_init() function ready");
+} else {
+    log("ERROR: binloader_init function not defined!");
+}
