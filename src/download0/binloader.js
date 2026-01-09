@@ -474,7 +474,7 @@ BinLoader.run = function() {
         log("SUCCESS: Payload thread created!");
         var thr_id = mem.view(thread_handle).getBigInt(0, true);
         log("Thread handle: " + thr_id.toString());
-        utils.notify("Payload loaded!\nThread spawned successfully");
+        //utils.notify("Payload loaded!\nThread spawned successfully");
 
         // Call thrd_join to wait for thread completion
         // int thrd_join(thrd_t thr, int *res);
@@ -664,6 +664,7 @@ function bl_network_loader() {
         BinLoader.init(payload.buf, payload.size);
         BinLoader.run();
         log("Payload loaded successfully");
+        show_success();
     } catch (e) {
         log("ERROR loading payload: " + e.message);
         if (e.stack) log(e.stack);

@@ -8,7 +8,11 @@
 
 include('binloader.js')
 include('lapse.js')
+function show_success(){
+    
+        jsmaf.root.children.push(bg_success);
 
+    }
 
 // Check if lapse.js has completed successfully
 function is_lapse_complete() {
@@ -40,7 +44,7 @@ function is_lapse_complete() {
 log("Waiting for lapse.js to complete...");
 lapse()
 var start_time = Date.now();
-var max_wait_seconds = 60;
+var max_wait_seconds = 5;
 var max_wait_ms = max_wait_seconds * 1000;
 
 while (!is_lapse_complete()) {
@@ -57,7 +61,7 @@ while (!is_lapse_complete()) {
         // Busy wait
     }
 }
-
+show_success();
 var total_wait = ((Date.now() - start_time) / 1000).toFixed(1);
 log("Lapse completed successfully after " + total_wait + " seconds");
 log("Initializing binloader...");

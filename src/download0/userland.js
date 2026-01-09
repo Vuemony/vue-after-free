@@ -195,4 +195,4 @@ fn.register(0x4, 'write', 'bigint')
 fn.register(0x5, 'open', 'bigint')
 fn.register(0x6, 'close', 'bigint')
 
-utils.notify('UwU')
+//utils.notify('UwU')

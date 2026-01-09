@@ -6,6 +6,7 @@ try {
     //allow remoteplay
     jsmaf.remotePlay = true 
     
+    
     // start WebSocket server listening to PS4_IP:WS_PORT 
     ws = new jsmaf.WebSocketServer();
     ws.port = WS_PORT;
@@ -14,10 +15,39 @@ try {
     for (var i = 0; i < jsmaf.root.children.length; i++) {
         var child = jsmaf.root.children[i];
         if (child.url && child.url.indexOf("logo") !== -1) {
-            child.y = 20;  // 20px from top
+            var scale = 2;
+            child.url = "file:///../download0/img/logo.png"
+            child.y = 220;  // 20px from top
+            child.x = 560;
+            child.width = 400 * scale;
+            child.height = 250 * scale;
+            
             break;
         }
     }
+        // Clear screen
+
+
+    // Background
+    var bg_success = new Image({
+        url: "file:///../download0/img/bg-success.jpg",
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080
+    });
+    
+        // Background
+    var bg_fail = new Image({
+        url: "file:///../download0/img/bg-fail.jpg",
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080
+    });
+   
+   
+
 
     // Create text objects for each line
     var maxLines = 38;
@@ -78,7 +108,12 @@ try {
     }
     
     log("=== VUE AFTER FREE ===");
-
+    
+    
+    //startup scripts
+    //include('loader.js')
+    
+    
     // handle WebSocket received messages
     ws.onmessage = function(c, e) {
         if (e.data.length === 1 && e.data[0].constructor.name === "String") {
@@ -96,4 +131,5 @@ try {
     };
 } catch(e) {
     alert(`${e.message}\n${e.stack}`);
+    //var i = 0;
 }

