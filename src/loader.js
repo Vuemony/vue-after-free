@@ -1,16 +1,17 @@
 // Load binloader first (just defines the function, doesn't execute)
 
 // Now load userland and lapse
-include('userland.js')
+if (typeof libc_addr === 'undefined') {
+    include('userland.js')
+}
+
 include('binloader.js')
 include('lapse.js')
 
 // Check if lapse.js has completed successfully
 function is_lapse_complete() {
     // Check if libc_addr is defined
-    if (typeof libc_addr === 'undefined') {
-        return false;
-    }
+
 
     // Check if kernel object exists with read/write functions
     if (typeof kernel === 'undefined' || !kernel.read_qword || !kernel.write_qword) {
