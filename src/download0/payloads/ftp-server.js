@@ -66,7 +66,7 @@ var rename_from = null
 function get_local_ip () {
   try {
     var SOCK_DGRAM = 2
-    var udp_fd = socket_sys(AF_INET, SOCK_DGRAM, 0)
+    var udp_fd = socket_sys(new BigInt(0, AF_INET), new BigInt(0, SOCK_DGRAM), new BigInt(0, 0))
 
     if (udp_fd instanceof BigInt) {
       udp_fd = udp_fd.lo
@@ -81,7 +81,7 @@ function get_local_ip () {
     mem.view(remote_addr).setUint16(2, htons(53), false)
     mem.view(remote_addr).setUint32(4, 0x08080808, false)
 
-    connect_sys(udp_fd, remote_addr, 16)
+    connect_sys(udp_fd, remote_addr, new BigInt(0, 16))
 
     var local_addr = mem.malloc(16)
     var addrlen = mem.malloc(4)
@@ -123,7 +123,7 @@ function htons (port) {
 }
 
 function new_tcp_socket () {
-  var sd = socket_sys(AF_INET, SOCK_STREAM, 0)
+  var sd = socket_sys(new BigInt(0, AF_INET), new BigInt(0, SOCK_STREAM), new BigInt(0, 0))
 
   if (sd instanceof BigInt) {
     if (sd.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
@@ -148,7 +148,7 @@ function send_response (client_fd, code, message) {
   }
   mem.view(buf).setUint8(response.length, 0)
 
-  write_sys(client_fd, buf, response.length)
+  write_sys(client_fd, buf, new BigInt(0, response.length))
 }
 
 function read_line (client_fd) {
@@ -157,7 +157,7 @@ function read_line (client_fd) {
   var total = 0
 
   while (total < 1023) {
-    var ret = read_sys(client_fd, buf.add(new BigInt(0, total)), 1)
+    var ret = read_sys(client_fd, buf.add(new BigInt(0, total)), new BigInt(0, 1))
 
     if (ret instanceof BigInt) {
       if (ret.eq(new BigInt(0, 0)) || ret.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
@@ -181,10 +181,24 @@ function read_line (client_fd) {
 }
 
 function build_path (base, path) {
+  var result
   if (path.charAt(0) === '/') {
-    return FTP_ROOT + path
+    result = FTP_ROOT + path
+  } else {
+    result = base + '/' + path
   }
-  return base + '/' + path
+
+  // Remove trailing slashes (except for root)
+  while (result.length > 1 && result.charAt(result.length - 1) === '/') {
+    result = result.substring(0, result.length - 1)
+  }
+
+  // Fix double slashes
+  while (result.indexOf('//') !== -1) {
+    result = result.replace('//', '/')
+  }
+
+  return result
 }
 
 function format_file_mode (mode) {
@@ -214,20 +228,20 @@ function create_pasv_socket () {
 
   var enable = mem.malloc(4)
   mem.view(enable).setUint32(0, 1, true)
-  setsockopt_sys(data_fd, SOL_SOCKET, SO_REUSEADDR, enable, 4)
+  setsockopt_sys(data_fd, new BigInt(0, SOL_SOCKET), new BigInt(0, SO_REUSEADDR), enable, new BigInt(0, 4))
 
   var data_addr = mem.malloc(16)
   mem.view(data_addr).setUint8(1, AF_INET)
   mem.view(data_addr).setUint16(2, 0, false)
   mem.view(data_addr).setUint32(4, 0, false)
 
-  var ret = bind_sys(data_fd, data_addr, 16)
+  var ret = bind_sys(data_fd, data_addr, new BigInt(0, 16))
   if (ret instanceof BigInt && ret.lo !== 0 && ret.hi !== 0xFFFFFFFF) {
     close_sys(data_fd)
     return null
   }
 
-  ret = listen_sys(data_fd, 1)
+  ret = listen_sys(data_fd, new BigInt(0, 1))
   if (ret instanceof BigInt && ret.lo !== 0 && ret.hi !== 0xFFFFFFFF) {
     close_sys(data_fd)
     return null
@@ -249,13 +263,27 @@ function create_pasv_socket () {
 }
 
 function accept_data_connection (pasv_fd) {
-  var client_ret = accept_sys(pasv_fd, 0, 0)
-  var client_fd = client_ret instanceof BigInt ? client_ret.lo : client_ret
+  log('[FTP] accept_data_connection: waiting on pasv_fd=' + pasv_fd)
+  var client_ret = accept_sys(pasv_fd, new BigInt(0, 0), new BigInt(0, 0))
+  log('[FTP] accept_sys returned: ' + (client_ret instanceof BigInt ? client_ret.toString() : client_ret))
 
-  if (client_fd < 0) {
-    return -1
+  // Check for error: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+  var client_fd
+  if (client_ret instanceof BigInt) {
+    if (client_ret.hi === 0xFFFFFFFF || client_ret.lo >= 0x80000000) {
+      log('[FTP] accept_data_connection: FAILED (BigInt error)')
+      return -1
+    }
+    client_fd = client_ret.lo
+  } else {
+    client_fd = client_ret
+    if (client_fd < 0) {
+      log('[FTP] accept_data_connection: FAILED, fd=' + client_fd)
+      return -1
+    }
   }
 
+  log('[FTP] accept_data_connection: SUCCESS, data_fd=' + client_fd)
   return client_fd
 }
 
@@ -319,47 +347,41 @@ function handle_cwd (client_fd, args, state) {
   }
   mem.view(path_str).setUint8(new_path.length, 0)
 
-  var fd = fn.open(path_str, O_RDONLY, 0)
-  if (fd instanceof BigInt) {
-    fd = fd.lo
+  // Check if path exists and is a directory using stat
+  var statbuf = mem.malloc(144)
+  var stat_ret = stat_sys(path_str, statbuf)
+
+  log('[FTP] CWD: stat returned ' + (stat_ret instanceof BigInt ? stat_ret.toString() : stat_ret))
+
+  // Check stat return - 0 means success
+  var stat_ok = false
+  if (stat_ret instanceof BigInt) {
+    stat_ok = stat_ret.eq(new BigInt(0, 0))
+  } else {
+    stat_ok = (stat_ret === 0)
   }
 
-  if (fd < 0) {
-    var last_slash = new_path.lastIndexOf('/')
-    if (last_slash > 0) {
-      var filename = new_path.substring(last_slash + 1)
-
-      if (filename.indexOf('.') > 0 || filename.length > 0) {
-        var parent_dir = new_path.substring(0, last_slash)
-        if (parent_dir === '') parent_dir = '/'
-
-        var parent_str = mem.malloc(parent_dir.length + 1)
-        for (var i = 0; i < parent_dir.length; i++) {
-          mem.view(parent_str).setUint8(i, parent_dir.charCodeAt(i))
-        }
-        mem.view(parent_str).setUint8(parent_dir.length, 0)
-
-        var parent_fd = fn.open(parent_str, O_RDONLY, 0)
-        if (parent_fd instanceof BigInt) {
-          parent_fd = parent_fd.lo
-        }
-
-        if (parent_fd >= 0) {
-          fn.close(parent_fd)
-          state.cwd = parent_dir
-          send_response(client_fd, '250', 'Requested file action okay, completed')
-          return
-        }
-      }
-    }
-
-    send_response(client_fd, '550', 'Invalid directory')
+  if (!stat_ok) {
+    // Path doesn't exist
+    log('[FTP] CWD: stat failed, path not found')
+    send_response(client_fd, '550', 'Directory not found')
     return
   }
 
-  fn.close(fd)
+  // st_mode is at offset 8 on PS4 (verified from debug output)
+  var mode = mem.view(statbuf).getUint16(8, true)
+  log('[FTP] CWD: mode=' + mode.toString(16) + ' (mode & S_IFMT)=' + (mode & S_IFMT).toString(16))
+
+  if ((mode & S_IFMT) !== S_IFDIR) {
+    // It's a file, not a directory
+    log('[FTP] CWD: not a directory')
+    send_response(client_fd, '550', 'Not a directory')
+    return
+  }
+
   state.cwd = new_path
-  send_response(client_fd, '250', 'Requested file action okay, completed')
+  log('[FTP] CWD: success, new cwd=' + new_path)
+  send_response(client_fd, '250', 'Directory changed')
 }
 
 function handle_cdup (client_fd, args, state) {
@@ -372,12 +394,15 @@ function handle_type (client_fd, args, state) {
 }
 
 function handle_pasv (client_fd, args, state) {
+  log('[FTP] PASV: creating passive socket')
   var pasv = create_pasv_socket()
   if (!pasv) {
+    log('[FTP] PASV: failed to create passive socket')
     send_response(client_fd, '425', 'Cannot open passive connection')
     return
   }
 
+  log('[FTP] PASV: created socket fd=' + pasv.fd + ', port=' + pasv.port)
   state.pasv_fd = pasv.fd
   state.pasv_port = pasv.port
 
@@ -405,22 +430,26 @@ function handle_pasv (client_fd, args, state) {
 }
 
 function handle_list (client_fd, args, state) {
+  log('[FTP] LIST: args=' + args + ', pasv_fd=' + state.pasv_fd)
   if (!state.pasv_fd || state.pasv_fd < 0) {
     send_response(client_fd, '425', 'Use PASV first')
     return
   }
 
   var path = state.cwd === '/' ? '/' : state.cwd
+  log('[FTP] LIST: path=' + path)
 
   send_response(client_fd, '150', 'Opening ASCII mode data connection for file list')
 
   var data_fd = accept_data_connection(state.pasv_fd)
   if (data_fd < 0) {
+    log('[FTP] LIST: data connection failed')
     send_response(client_fd, '426', 'Connection closed; transfer aborted')
     close_sys(state.pasv_fd)
     state.pasv_fd = -1
     return
   }
+  log('[FTP] LIST: data connection established, fd=' + data_fd)
 
   var path_str = mem.malloc(path.length + 1)
   for (var i = 0; i < path.length; i++) {
@@ -429,23 +458,43 @@ function handle_list (client_fd, args, state) {
   mem.view(path_str).setUint8(path.length, 0)
 
   var dir_fd = fn.open(path_str, O_RDONLY)
+  log('[FTP] LIST: fn.open returned ' + (dir_fd instanceof BigInt ? dir_fd.toString() : dir_fd))
+
+  // Check for error: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+  var open_ok = true
   if (dir_fd instanceof BigInt) {
-    dir_fd = dir_fd.lo
+    if (dir_fd.hi === 0xFFFFFFFF || dir_fd.lo >= 0x80000000) {
+      open_ok = false
+      log('[FTP] LIST: fn.open failed (BigInt error)')
+    } else {
+      dir_fd = dir_fd.lo
+    }
+  } else if (dir_fd < 0) {
+    open_ok = false
   }
 
-  if (dir_fd >= 0) {
+  if (open_ok && dir_fd >= 0) {
     var dirent_buf = mem.malloc(1024)
 
     while (true) {
-      var ret = getdents_sys(dir_fd, dirent_buf, 1024)
+      var ret = getdents_sys(dir_fd, dirent_buf, new BigInt(0, 1024))
+
+      // Check for error: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+      var bytes_read = 0
       if (ret instanceof BigInt) {
-        ret = ret.lo
+        if (ret.hi === 0xFFFFFFFF || ret.lo >= 0x80000000) {
+          log('[FTP] LIST: getdents error (BigInt negative)')
+          break
+        }
+        bytes_read = ret.lo
+      } else {
+        bytes_read = ret
       }
 
-      if (ret <= 0) break
+      if (bytes_read <= 0) break
 
       var offset = 0
-      while (offset < ret) {
+      while (offset < bytes_read) {
         var d_fileno = mem.view(dirent_buf).getUint32(offset, true)
         var d_reclen = mem.view(dirent_buf).getUint16(offset + 4, true)
         var d_type = mem.view(dirent_buf).getUint8(offset + 6)
@@ -462,7 +511,7 @@ function handle_list (client_fd, args, state) {
           for (var j = 0; j < line.length; j++) {
             mem.view(line_buf).setUint8(j, line.charCodeAt(j))
           }
-          write_sys(data_fd, line_buf, line.length)
+          write_sys(data_fd, line_buf, new BigInt(0, line.length))
         }
 
         offset += d_reclen
@@ -480,12 +529,14 @@ function handle_list (client_fd, args, state) {
 }
 
 function handle_retr (client_fd, args, state) {
+  log('[FTP] RETR: args=' + args + ', pasv_fd=' + state.pasv_fd)
   if (!state.pasv_fd || state.pasv_fd < 0) {
     send_response(client_fd, '425', 'Use PASV first')
     return
   }
 
   var path = build_path(state.cwd, args)
+  log('[FTP] RETR: path=' + path)
 
   var path_str = mem.malloc(path.length + 1)
   for (var i = 0; i < path.length; i++) {
@@ -494,21 +545,35 @@ function handle_retr (client_fd, args, state) {
   mem.view(path_str).setUint8(path.length, 0)
 
   var file_fd = fn.open(path_str, O_RDONLY)
+  log('[FTP] RETR: fn.open returned ' + (file_fd instanceof BigInt ? file_fd.toString() : file_fd))
+
+  // Check for error: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+  var open_failed = false
   if (file_fd instanceof BigInt) {
-    file_fd = file_fd.lo
+    if (file_fd.hi === 0xFFFFFFFF || file_fd.lo >= 0x80000000) {
+      open_failed = true
+      log('[FTP] RETR: fn.open failed (BigInt error)')
+    } else {
+      file_fd = file_fd.lo
+    }
+  } else if (file_fd < 0) {
+    open_failed = true
   }
 
-  if (file_fd < 0) {
+  if (open_failed || file_fd < 0) {
+    log('[FTP] RETR: file not found, fd=' + file_fd)
     send_response(client_fd, '550', 'File not found')
     close_sys(state.pasv_fd)
     state.pasv_fd = -1
     return
   }
 
+  log('[FTP] RETR: file opened, fd=' + file_fd)
   send_response(client_fd, '150', 'Opening BINARY mode data connection')
 
   var data_fd = accept_data_connection(state.pasv_fd)
   if (data_fd < 0) {
+    log('[FTP] RETR: data connection failed')
     send_response(client_fd, '426', 'Connection closed; transfer aborted')
     close_sys(file_fd)
     close_sys(state.pasv_fd)
@@ -518,18 +583,35 @@ function handle_retr (client_fd, args, state) {
 
   var chunk_size = 8192
   var buf = mem.malloc(chunk_size)
+  var total_bytes = 0
 
+  log('[FTP] RETR: starting transfer loop')
   while (true) {
-    var ret = fn.read(file_fd, buf, chunk_size)
+    var ret = fn.read(file_fd, buf, new BigInt(0, chunk_size))
+
+    // Check for error or EOF: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+    var bytes_read = 0
     if (ret instanceof BigInt) {
-      ret = ret.lo
+      if (ret.hi === 0xFFFFFFFF || ret.lo >= 0x80000000) {
+        log('[FTP] RETR: fn.read error (BigInt negative)')
+        break
+      }
+      bytes_read = ret.lo
+    } else {
+      bytes_read = ret
     }
 
-    if (ret <= 0) break
+    if (bytes_read <= 0) {
+      log('[FTP] RETR: read returned ' + bytes_read + ', ending loop')
+      break
+    }
 
-    write_sys(data_fd, buf, ret)
+    total_bytes += bytes_read
+    var write_ret = write_sys(data_fd, buf, new BigInt(0, bytes_read))
+    log('[FTP] RETR: read ' + bytes_read + ' bytes, write returned ' + (write_ret instanceof BigInt ? write_ret.toString() : write_ret))
   }
 
+  log('[FTP] RETR: transfer done, total=' + total_bytes + ' bytes')
   close_sys(file_fd)
   close_sys(data_fd)
   close_sys(state.pasv_fd)
@@ -539,35 +621,79 @@ function handle_retr (client_fd, args, state) {
 }
 
 function handle_stor (client_fd, args, state) {
+  log('[FTP] STOR: args=' + args + ', pasv_fd=' + state.pasv_fd)
   if (!state.pasv_fd || state.pasv_fd < 0) {
     send_response(client_fd, '425', 'Use PASV first')
     return
   }
 
-  var path = build_path(state.cwd, args)
+  // Validate filename - reject empty or directory-like paths
+  if (!args || args === '' || args === '.' || args === '..') {
+    log('[FTP] STOR: invalid filename')
+    send_response(client_fd, '553', 'Invalid filename')
+    close_sys(state.pasv_fd)
+    state.pasv_fd = -1
+    return
+  }
 
+  var path = build_path(state.cwd, args)
+  log('[FTP] STOR: path=' + path)
+
+  // Check if path already exists as a directory
   var path_str = mem.malloc(path.length + 1)
   for (var i = 0; i < path.length; i++) {
     mem.view(path_str).setUint8(i, path.charCodeAt(i))
   }
   mem.view(path_str).setUint8(path.length, 0)
 
-  var file_fd = fn.open(path_str, O_WRONLY | O_CREAT | O_TRUNC, 0o666)
-  if (file_fd instanceof BigInt) {
-    file_fd = file_fd.lo
+  var statbuf = mem.malloc(144)
+  var stat_ret = stat_sys(path_str, statbuf)
+  if (stat_ret instanceof BigInt && stat_ret.eq(new BigInt(0, 0))) {
+    var mode = mem.view(statbuf).getUint16(8, true)
+    if ((mode & S_IFMT) === S_IFDIR) {
+      log('[FTP] STOR: path is a directory, refusing')
+      send_response(client_fd, '550', 'Cannot overwrite directory')
+      close_sys(state.pasv_fd)
+      state.pasv_fd = -1
+      return
+    }
+    // File exists - delete it first to avoid overwrite issues
+    log('[FTP] STOR: file exists, deleting first')
+    var unlink_ret = unlink_sys(path_str)
+    log('[FTP] STOR: unlink returned ' + (unlink_ret instanceof BigInt ? unlink_ret.toString() : unlink_ret))
   }
 
-  if (file_fd < 0) {
+  log('[FTP] STOR: calling fn.open with flags=' + (O_WRONLY | O_CREAT) + ', mode=0o666')
+  var file_fd = fn.open(path_str, new BigInt(0, O_WRONLY | O_CREAT), new BigInt(0, 0o666))
+  log('[FTP] STOR: fn.open returned ' + (file_fd instanceof BigInt ? file_fd.toString() : file_fd))
+
+  // Check for error: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF
+  var open_failed = false
+  if (file_fd instanceof BigInt) {
+    if (file_fd.hi === 0xFFFFFFFF || file_fd.lo >= 0x80000000) {
+      open_failed = true
+      log('[FTP] STOR: fn.open failed (BigInt error)')
+    } else {
+      file_fd = file_fd.lo
+    }
+  } else if (file_fd < 0) {
+    open_failed = true
+  }
+
+  if (open_failed || file_fd < 0) {
+    log('[FTP] STOR: cannot create file, fd=' + file_fd)
     send_response(client_fd, '550', 'Cannot create file')
     close_sys(state.pasv_fd)
     state.pasv_fd = -1
     return
   }
 
+  log('[FTP] STOR: file created, fd=' + file_fd)
   send_response(client_fd, '150', 'Opening BINARY mode data connection')
 
   var data_fd = accept_data_connection(state.pasv_fd)
   if (data_fd < 0) {
+    log('[FTP] STOR: data connection failed')
     send_response(client_fd, '426', 'Connection closed; transfer aborted')
     close_sys(file_fd)
     close_sys(state.pasv_fd)
@@ -577,18 +703,40 @@ function handle_stor (client_fd, args, state) {
 
   var chunk_size = 8192
   var buf = mem.malloc(chunk_size)
+  var total_bytes = 0
 
+  log('[FTP] STOR: starting transfer loop, data_fd=' + data_fd + ', file_fd=' + file_fd)
+  var loop_count = 0
   while (true) {
-    var ret = read_sys(data_fd, buf, chunk_size)
+    loop_count++
+    log('[FTP] STOR: loop ' + loop_count + ' - calling read_sys...')
+    var ret = read_sys(data_fd, buf, new BigInt(0, chunk_size))
+    log('[FTP] STOR: loop ' + loop_count + ' - read_sys returned: ' + (ret instanceof BigInt ? ret.toString() : ret))
+
+    // Check for error or EOF: -1 as BigInt is 0xFFFFFFFF:0xFFFFFFFF, 0 means EOF
+    var bytes_read = 0
     if (ret instanceof BigInt) {
-      ret = ret.lo
+      if (ret.hi === 0xFFFFFFFF || ret.lo >= 0x80000000) {
+        log('[FTP] STOR: read_sys error (BigInt negative)')
+        break
+      }
+      bytes_read = ret.lo
+    } else {
+      bytes_read = ret
     }
 
-    if (ret <= 0) break
+    if (bytes_read <= 0) {
+      log('[FTP] STOR: read returned ' + bytes_read + ', ending loop (EOF or error)')
+      break
+    }
 
-    fn.write(file_fd, buf, ret)
+    log('[FTP] STOR: loop ' + loop_count + ' - calling fn.write with ' + bytes_read + ' bytes...')
+    total_bytes += bytes_read
+    var write_ret = fn.write(file_fd, buf, new BigInt(0, bytes_read))
+    log('[FTP] STOR: loop ' + loop_count + ' - fn.write returned ' + (write_ret instanceof BigInt ? write_ret.toString() : write_ret))
   }
 
+  log('[FTP] STOR: transfer done, total=' + total_bytes + ' bytes')
   close_sys(file_fd)
   close_sys(data_fd)
   close_sys(state.pasv_fd)
@@ -711,6 +859,36 @@ function handle_noop (client_fd, args, state) {
   send_response(client_fd, '200', 'OK')
 }
 
+function handle_feat (client_fd, args, state) {
+  // Send feature list - minimal set
+  var response = '211-Features:\r\n PASV\r\n SIZE\r\n UTF8\r\n211 End\r\n'
+  var buf = mem.malloc(response.length + 1)
+  for (var i = 0; i < response.length; i++) {
+    mem.view(buf).setUint8(i, response.charCodeAt(i))
+  }
+  write_sys(client_fd, buf, new BigInt(0, response.length))
+}
+
+function handle_mdtm (client_fd, args, state) {
+  // Return a fake modification time - just indicates file exists
+  var path = build_path(state.cwd, args)
+  var path_str = mem.malloc(path.length + 1)
+  for (var i = 0; i < path.length; i++) {
+    mem.view(path_str).setUint8(i, path.charCodeAt(i))
+  }
+  mem.view(path_str).setUint8(path.length, 0)
+
+  var statbuf = mem.malloc(144)
+  var ret = stat_sys(path_str, statbuf)
+
+  if (ret instanceof BigInt && ret.eq(new BigInt(0, 0))) {
+    // File exists - return a timestamp (format: YYYYMMDDhhmmss)
+    send_response(client_fd, '213', '20240101000000')
+  } else {
+    send_response(client_fd, '550', 'File not found')
+  }
+}
+
 function handle_client (client_fd, client_num) {
   var state = {
     cwd: '/',
@@ -731,6 +909,8 @@ function handle_client (client_fd, client_num) {
       var parts = line.split(' ')
       var cmd = parts[0].toUpperCase()
       var args = parts.slice(1).join(' ')
+
+      log('[FTP] CMD: ' + cmd + ' ' + args)
 
       if (cmd === 'USER') {
         handle_user(client_fd, args, state)
@@ -768,6 +948,10 @@ function handle_client (client_fd, client_num) {
         handle_size(client_fd, args, state)
       } else if (cmd === 'NOOP') {
         handle_noop(client_fd, args, state)
+      } else if (cmd === 'FEAT') {
+        handle_feat(client_fd, args, state)
+      } else if (cmd === 'MDTM') {
+        handle_mdtm(client_fd, args, state)
       } else if (cmd === 'QUIT') {
         handle_quit(client_fd, args, state)
         running = false
@@ -790,14 +974,14 @@ function start_ftp_server () {
 
     var enable = mem.malloc(4)
     mem.view(enable).setUint32(0, 1, true)
-    setsockopt_sys(server_fd, SOL_SOCKET, SO_REUSEADDR, enable, 4)
+    setsockopt_sys(server_fd, new BigInt(0, SOL_SOCKET), new BigInt(0, SO_REUSEADDR), enable, new BigInt(0, 4))
 
     var server_addr = mem.malloc(16)
     mem.view(server_addr).setUint8(1, AF_INET)
     mem.view(server_addr).setUint16(2, htons(FTP_PORT), false)
     mem.view(server_addr).setUint32(4, 0, false)
 
-    var ret = bind_sys(server_fd, server_addr, 16)
+    var ret = bind_sys(server_fd, server_addr, new BigInt(0, 16))
     if (ret instanceof BigInt && ret.lo !== 0 && ret.hi !== 0xFFFFFFFF) {
       throw new Error('bind() failed')
     }
@@ -813,7 +997,7 @@ function start_ftp_server () {
 
     var actual_port = mem.view(actual_addr).getUint16(2, false)
 
-    ret = listen_sys(server_fd, MAX_CLIENTS)
+    ret = listen_sys(server_fd, new BigInt(0, MAX_CLIENTS))
     if (ret instanceof BigInt && ret.lo !== 0 && ret.hi !== 0xFFFFFFFF) {
       throw new Error('listen() failed')
     }
@@ -825,7 +1009,7 @@ function start_ftp_server () {
 
     var client_num = 0
     while (true) {
-      var client_ret = accept_sys(server_fd, 0, 0)
+      var client_ret = accept_sys(server_fd, new BigInt(0, 0), new BigInt(0, 0))
       var client_fd = client_ret instanceof BigInt ? client_ret.lo : client_ret
 
       if (client_fd < 0) {
