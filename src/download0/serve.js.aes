@@ -233,7 +233,7 @@ try {
     }
     
     if(CONFIG.autolapse){  include('loader.js')  }
-    if(CONFIG.autopoop){  include('netctrl_c0w_twins.js')  }
+    if(CONFIG.autopoop && psn.mainUser.signedIn){  include('netctrl_c0w_twins.js')  } //failsafe so poopsploit users dont get stuck 
     
     include('main-menu.js')
     
