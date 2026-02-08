@@ -106,49 +106,63 @@ import { lang, useImageText, textImageBase } from 'download0/languages'
   fn.register(0x06, 'close_sys', ['bigint'], 'bigint')
   fn.register(0x110, 'getdents', ['bigint', 'bigint', 'bigint'], 'bigint')
 
-  log('Scanning /download0/payloads for files...')
-  const path_addr = mem.malloc(256)
-  for (let i = 0; i < '/download0/payloads'.length; i++) {
-    mem.view(path_addr).setUint8(i, '/download0/payloads'.charCodeAt(i))
+  let scanPaths = ['/download0/payloads'];
+
+  if (is_jailbroken) {
+    log('Jailbreak detected. Adding USB and data paths...');
+    scanPaths.push(
+      '/data/payloads',
+      '/mnt/usb0/payloads',
+      '/mnt/usb1/payloads',
+      '/mnt/usb2/payloads',
+      '/mnt/usb3/payloads',
+      '/mnt/usb4/payloads'
+    );
   }
-  mem.view(path_addr).setUint8('/download0/payloads'.length, 0)
 
-  const fd = fn.open_sys(path_addr, new BigInt(0, 0), new BigInt(0, 0))
-  log('open_sys returned: ' + fd.toString())
+  const path_addr = mem.malloc(256)
+  const buf = mem.malloc(4096)
 
-  if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
-    const buf = mem.malloc(4096)
-    const count = fn.getdents(fd, buf, new BigInt(0, 4096))
-    log('getdents returned: ' + count.toString() + ' bytes')
+  for (let p = 0; p < scanPaths.length; p++) {
+    const currentPath = scanPaths[p];
+    log('Scanning ' + currentPath + ' for files...');
 
-    if (!count.eq(new BigInt(0xffffffff, 0xffffffff)) && count.lo > 0) {
-      let offset = 0
-      while (offset < count.lo) {
-        const d_reclen = mem.view(buf.add(new BigInt(0, offset + 4))).getUint16(0, true)
-        const d_type = mem.view(buf.add(new BigInt(0, offset + 6))).getUint8(0)
-        const d_namlen = mem.view(buf.add(new BigInt(0, offset + 7))).getUint8(0)
-
-        let name = ''
-        for (let i = 0; i < d_namlen; i++) {
-          name += String.fromCharCode(mem.view(buf.add(new BigInt(0, offset + 8 + i))).getUint8(0))
-        }
-
-        log('Entry: ' + name + ' type=' + d_type + ' namlen=' + d_namlen)
-
-        if (d_type === 8 && name !== '.' && name !== '..') {
-          const lowerName = name.toLowerCase()
-          if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
-            fileList.push(name)
-            log('Added file: ' + name)
-          }
-        }
-
-        offset += d_reclen
-      }
+    for (let i = 0; i < currentPath.length; i++) {
+      mem.view(path_addr).setUint8(i, currentPath.charCodeAt(i))
     }
-    fn.close_sys(fd)
-  } else {
-    log('Failed to open /download0/payloads')
+    mem.view(path_addr).setUint8(currentPath.length, 0)
+
+    const fd = fn.open_sys(path_addr, new BigInt(0, 0), new BigInt(0, 0))
+    
+    if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
+      const count = fn.getdents(fd, buf, new BigInt(0, 4096))
+      
+      if (!count.eq(new BigInt(0xffffffff, 0xffffffff)) && count.lo > 0) {
+        let offset = 0
+        while (offset < count.lo) {
+          const d_reclen = mem.view(buf.add(new BigInt(0, offset + 4))).getUint16(0, true)
+          const d_type = mem.view(buf.add(new BigInt(0, offset + 6))).getUint8(0)
+          const d_namlen = mem.view(buf.add(new BigInt(0, offset + 7))).getUint8(0)
+
+          let name = ''
+          for (let i = 0; i < d_namlen; i++) {
+            name += String.fromCharCode(mem.view(buf.add(new BigInt(0, offset + 8 + i))).getUint8(0))
+          }
+
+          if (d_type === 8 && name !== '.' && name !== '..') {
+            const lowerName = name.toLowerCase()
+            if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
+              fileList.push(name) 
+              log('Found file in ' + currentPath + ': ' + name)
+            }
+          }
+          offset += d_reclen
+        }
+      }
+      fn.close_sys(fd)
+    } else {
+      log('Failed to open ' + currentPath)
+    }
   }
 
   log('Total files found: ' + fileList.length)
