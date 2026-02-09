@@ -29,19 +29,16 @@ jobs:
 
       - name: Copy assets to dist
         run: |
-          # إنشاء المجلدات اللازمة في dist
           mkdir -p dist/download0/payloads
           mkdir -p dist/download0/img
           mkdir -p dist/download0/sfx
           mkdir -p dist/download0/vid
           
-          # نسخ ملفات payloads (elf و bin) إذا وجدت
           if [ -d "src/download0/payloads" ]; then
             cp src/download0/payloads/*.elf dist/download0/payloads/ 2>/dev/null || true
             cp src/download0/payloads/*.bin dist/download0/payloads/ 2>/dev/null || true
           fi
           
-          # نسخ بقية الأصول
           cp -r src/download0/img/* dist/download0/img/ 2>/dev/null || true
           cp -r src/download0/sfx/* dist/download0/sfx/ 2>/dev/null || true
           cp -r src/download0/vid/* dist/download0/vid/ 2>/dev/null || true
