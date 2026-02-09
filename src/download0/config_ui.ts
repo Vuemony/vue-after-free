@@ -42,11 +42,13 @@ if (typeof lang === 'undefined') {
     autopoop: boolean
     autoclose: boolean
     jb_behavior: number
+    notificationsInsteadOfImages: boolean
   } = {
     autolapse: false,
     autopoop: false,
     autoclose: false,
-    jb_behavior: 0
+    jb_behavior: 0,
+    notificationsInsteadOfImages: false
   }
 
   // Store user's payloads so we don't overwrite them
@@ -151,6 +153,7 @@ if (typeof lang === 'undefined') {
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
     { key: 'autoclose', label: lang.autoClose, imgKey: 'autoClose', type: 'toggle' },
+    { key: 'notificationsInsteadOfImages', label: lang.notificationsInsteadOfImages, imgKey: 'notificationsInsteadOfImages', type: 'toggle' },
     { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' }
   ]
 

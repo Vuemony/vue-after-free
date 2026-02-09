@@ -1,4 +1,5 @@
 import { fn, BigInt, syscalls, gadgets, mem, rop, utils } from 'download0/types'
+import { CONFIG } from 'download0/config'
 import { kernel, apply_kernel_patches, hex, malloc, read16, read32, read64, read8, write16, write32, write64, write8, get_fwversion, send_notification, get_kernel_offset, get_mmap_patch_offsets } from 'download0/kernel'
 import { libc_addr } from 'download0/userland'
 
@@ -2146,20 +2147,8 @@ function cleanup () {
 
 function cleanup_fail () {
   utils.notify('Lapse Failed! reboot and try again! UwU')
-  jsmaf.root.children.push(bg_fail)
-  cleanup()
-
-  const oldOnKeyDown = jsmaf.onKeyDown
-  jsmaf.onKeyDown = function (keyCode) {
-    if (keyCode === 13 || keyCode === 15 || keyCode === 12 || keyCode === 3 || keyCode === 14) {
-      for (let i = jsmaf.root.children.length - 1; i >= 0; i--) {
-        if (jsmaf.root.children[i] === bg_fail) {
-          jsmaf.root.children.splice(i, 1)
-        }
-      }
-      jsmaf.onKeyDown = oldOnKeyDown
-      return
-    }
-    if (oldOnKeyDown) oldOnKeyDown(keyCode)
+  if (!CONFIG.notificationsInsteadOfImages) {
+    jsmaf.root.children.push(bg_fail)
   }
+  cleanup()
 }

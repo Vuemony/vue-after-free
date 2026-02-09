@@ -14,6 +14,7 @@ export const lang: Record<string, string> = {
   jbBehaviorAuto: 'Auto Detect',
   jbBehaviorNetctrl: 'NetControl',
   jbBehaviorLapse: 'Lapse',
+  notificationsInsteadOfImages: 'Notifications instead of images',
   totalAttempts: 'Total Attempts: ',
   successes: 'Successes: ',
   failures: 'Failures: ',
@@ -315,6 +316,7 @@ switch (detectedLocale) {
     lang.jbBehaviorAuto = 'كشف تلقائي'
     lang.jbBehaviorNetctrl = 'NetControl'
     lang.jbBehaviorLapse = 'Lapse'
+    lang.notificationsInsteadOfImages = 'إشعارات بدلاً من الصور'
     lang.totalAttempts = 'اجمالي المحاولات: '
     lang.successes = 'النجاحات: '
     lang.failures = 'الاخفاقات: '

@@ -97,25 +97,6 @@ try {
         //61 = right stick down
         //62 = right stick left
 
-        var isShowingOverlay = false;
-        for (var i = 0; i < jsmaf.root.children.length; i++) {
-            if (jsmaf.root.children[i] === bg_success || jsmaf.root.children[i] === bg_fail) {
-                isShowingOverlay = true;
-                break;
-            }
-        }
-
-        if (isShowingOverlay) {
-            if (keyCode === 13 || keyCode === 15 || keyCode === 12 || keyCode === 3 || keyCode === 14) {
-                for (var i = jsmaf.root.children.length - 1; i >= 0; i--) {
-                    if (jsmaf.root.children[i] === bg_success || jsmaf.root.children[i] === bg_fail) {
-                        jsmaf.root.children.splice(i, 1);
-                    }
-                }
-                return;
-            }
-        }
-
         //cross pressed
         if (keyCode === 14) {
             if(!jsmaf.circleIsAdvanceButton) {
