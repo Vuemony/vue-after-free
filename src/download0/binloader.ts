@@ -738,7 +738,7 @@ export function binloader_init () {
         } else {
           log('Warning: Failed to update internal GoldHEN, running from USB')
         }
-        
+
         // Also copy to /data/payload.bin for other tools
         bl_copy_file(usb_path, DATA_PAYLOAD_PATH)
 
@@ -751,10 +751,10 @@ export function binloader_init () {
     const internal_size = bl_file_exists(INTERNAL_GOLDHEN_PATH)
     if (internal_size > 0) {
       log('Found internal GoldHEN: ' + INTERNAL_GOLDHEN_PATH + ' (' + internal_size + ' bytes)')
-      
+
       // Copy to /data/payload.bin silently (no notification)
       bl_copy_file(INTERNAL_GOLDHEN_PATH, DATA_PAYLOAD_PATH)
-      
+
       // Load the internal file
       return bl_load_from_file(INTERNAL_GOLDHEN_PATH, false)
     }
