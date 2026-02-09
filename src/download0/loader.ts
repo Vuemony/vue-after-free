@@ -4,7 +4,6 @@ import { fn, mem, BigInt, utils } from 'download0/types'
 import { sysctlbyname } from 'download0/kernel'
 import { lapse } from 'download0/lapse'
 import { binloader_init } from 'download0/binloader'
-import { checkJailbroken } from 'download0/check-jailbroken'
 
 // Load binloader first (just defines the function, doesn't execute)
 
@@ -31,7 +30,42 @@ const audio = new jsmaf.AudioClip()
 audio.volume = 0.5  // 50% volume
 audio.open('file://../download0/sfx/bgm.wav')
 
-const is_jailbroken = checkJailbroken()
+function isJailbroken () {
+  // Register syscalls
+  fn.register(24, 'getuid', [], 'bigint')
+  fn.register(23, 'setuid', ['number'], 'bigint')
+
+  // Get current UID
+  const uid_before = fn.getuid()
+  const uid_before_val = (uid_before instanceof BigInt) ? uid_before.lo : uid_before
+  log('UID before setuid: ' + uid_before_val)
+
+  // Try to set UID to 0 (root) - catch EPERM if not jailbroken
+  log('Attempting setuid(0)...')
+
+  try {
+    const setuid_result = fn.setuid(0)
+    const setuid_ret = (setuid_result instanceof BigInt) ? setuid_result.lo : setuid_result
+    log('setuid returned: ' + setuid_ret)
+  } catch (e) {
+    log('setuid threw exception: ' + (e as Error).toString())
+  }
+
+  // Get UID after setuid attempt
+  const uid_after = fn.getuid()
+  const uid_after_val = (uid_after instanceof BigInt) ? uid_after.lo : uid_after
+  log('UID after setuid: ' + uid_after_val)
+
+  if (uid_after_val === 0) {
+    log('already jailbroke')
+    return true
+  } else {
+    log('not jailbroken')
+    return false
+  }
+}
+
+const is_jailbroken = isJailbroken()
 
 // Check if exploit has completed successfully
 function is_exploit_complete () {

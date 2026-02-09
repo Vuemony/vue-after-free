@@ -58,9 +58,7 @@ const kpatch_mmap_offsets: Record<string, [number, number]> = {
   11.02: [0x15628a, 0x15628d],
   '11.50': [0x1fa63a, 0x1fa63d],
   '12.00': [0x1fa71a, 0x1fa71d],
-  '12.50': [0x1fa75a, 0x1fa75d],
-  '13.00': [0x1fa77a, 0x1fa77d],
-  13.02: [0x1fa78a, 0x1fa78d],
+  // TODO: add mmap offsets for 12.50, 12.52, 13.00
 }
 
 const shellcode_fw_map = {
@@ -123,8 +121,6 @@ export function get_mmap_patch_offsets (fw_version: string): [number, number] | 
   else if (fw_version === '10.70' || fw_version === '10.71') lookup = '10.50'
   else if (fw_version === '11.52') lookup = '11.50'
   else if (fw_version === '12.02') lookup = '12.00'
-  else if (fw_version === '12.52') lookup = '12.50'
-  else if (fw_version === '13.04') lookup = '13.02'
 
   return kpatch_mmap_offsets[lookup as keyof typeof kpatch_mmap_offsets] || null
 }

@@ -109,6 +109,7 @@ export function binloader_init () {
     '/mnt/usb4/payload.bin'
   ]
   const DATA_PAYLOAD_PATH = '/data/payload.bin'
+  const INTERNAL_GOLDHEN_PATH = '/download0/payloads/goldhen.bin'
 
   // S_ISREG macro check - file type is regular file
   const S_IFREG = 0x8000
@@ -158,6 +159,19 @@ export function binloader_init () {
 
   // Helper: Check if file exists using stat() and return size, or -1 if not found
   function bl_file_exists (path: string) {
+    // Try to resolve /download0/ to real path if needed
+    if (path.startsWith('/download0/')) {
+      const altPath = '/mnt/sandbox/download/CUSA00960' + path
+      const path_addr_alt = bl_alloc_string(altPath)
+      const stat_buf_alt = mem.malloc(0x78)
+      try {
+        const ret_alt = stat_sys(path_addr_alt, stat_buf_alt)
+        if (!bl_is_error(ret_alt)) {
+          path = altPath
+        }
+      } catch (e) {}
+    }
+
     log('Checking: ' + path)
     const path_addr = bl_alloc_string(path)
     const stat_buf = mem.malloc(0x78)
@@ -295,6 +309,13 @@ export function binloader_init () {
 
   // Copy file from src to dst
   function bl_copy_file (src_path: string, dst_path: string) {
+    // Resolve src_path if needed
+    if (src_path.startsWith('/download0/')) {
+      const altPath = '/mnt/sandbox/download/CUSA00960' + src_path
+      if (bl_get_file_size_stat(altPath) > 0) {
+        src_path = altPath
+      }
+    }
     log('Copying ' + src_path + ' -> ' + dst_path)
 
     const data = bl_read_file(src_path)
@@ -586,6 +607,13 @@ export function binloader_init () {
 
   // Load and run payload from file
   function bl_load_from_file (path: string, skip_autoclose: boolean = true) {
+    // Fix path for PS4 sandbox if needed
+    if (path.startsWith('/download0/')) {
+      const altPath = '/mnt/sandbox/download/CUSA00960' + path
+      if (bl_file_exists(altPath) > 0) {
+        path = altPath
+      }
+    }
     log('Loading payload from: ' + path)
 
     const payload = bl_read_file(path)
@@ -695,50 +723,52 @@ export function binloader_init () {
   function bin_loader_main () {
     log('=== PS4 Payload Loader ===')
 
-    if (typeof payloads !== 'undefined') {
-      for (const payload of payloads) {
-        log('Loading payload: ' + payload)
-        if (bl_file_exists(payload)) {
-          bl_load_from_file(payload, true)
-        } else {
-          log(payload + ' not found!')
-        }
-      }
-    }
-
-    if (lapse_ran) {
-      bl_load_from_file('/mnt/sandbox/download/CUSA00960/payloads/aiofix_network.elf', true)
-    }
-    // Priority 1: Check for USB payload on usb0-usb4 (like BD-JB does)
+    // Priority 1: Check for USB payload (Update feature)
     for (const usb_path of USB_PAYLOAD_PATHS) {
       const usb_size = bl_file_exists(usb_path)
 
       if (usb_size > 0) {
         log('Found USB payload: ' + usb_path + ' (' + usb_size + ' bytes)')
-        utils.notify('USB payload found!\nCopying to /data...')
+        utils.notify('USB payload found!\nUpdating GoldHEN...')
 
-        // Copy USB payload to /data for future use
-        if (bl_copy_file(usb_path, DATA_PAYLOAD_PATH)) {
-          log('Copied to ' + DATA_PAYLOAD_PATH)
+        // Copy USB payload to internal path
+        if (bl_copy_file(usb_path, INTERNAL_GOLDHEN_PATH)) {
+          log('Updated ' + INTERNAL_GOLDHEN_PATH)
+          utils.notify('GoldHEN updated successfully!')
         } else {
-          log('Warning: Failed to copy to /data, running from USB')
+          log('Warning: Failed to update internal GoldHEN, running from USB')
         }
+        
+        // Also copy to /data/payload.bin for other tools
+        bl_copy_file(usb_path, DATA_PAYLOAD_PATH)
 
         // Load from USB
         return bl_load_from_file(usb_path, false)
       }
     }
 
-    // Priority 2: Check for cached /data payload
+    // Priority 2: Check for internal GoldHEN
+    const internal_size = bl_file_exists(INTERNAL_GOLDHEN_PATH)
+    if (internal_size > 0) {
+      log('Found internal GoldHEN: ' + INTERNAL_GOLDHEN_PATH + ' (' + internal_size + ' bytes)')
+      
+      // Copy to /data/payload.bin silently (no notification)
+      bl_copy_file(INTERNAL_GOLDHEN_PATH, DATA_PAYLOAD_PATH)
+      
+      // Load the internal file
+      return bl_load_from_file(INTERNAL_GOLDHEN_PATH, false)
+    }
+
+    // Priority 3: Check if /data/payload.bin already exists (fallback)
     const data_size = bl_file_exists(DATA_PAYLOAD_PATH)
     if (data_size > 0) {
-      log('Found cached payload: ' + DATA_PAYLOAD_PATH + ' (' + data_size + ' bytes)')
+      log('Found payload in /data: ' + DATA_PAYLOAD_PATH)
       return bl_load_from_file(DATA_PAYLOAD_PATH, false)
     }
 
-    // Priority 3: Fall back to network loader
-    log('No payload file found, starting network loader')
-    utils.notify('No payload found.\nStarting network loader...')
+    // Priority 4: Fall back to network loader
+    log('No GoldHEN found, starting network loader')
+    utils.notify('GoldHEN not found.\nStarting network loader...')
     return bl_network_loader()
   }
 

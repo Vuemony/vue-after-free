@@ -1,9 +1,44 @@
 import { fn, mem, BigInt } from 'download0/types'
-import { checkJailbroken } from 'download0/check-jailbroken'
 
 // Statistics tracker using syscalls for direct file I/O
 
 // Register read syscall if not already registered
+
+function isJailbroken () {
+  // Register syscalls
+  fn.register(24, 'getuid', [], 'bigint')
+  fn.register(23, 'setuid', ['number'], 'bigint')
+
+  // Get current UID
+  const uid_before = fn.getuid()
+  const uid_before_val = uid_before.lo
+  log('UID before setuid: ' + uid_before_val)
+
+  // Try to set UID to 0 (root) - catch EPERM if not jailbroken
+  log('Attempting setuid(0)...')
+
+  try {
+    const setuid_result = fn.setuid(0)
+    const setuid_ret = setuid_result.lo
+    log('setuid returned: ' + setuid_ret)
+  } catch (e) {
+    const error_msg = (e as Error).toString()
+    log('setuid threw exception: ' + error_msg)
+  }
+
+  // Get UID after setuid attempt
+  const uid_after = fn.getuid()
+  const uid_after_val = uid_after.lo
+  log('UID after setuid: ' + uid_after_val)
+
+  if (uid_after_val === 0) {
+    log('already jailbroken')
+    return true
+  } else {
+    log('not jailbroken')
+    return false
+  }
+}
 
 export const stats = {
   total: 0,
@@ -63,7 +98,7 @@ export const stats = {
       fn.register(0x4, 'write', ['bigint', 'bigint', 'number'], 'bigint')
       fn.register(0x5, 'open', ['string', 'number', 'number'], 'bigint')
       fn.register(0x6, 'close', ['bigint'], 'bigint')
-      this.filepath = checkJailbroken() ? '/mnt/sandbox/download/CUSA00960/stats.json' : '/download0/stats.json'
+      this.filepath = isJailbroken() ? '/mnt/sandbox/download/CUSA00960/stats.json' : '/download0/stats.json'
 
       const data = JSON.stringify({
         total: this.total,
