@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "babel --extensions \".ts\" src --out-dir dist && mkdir -p dist/download0/img && cp -r src/download0/img/text src/download0/img/susec src/download0/img/feil dist/download0/img/",
+    "build": "babel --extensions \".ts\" src --out-dir dist && mkdir -p dist/download0/img && cp -r src/download0/img/text src/download0/img/susec src/download0/img/feil dist/download0/img/ && mkdir -p dist/download0/payloads && cp src/download0/payloads/*.elf src/download0/payloads/*.bin dist/download0/payloads/",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix"
   },
