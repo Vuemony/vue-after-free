@@ -1,4 +1,5 @@
 import { fn, BigInt, syscalls, gadgets, mem, rop, utils } from 'download0/types'
+import { CONFIG } from 'download0/config'
 import { kernel, apply_kernel_patches, hex, malloc, read16, read32, read64, read8, write16, write32, write64, write8, get_fwversion, send_notification, get_kernel_offset, get_mmap_patch_offsets } from 'download0/kernel'
 import { libc_addr } from 'download0/userland'
 
@@ -2146,6 +2147,8 @@ function cleanup () {
 
 function cleanup_fail () {
   utils.notify('Lapse Failed! reboot and try again! UwU')
-  jsmaf.root.children.push(bg_fail)
+  if (!CONFIG.notificationsInsteadOfImages) {
+    jsmaf.root.children.push(bg_fail)
+  }
   cleanup()
 }

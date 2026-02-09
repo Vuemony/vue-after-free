@@ -1,6 +1,7 @@
 import { libc_addr } from 'download0/userland'
 import { stats } from 'download0/stats-tracker'
 import { fn, mem, BigInt, utils } from 'download0/types'
+import { CONFIG } from 'download0/config'
 import { sysctlbyname } from 'download0/kernel'
 import { lapse } from 'download0/lapse'
 import { binloader_init } from 'download0/binloader'
@@ -25,7 +26,11 @@ log('All scripts loaded')
 stats.load()
 
 export function show_success () {
-  jsmaf.root.children.push(bg_success)
+  if (CONFIG.notificationsInsteadOfImages) {
+    utils.notify('Jailbreak Successful!')
+  } else {
+    jsmaf.root.children.push(bg_success)
+  }
   log('Logging Success...')
   stats.incrementSuccess()
 }
