@@ -106,40 +106,31 @@ try {
         }
 
         if (isShowingOverlay) {
-            switch (keyCode) {
-                case 13:
-                case 15:
-                case 12:
-                case 3:
-                case 14:
-                    for (var i = jsmaf.root.children.length - 1; i >= 0; i--) {
-                        if (jsmaf.root.children[i] === bg_success || jsmaf.root.children[i] === bg_fail) {
-                            jsmaf.root.children.splice(i, 1);
-                        }
+            if (keyCode === 13 || keyCode === 15 || keyCode === 12 || keyCode === 3 || keyCode === 14) {
+                for (var i = jsmaf.root.children.length - 1; i >= 0; i--) {
+                    if (jsmaf.root.children[i] === bg_success || jsmaf.root.children[i] === bg_fail) {
+                        jsmaf.root.children.splice(i, 1);
                     }
-                    return;
+                }
+                return;
             }
         }
 
-        switch (keyCode) {
-            //cross pressed
-            case 14:
-                if(!jsmaf.circleIsAdvanceButton) {
-                    include('loader.js')
-                }
-                break;
-            
-            //circle pressed
-            case 13:
-                if(jsmaf.circleIsAdvanceButton) {
-                    include('loader.js')
-                }
-                break;
-
-            //triangle
-            case 12:
-                include('payload_host.js')
-                break;
+        //cross pressed
+        if (keyCode === 14) {
+            if(!jsmaf.circleIsAdvanceButton) {
+                include('loader.js')
+            }
+        }
+        //circle pressed
+        else if (keyCode === 13) {
+            if(jsmaf.circleIsAdvanceButton) {
+                include('loader.js')
+            }
+        }
+        //triangle
+        else if (keyCode === 12) {
+            include('payload_host.js')
         }
         
     }
@@ -172,7 +163,7 @@ try {
 
 
    
-    
+   
 
 
     // Create text objects for each line
