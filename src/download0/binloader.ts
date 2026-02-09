@@ -109,7 +109,7 @@ export function binloader_init () {
     '/mnt/usb4/payload.bin'
   ]
   const DATA_PAYLOAD_PATH = '/data/payload.bin'
-  const INTERNAL_GOLDHEN_PATH = '/download0/payloads/goldhen.bin'
+  const INTERNAL_GOLDHEN_PATH = '/mnt/sandbox/CUSA00960_000/download0/payloads/goldhen.bin'
 
   // S_ISREG macro check - file type is regular file
   const S_IFREG = 0x8000
