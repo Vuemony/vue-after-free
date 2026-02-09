@@ -28,6 +28,20 @@ export function show_success () {
   jsmaf.root.children.push(bg_success)
   log('Logging Success...')
   stats.incrementSuccess()
+
+  const oldOnKeyDown = jsmaf.onKeyDown
+  jsmaf.onKeyDown = function (keyCode) {
+    if (keyCode === 13 || keyCode === 15 || keyCode === 12 || keyCode === 3 || keyCode === 14) {
+      for (let i = jsmaf.root.children.length - 1; i >= 0; i--) {
+        if (jsmaf.root.children[i] === bg_success) {
+          jsmaf.root.children.splice(i, 1)
+        }
+      }
+      jsmaf.onKeyDown = oldOnKeyDown
+      return
+    }
+    if (oldOnKeyDown) oldOnKeyDown(keyCode)
+  }
 }
 
 const audio = new jsmaf.AudioClip()
