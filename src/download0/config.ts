@@ -3,6 +3,7 @@ export const CONFIG = {
   autopoop: false,
   autoclose: false,
   music: true,
+  usb_scan: false,
   jb_behavior: 0
 }
 

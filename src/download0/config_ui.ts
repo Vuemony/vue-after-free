@@ -42,12 +42,14 @@ if (typeof lang === 'undefined') {
     autopoop: boolean
     autoclose: boolean
     music: boolean
+    usb_scan: boolean
     jb_behavior: number
   } = {
     autolapse: false,
     autopoop: false,
     autoclose: false,
     music: true,
+    usb_scan: false,
     jb_behavior: 0
   }
 
@@ -160,6 +162,7 @@ if (typeof lang === 'undefined') {
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
     { key: 'autoclose', label: lang.autoClose, imgKey: 'autoClose', type: 'toggle' },
     { key: 'music', label: lang.music, imgKey: 'music', type: 'toggle' },
+    { key: 'usb_scan', label: lang.usbScan, imgKey: 'usbScan', type: 'toggle' },
     { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' }
   ]
 
@@ -429,6 +432,7 @@ if (typeof lang === 'undefined') {
     configContent += '    autopoop: ' + currentConfig.autopoop + ',\n'
     configContent += '    autoclose: ' + currentConfig.autoclose + ',\n'
     configContent += '    music: ' + currentConfig.music + ',\n'
+    configContent += '    usb_scan: ' + currentConfig.usb_scan + ',\n'
     configContent += '    jb_behavior: ' + currentConfig.jb_behavior + '\n'
     configContent += '};\n\n'
     configContent += 'const payloads = [ //to be ran after jailbroken\n'
@@ -464,6 +468,7 @@ if (typeof lang === 'undefined') {
           currentConfig.autopoop = CONFIG.autopoop || false
           currentConfig.autoclose = CONFIG.autoclose || false
           currentConfig.music = CONFIG.music !== false
+          currentConfig.usb_scan = CONFIG.usb_scan || false
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
 
           // Preserve user's payloads
@@ -494,7 +499,7 @@ if (typeof lang === 'undefined') {
         currentConfig.jb_behavior = (currentConfig.jb_behavior + 1) % jbBehaviorLabels.length
         log(key + ' = ' + jbBehaviorLabels[currentConfig.jb_behavior])
       } else {
-        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music'
+        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music' | 'usb_scan'
         currentConfig[boolKey] = !currentConfig[boolKey]
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {

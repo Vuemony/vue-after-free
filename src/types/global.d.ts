@@ -34,6 +34,8 @@ declare var CONFIG: {
   autolapse?: boolean;
   autopoop?: boolean;
   autoclose?: boolean;
+  music?: boolean;
+  usb_scan?: boolean;
 } | undefined
 
 declare var payloads: string[] | undefined

@@ -87,8 +87,10 @@ import { checkJailbroken } from 'download0/check-jailbroken'
 
   if (is_jailbroken) {
     scanPaths.push('/data/payloads')
-    for (let i = 0; i <= 7; i++) {
-      scanPaths.push('/mnt/usb' + i + '/payloads')
+    if (typeof CONFIG !== 'undefined' && CONFIG.usb_scan) {
+      for (let i = 0; i <= 7; i++) {
+        scanPaths.push('/mnt/usb' + i + '/payloads')
+      }
     }
   }
 
