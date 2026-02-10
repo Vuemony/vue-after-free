@@ -106,247 +106,754 @@ log('found ' + js_files.length + ' js files')
 
 // build html with log panel and button
 const html = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>PS4 Webkit</title>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>PS4 SYSTEM LOADER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;600;700&family=Share+Tech+Mono&display=swap');
 :root {
-  --primary-color: #ffffff;
-  --primary-dark: #e3f2fd;
-  --primary-light: #f1f8ff;
-  --accent-color: #2196f3;
-  --text-color: #0d47a1;
-  --bg-light: #bbdefb;
-  --card-border: #90caf9;
-  --region-bg: #e3f2fd;
-}
-body.dark-mode {
-  --primary-color: #0d47a1;
-  --primary-dark: #002171;
-  --primary-light: #1565c0;
-  --accent-color: #64b5f6;
-  --text-color: #ffffff;
-  --bg-light: #000000;
-  --card-border: #1e88e5;
-  --region-bg: #002171;
+    --primary: #0d47a1;
+    --primary-dim: rgba(13, 71, 161, 0.5);
+    --primary-glow: rgba(13, 71, 161, 0.8);
+    --accent: #00e5ff;
+    --accent-dim: rgba(0, 229, 255, 0.3);
+    --bg-dark: #020b16;
+    --bg-panel: rgba(5, 20, 40, 0.85);
+    --text-main: #ffffff;
+    --text-muted: #809ab0;
+    --success: #00e676;
+    --error: #ff1744;
+    --grid-line: rgba(0, 229, 255, 0.05);
+    --border-radius: 4px;
+    --scanline: rgba(0,0,0,0.5);
 }
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
 }
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--bg-light);
-  color: var(--text-color);
-  min-height: 100vh;
-  text-align: center;
-  overflow-x: hidden;
-  overflow-y: auto;
-  transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
 }
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 12px;
-  position: relative;
-  z-index: 1;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-  height: 90vh;
+#bg-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0.4;
 }
-.featured-games-bar {
-  width: 100%;
-  background: var(--primary-dark);
-  padding: 15px 0;
-  position: relative;
-  border-bottom: 1px solid var(--card-border);
-  z-index: 100;
-  box-shadow: 0 2px 10px rgba(33, 150, 243, 0.2);
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0,0,0,0.1) 50%,
+        rgba(0,0,0,0.1)
+    );
+    background-size: 100% 4px;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0.3;
 }
-.featured-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 12px;
+.interface-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 80px 1fr 60px;
+    padding: 20px;
+    gap: 20px;
 }
-.featured-title {
-  font-size: 1.5rem;
-  color: var(--accent-color);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--primary);
+    background: linear-gradient(90deg, var(--bg-panel) 0%, transparent 100%);
+    padding: 0 30px;
+    position: relative;
 }
-.status-badge {
-  background: var(--primary-color);
-  color: var(--accent-color);
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-weight: bold;
-  border: 1px solid var(--card-border);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: 0;
+    width: 30%;
+    height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
 }
-.main-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+.brand-box {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
-.action-card {
-  background: var(--primary-color);
-  border: 1px solid var(--card-border);
-  border-radius: 15px;
-  padding: 40px;
-  box-shadow: 0 10px 30px rgba(33, 150, 243, 0.3);
-  transition: all 0.3s ease;
-  max-width: 400px;
-  width: 100%;
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(45deg);
+    box-shadow: 0 0 15px var(--accent-dim);
 }
-.action-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(33, 150, 243, 0.4);
+.logo-inner {
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    transform: rotate(-45deg);
 }
-button {
-  background: var(--accent-color);
-  color: #fff;
-  border: none;
-  padding: 20px 40px;
-  font-size: 24px;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 10px;
-  width: 100%;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
+.title-group {
+    display: flex;
+    flex-direction: column;
 }
-button:hover {
-  background: #1976d2;
-  transform: scale(1.02);
+.main-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--text-main);
+    text-shadow: 0 0 10px var(--primary-glow);
 }
-.comments-section {
-  width: 100%;
-  margin-top: auto;
-  padding: 20px 0;
+.sub-title {
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
-.comments-container-full {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background: var(--primary-color);
-  border-radius: 10px;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-  border: 1px solid var(--card-border);
-  height: 300px;
-  display: flex;
-  flex-direction: column;
+.header-stats {
+    display: flex;
+    gap: 40px;
 }
-.comments-title {
-  font-size: 1.2rem;
-  color: var(--accent-color);
-  margin-bottom: 10px;
-  font-weight: 700;
-  text-align: left;
-  border-bottom: 2px solid var(--primary-dark);
-  padding-bottom: 10px;
+.stat-item {
+    text-align: right;
 }
-#log {
-  flex: 1;
-  overflow-y: auto;
-  font-family: monospace;
-  font-size: 14px;
-  text-align: left;
-  padding: 10px;
-  background: var(--primary-dark);
-  border-radius: 5px;
-  color: var(--text-color);
+.stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 2px;
 }
-.line {
-  margin: 4px 0;
-  border-bottom: 1px solid rgba(33, 150, 243, 0.1);
-  padding-bottom: 2px;
+.stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    color: var(--accent);
 }
-::-webkit-scrollbar {
-  width: 8px;
+#connection-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #333;
+    margin-right: 5px;
+    box-shadow: 0 0 5px #333;
+    transition: all 0.3s;
 }
-::-webkit-scrollbar-track {
-  background: var(--primary-light);
+#connection-status.active {
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
 }
-::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
-  border-radius: 4px;
+main {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 20px;
+    height: 100%;
+    overflow: hidden;
 }
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border: 1px solid rgba(13, 71, 161, 0.3);
+    background: rgba(2, 11, 22, 0.6);
+    backdrop-filter: blur(5px);
+    clip-path: polygon(
+        20px 0, 100% 0, 
+        100% calc(100% - 20px), calc(100% - 20px) 100%, 
+        0 100%, 0 20px
+    );
+}
+.corner-decor {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--accent);
+    transition: all 0.3s ease;
+}
+.tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+.tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+.bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+.br { bottom: 0; right: 0; border-left: none; border-top: none; }
+.control-panel:hover .corner-decor {
+    width: 20px;
+    height: 20px;
+    box-shadow: 0 0 10px var(--accent);
+}
+.action-circle-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.circle-outer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px dashed rgba(13, 71, 161, 0.3);
+    animation: spin 20s linear infinite;
+}
+.circle-inner {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0.3;
+    animation: spin-reverse 15s linear infinite;
+}
+.jb-button {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--primary) 0%, #000 100%);
+    border: 4px solid var(--primary);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 0 30px var(--primary-dim);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 20;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+}
+.jb-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 60%);
+    transform: rotate(45deg) translateY(-100%);
+    transition: transform 0.6s;
+}
+.jb-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 50px var(--primary-glow), inset 0 0 20px var(--accent);
+    border-color: var(--accent);
+    text-shadow: 0 0 10px white;
+}
+.jb-button:hover::before {
+    transform: rotate(45deg) translateY(100%);
+}
+.jb-button:active {
+    transform: scale(0.95);
+}
+.status-text {
+    margin-top: 40px;
+    text-align: center;
+}
+.status-msg {
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 5px;
+    min-height: 24px;
+}
+.firmware-tag {
+    font-size: 12px;
+    background: rgba(13, 71, 161, 0.2);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--primary);
+    color: var(--text-muted);
+}
+.log-panel {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--primary-dim);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+}
+.log-header {
+    background: rgba(13, 71, 161, 0.2);
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--primary-dim);
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--accent);
+}
+.log-controls span {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #333;
+    margin-left: 5px;
+}
+.log-content {
+    flex: 1;
+    padding: 15px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    overflow-y: auto;
+    color: var(--text-muted);
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+.log-content::-webkit-scrollbar {
+    width: 5px;
+}
+.log-content::-webkit-scrollbar-thumb {
+    background: var(--primary);
+}
+.log-line {
+    margin-bottom: 4px;
+    padding-left: 10px;
+    border-left: 2px solid transparent;
+    animation: fadeIn 0.3s ease-in;
+    word-wrap: break-word;
+}
+.log-line.new {
+    border-left-color: var(--accent);
+    color: #fff;
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.1) 0%, transparent 100%);
+}
+.log-line.error {
+    border-left-color: var(--error);
+    color: var(--error);
+}
+.log-line.success {
+    border-left-color: var(--success);
+    color: var(--success);
+}
+.timestamp {
+    color: var(--primary);
+    margin-right: 8px;
+    font-size: 11px;
+}
+footer {
+    border-top: 1px solid var(--primary-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: rgba(2, 11, 22, 0.9);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.footer-left, .footer-right {
+    display: flex;
+    gap: 20px;
+}
+.footer-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.footer-icon {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    transform: rotate(45deg);
+}
+.loader-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px var(--accent);
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+@media (max-width: 768px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 1fr 250px; }
+    .header-stats { display: none; }
+    .main-title { font-size: 20px; }
+}
+.glitch-wrapper { position: relative; display: inline-block; }
+.progress-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+    backdrop-filter: blur(10px);
+}
+.progress-modal.active { opacity: 1; pointer-events: all; }
+.progress-bar-container {
+    width: 300px;
+    height: 4px;
+    background: #111;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    box-shadow: 0 0 15px var(--accent);
+    transition: width 0.2s;
+}
+.loading-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    color: var(--text-main);
+    letter-spacing: 2px;
+}
+.grid-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: 1;
+    pointer-events: none;
+}
+.hex-container {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    display: flex;
+    gap: 5px;
+}
+.hex {
+    width: 10px;
+    height: 12px;
+    background: var(--primary-dim);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    animation: blinkHex 2s infinite;
+}
+.hex:nth-child(2) { animation-delay: 0.5s; }
+.hex:nth-child(3) { animation-delay: 1s; }
+@keyframes blinkHex { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; background: var(--accent); } }
 </style>
 </head>
 <body>
 
-<div class="featured-games-bar">
-  <div class="featured-header">
-    <div class="featured-title">PS4 Webkit Loader</div>
-    <div id="status" class="status-badge">Disconnected</div>
-  </div>
+<div class="scanlines"></div>
+<div class="grid-overlay"></div>
+<canvas id="bg-canvas"></canvas>
+
+<div class="progress-modal" id="p-modal">
+    <div class="loading-text" id="loading-stage">INITIALIZING KERNEL...</div>
+    <div class="progress-bar-container">
+        <div class="progress-fill" id="p-fill"></div>
+    </div>
 </div>
 
-<div class="container">
-  <div class="main-content">
-    <div class="action-card">
-      <h2 style="margin-bottom:20px; color:var(--text-color);">System Ready</h2>
-      <button onclick="loadPayload()">Jailbreak</button>
-      <p style="margin-top:15px; font-size:12px; opacity:0.7;">Firmware 9.00 / 11.00</p>
-    </div>
-  </div>
+<div class="interface-container">
+    <header>
+        <div class="brand-box">
+            <div class="logo-icon"><div class="logo-inner"></div></div>
+            <div class="title-group">
+                <div class="main-title">PS4 SYSTEM LOADER</div>
+                <div class="sub-title">KERNEL EXPLOIT DELIVERY</div>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-item">
+                <div class="stat-label">System Time</div>
+                <div class="stat-value" id="sys-time">00:00:00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Memory</div>
+                <div class="stat-value">OK</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Network</div>
+                <div class="stat-value"><span id="connection-status"></span><span id="net-text">OFFLINE</span></div>
+            </div>
+        </div>
+    </header>
 
-  <div class="comments-section">
-    <div class="comments-container-full">
-      <h3 class="comments-title">Kernel Log</h3>
-      <div id="log"></div>
-    </div>
-  </div>
+    <main>
+        <div class="control-panel">
+            <div class="corner-decor tl"></div>
+            <div class="corner-decor tr"></div>
+            <div class="corner-decor bl"></div>
+            <div class="corner-decor br"></div>
+            
+            <div class="hex-container">
+                <div class="hex"></div>
+                <div class="hex"></div>
+                <div class="hex"></div>
+            </div>
+
+            <div class="action-circle-container">
+                <div class="circle-outer"></div>
+                <div class="circle-inner"></div>
+                <button class="jb-button" onclick="executeChain()">
+                    Inject
+                    <br>
+                    Payload
+                </button>
+            </div>
+
+            <div class="status-text">
+                <div class="status-msg" id="main-status">SYSTEM READY</div>
+            </div>
+        </div>
+
+        <div class="log-panel">
+            <div class="loader-bar" id="load-bar"></div>
+            <div class="log-header">
+                <div>> SYSTEM_TERMINAL</div>
+                <div class="log-controls">
+                    <span style="background:#ff5f57"></span>
+                    <span style="background:#febc2e"></span>
+                    <span style="background:#28c840"></span>
+                </div>
+            </div>
+            <div class="log-content" id="terminal">
+                <div class="log-line">> Initializing interface...</div>
+                <div class="log-line">> Mounting userland...</div>
+                <div class="log-line success">> Ready for payload injection.</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-left">
+            <div class="footer-item"><div class="footer-icon"></div> <span>SECURE CONNECTION</span></div>
+            <div class="footer-item"><div class="footer-icon"></div> <span>VER: 2.5.0</span></div>
+        </div>
+        <div class="footer-right">
+            <span>DESIGNED FOR PS4</span>
+        </div>
+    </footer>
 </div>
 
 <script>
-const logEl=document.getElementById("log");
-const statusEl=document.getElementById("status");
-const ws=null;
-function addLog(msg){
-  const div=document.createElement("div");
-  div.className="line";
-  div.textContent="> " + msg;
-  logEl.appendChild(div);
-  logEl.scrollTop=logEl.scrollHeight;
+// --- UI LOGIC ---
+const term = document.getElementById('terminal');
+const statusText = document.getElementById('main-status');
+const connDot = document.getElementById('connection-status');
+const connText = document.getElementById('net-text');
+const sysTime = document.getElementById('sys-time');
+const pModal = document.getElementById('p-modal');
+const pFill = document.getElementById('p-fill');
+const pStage = document.getElementById('loading-stage');
+
+// Time Update
+setInterval(() => {
+    const now = new Date();
+    sysTime.innerText = now.toLocaleTimeString('en-US', {hour12:false});
+}, 1000);
+
+// Logger
+function log(msg, type='') {
+    const d = new Date();
+    const time = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0') + ':' + d.getSeconds().toString().padStart(2,'0');
+    const div = document.createElement('div');
+    div.className = 'log-line ' + type;
+    if(type === 'new') div.className += ' new';
+    div.innerHTML = \`<span class="timestamp">[\${time}]</span> \${msg}\`;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
 }
-function connectWS(){
-  try{
-    ws=new WebSocket("ws://127.0.0.1:40404");
-    ws.onopen=function(){
-      statusEl.textContent="Connected";
-      statusEl.style.color="green";
-      addLog("[Connected to WS]");
-    };
-    ws.onmessage=function(e){addLog(e.data);};
-    ws.onclose=function(){
-      statusEl.textContent="Disconnected";
-      statusEl.style.color="red";
-      addLog("[Disconnected]");
-      setTimeout(connectWS,2000);
-    };
-    ws.onerror=function(){
-      statusEl.textContent="Error";
-    };
-  }catch(e){
-    addLog("[WS Error: "+e.message+"]");
-    setTimeout(connectWS,5000);
-  }
+
+// Websocket Logic
+let ws = null;
+function connectWS() {
+    try {
+        ws = new WebSocket('ws://127.0.0.1:40404');
+        ws.onopen = () => {
+            connDot.classList.add('active');
+            connText.innerText = 'ONLINE';
+            connText.style.color = 'var(--success)';
+            log('WebSocket Connection Established', 'success');
+        };
+        ws.onmessage = (e) => {
+            log(e.data, 'new');
+            if(e.data.includes('done')) {
+                finishLoading();
+            }
+        };
+        ws.onclose = () => {
+            connDot.classList.remove('active');
+            connText.innerText = 'OFFLINE';
+            connText.style.color = 'var(--text-muted)';
+            log('WebSocket Disconnected', 'error');
+            setTimeout(connectWS, 3000);
+        };
+        ws.onerror = () => {
+            connDot.classList.remove('active');
+        };
+    } catch(e) {
+        setTimeout(connectWS, 5000);
+    }
 }
-function loadPayload(){
-  fetch("/load").then(function(){addLog("[Payload Loaded]");});
+
+// Payload Execution
+function executeChain() {
+    statusText.innerText = 'INJECTING...';
+    pModal.classList.add('active');
+    
+    // Simulate stages
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 5;
+        if(progress > 90) progress = 90; // Wait for real finish
+        pFill.style.width = progress + '%';
+        
+        if(progress > 20 && progress < 40) pStage.innerText = 'EXPLOITING WEBKIT...';
+        if(progress > 40 && progress < 70) pStage.innerText = 'MAPPING MEMORY...';
+        if(progress > 70) pStage.innerText = 'SENDING PAYLOAD...';
+    }, 100);
+
+    log('Sending payload request...', 'new');
+    fetch('/load').then(() => {
+        log('Request sent successfully', 'success');
+        clearInterval(interval);
+        pFill.style.width = '100%';
+        setTimeout(() => {
+            finishLoading();
+        }, 500);
+    }).catch(e => {
+        log('Fetch error: ' + e.message, 'error');
+        pModal.classList.remove('active');
+        statusText.innerText = 'FAILED';
+        clearInterval(interval);
+    });
 }
+
+function finishLoading() {
+    pFill.style.width = '100%';
+    pStage.innerText = 'COMPLETE';
+    statusText.innerText = 'PAYLOAD LOADED';
+    statusText.style.color = 'var(--success)';
+    setTimeout(() => {
+        pModal.classList.remove('active');
+        pFill.style.width = '0%';
+    }, 1000);
+}
+
 connectWS();
+
+// --- MATRIX / PARTICLE CANVAS ---
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+}
+window.onresize = resize;
+resize();
+
+const particles = [];
+const pCount = 50;
+
+class Particle {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.size = Math.random() * 2 + 1;
+        this.alpha = Math.random() * 0.5 + 0.1;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if(this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.reset();
+    }
+    draw() {
+        ctx.fillStyle = \`rgba(0, 229, 255, \${this.alpha})\`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+
+for(let i=0; i<pCount; i++) particles.push(new Particle());
+
+function animate() {
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw connections
+    ctx.lineWidth = 0.5;
+    for(let i=0; i<particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        
+        for(let j=i+1; j<particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if(dist < 100) {
+                ctx.strokeStyle = \`rgba(13, 71, 161, \${0.2 * (1 - dist/100)})\`;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.stroke();
+            }
+        }
+    }
+    requestAnimationFrame(animate);
+}
+animate();
+
 </script>
 </body>
 </html>
