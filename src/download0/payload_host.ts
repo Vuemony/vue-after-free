@@ -71,7 +71,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     jsmaf.root.children.push(title)
   } else {
     const title = new jsmaf.Text()
-    title.text = lang.payloadMenu
+    title.text = lang.payloadMenu || ''
     title.x = 880
     title.y = 120
     title.style = 'title'
@@ -105,11 +105,11 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     }
     mem.view(path_addr).setUint8(currentPath.length, 0)
 
-    const fd = fn.open_sys(path_addr, new BigInt(0, 0), new BigInt(0, 0))
+    const fd = fn.open_sys!(path_addr, new BigInt(0, 0), new BigInt(0, 0))
     // log('open_sys (' + currentPath + ') returned: ' + fd.toString())
 
     if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
-      const count = fn.getdents(fd, buf, new BigInt(0, 4096))
+      const count = fn.getdents!(fd, buf, new BigInt(0, 4096))
       // log('getdents returned: ' + count.toString() + ' bytes')
 
       if (!count.eq(new BigInt(0xffffffff, 0xffffffff)) && count.lo > 0) {
@@ -137,7 +137,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
           offset += d_reclen
         }
       }
-      fn.close_sys(fd)
+      fn.close_sys!(fd)
     } else {
       log('Failed to open ' + currentPath)
     }
@@ -461,14 +461,14 @@ import { checkJailbroken } from 'download0/check-jailbroken'
             }
             mem.view(p_addr).setUint8(filePath.length, 0)
 
-            const fd = fn.open_sys(p_addr, new BigInt(0, 0), new BigInt(0, 0))
+            const fd = fn.open_sys!(p_addr, new BigInt(0, 0), new BigInt(0, 0))
 
             if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
               const buf_size = 1024 * 1024 * 1  // 1 MiB
               const buf = mem.malloc(buf_size)
-              const read_len = fn.read_sys(fd, buf, new BigInt(0, buf_size))
+              const read_len = fn.read_sys!(fd, buf, new BigInt(0, buf_size))
 
-              fn.close_sys(fd)
+              fn.close_sys!(fd)
 
               let scriptContent = ''
               const len = (read_len instanceof BigInt) ? read_len.lo : read_len

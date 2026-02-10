@@ -543,6 +543,24 @@ type Fn<Fns = object> = {
     name: string
   }, ...args: ArgTypeToRealType<ArgType>[]): unknown
   freeze(): Fn<Fns>
+  open_sys?: (path: BigInt, flags: BigInt, mode: BigInt) => BigInt
+  close_sys?: (fd: BigInt) => BigInt
+  read_sys?: (fd: BigInt, buf: BigInt, count: BigInt) => BigInt
+  getdents?: (fd: BigInt, buf: BigInt, count: BigInt) => BigInt
+  getpid?: () => BigInt
+  kill?: (pid: BigInt, sig: BigInt) => BigInt
+  thrd_create?: (thr: BigInt, func: BigInt, arg: BigInt) => BigInt
+  thrd_join?: (thr: BigInt, res: BigInt) => BigInt
+  stat_sys?: (path: BigInt, buf: BigInt) => BigInt
+  write_sys?: (fd: BigInt, buf: BigInt, count: BigInt) => BigInt
+  mmap_sys?: (addr: BigInt, len: BigInt, prot: BigInt, flags: BigInt, fd: BigInt, offset: BigInt) => BigInt
+  bind_sys?: (s: BigInt, addr: BigInt, addrlen: BigInt) => BigInt
+  listen_sys?: (s: BigInt, backlog: BigInt) => BigInt
+  accept_sys?: (s: BigInt, addr: BigInt, addrlen: BigInt) => BigInt
+  socket?: (domain: number, type: number, protocol: number) => BigInt
+  setsockopt?: (s: number, level: number, optname: number, optval: BigInt, optlen: number) => BigInt
+  getuid?: () => BigInt
+  setuid?: (uid: number) => BigInt
 } & {
   [key: string]: unknown
 } & Fns

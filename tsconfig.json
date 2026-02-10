@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ES5", "ES2015.Collection", "ES2015.Core"],
+    "lib": ["ES5", "ES2015.Collection", "ES2015.Core", "ES2017", "ES2016.Array.Include"],
     "target": "es5",
     "module": "es2015",
     // "allowJs": true,
@@ -27,5 +27,5 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": ["**/*.ts", "**/*.js", "**/*.js.aes"],
-  "exclude": ["eslint.config.ts"]
+  "exclude": ["eslint.config.ts", "src/download0/vid/**/*.ts"]
 }

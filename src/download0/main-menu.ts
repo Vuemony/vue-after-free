@@ -4,11 +4,11 @@ import { fn, BigInt } from 'download0/types'
 
 (function () {
   include('languages.js')
-  log(lang.loadingMainMenu)
+  log(lang.loadingMainMenu || '')
 
   let currentButton = 0
   const buttons: Image[] = []
-  const buttonTexts: jsmaf.Text[] = []
+  const buttonTexts: (jsmaf.Text | Image)[] = []
   const buttonMarkers: Image[] = []
   const buttonOrigPos: { x: number, y: number }[] = []
   const textOrigPos: { x: number, y: number }[] = []
@@ -96,7 +96,7 @@ import { fn, BigInt } from 'download0/types'
       })
     } else {
       btnText = new jsmaf.Text()
-      btnText.text = menuOptions[i]!.label
+      btnText.text = menuOptions[i]!.label || ''
       btnText.x = btnX + buttonWidth / 2 - 60
       btnText.y = btnY + buttonHeight / 2 - 12
       btnText.style = 'white'
@@ -143,7 +143,7 @@ import { fn, BigInt } from 'download0/types'
     })
   } else {
     exitText = new jsmaf.Text()
-    exitText.text = lang.exit
+    exitText.text = lang.exit || ''
     exitText.x = exitX + buttonWidth / 2 - 20
     exitText.y = exitY + buttonHeight / 2 - 12
     exitText.style = 'white'
@@ -162,7 +162,7 @@ import { fn, BigInt } from 'download0/types'
     return (1 - Math.cos(t * Math.PI)) / 2
   }
 
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
+  function animateZoomIn (btn: Image, text: jsmaf.Text | Image, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
     if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
     const btnW = buttonWidth
     const btnH = buttonHeight
@@ -194,7 +194,7 @@ import { fn, BigInt } from 'download0/types'
     }, step)
   }
 
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
+  function animateZoomOut (btn: Image, text: jsmaf.Text | Image, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
     if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
     const btnW = buttonWidth
     const btnH = buttonHeight
@@ -325,5 +325,5 @@ import { fn, BigInt } from 'download0/types'
 
   updateHighlight()
 
-  log(lang.mainMenuLoaded)
+  log(lang.mainMenuLoaded || '')
 })()

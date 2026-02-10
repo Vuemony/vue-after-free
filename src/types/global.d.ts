@@ -18,22 +18,14 @@ declare var leak_obj: Record<string, unknown>, leak_obj_addr: import('download0/
 declare var native_executable: import('download0/types').BigInt
 declare var scope: import('download0/types').BigInt
 
-declare var debugging: {
-  info: {
-    memory: {
-      available: number
-      available_dmem: number
-      available_libc: number
-    }
-  }
-} | undefined
-
 declare var is_jailbroken: boolean
 
 declare var CONFIG: {
   autolapse?: boolean;
   autopoop?: boolean;
   autoclose?: boolean;
+  music?: boolean;
+  jb_behavior?: number;
 } | undefined
 
 declare var payloads: string[] | undefined
@@ -54,6 +46,22 @@ declare var kernel_offset: (typeof import('download0/kernel').ps4_kernel_offset_
   IP6PO_TCLASS?: number,
   IP6PO_RTHDR?: number,
 } | null
+
+declare var debugging: {
+  restart(): void;
+  info: {
+    memory: {
+      available: number
+      available_dmem: number
+      available_libc: number
+    }
+  }
+} | undefined
+
+declare function alert(message?: any): void;
+declare function setTimeout(handler: Function, timeout?: number, ...arguments: any[]): number;
+declare var ws: any;
+declare var _log: (msg: string, screen: boolean) => void;
 
 declare class Image {
   url: string

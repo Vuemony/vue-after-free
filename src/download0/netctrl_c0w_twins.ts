@@ -750,7 +750,7 @@ function cleanup (kill_workers = false) {
       // Write to unblock from read()
       write(new BigInt(worker.pipe_1), worker.signal_buf, 1)
       if (kill_workers && worker.thread_id !== undefined) {
-        thr_kill(worker.thread_id, 9) // SIGKILL
+        thr_kill(new BigInt(worker.thread_id), 9) // SIGKILL
       }
     }
   }
@@ -760,7 +760,7 @@ function cleanup (kill_workers = false) {
     if (worker !== undefined) {
       write(new BigInt(worker.pipe_1), worker.signal_buf, 1)
       if (kill_workers && worker.thread_id !== undefined) {
-        thr_kill(worker.thread_id, 9) // SIGKILL
+        thr_kill(new BigInt(worker.thread_id), 9) // SIGKILL
       }
     }
   }
@@ -770,7 +770,7 @@ function cleanup (kill_workers = false) {
     if (worker !== undefined) {
       write(new BigInt(worker.pipe_1), worker.signal_buf, 1)
       if (kill_workers && worker.thread_id !== undefined) {
-        thr_kill(worker.thread_id, 9) // SIGKILL
+        thr_kill(new BigInt(worker.thread_id), 9) // SIGKILL
       }
     }
   }
@@ -778,7 +778,7 @@ function cleanup (kill_workers = false) {
   if (spray_ipv6_worker !== undefined) {
     write(new BigInt(spray_ipv6_worker.pipe_1), spray_ipv6_worker.signal_buf, 1)
     if (kill_workers && spray_ipv6_worker.thread_id !== undefined) {
-      thr_kill(spray_ipv6_worker.thread_id, 9) // SIGKILL
+      thr_kill(new BigInt(spray_ipv6_worker.thread_id), 9) // SIGKILL
     }
   }
 
@@ -930,7 +930,7 @@ function setup_log_screen () {
   jsmaf.root.children.push(bg)
 
   for (let i = 0; i < LOG_COLORS.length; i++) {
-    new Style({ name: 'log' + i, color: LOG_COLORS[i], size: 20 })
+    new Style({ name: 'log' + i, color: LOG_COLORS[i]!, size: 20 })
   }
 
   const logLines: jsmaf.Text[] = []
@@ -951,7 +951,7 @@ function setup_log_screen () {
       logBuf.push(msg)
       if (logBuf.length > LOG_MAX_LINES) logBuf.shift()
       for (let i = 0; i < LOG_MAX_LINES; i++) {
-        logLines[i].text = i < logBuf.length ? logBuf[i] : ''
+        logLines[i]!.text = i < logBuf.length ? logBuf[i]! : ''
       }
     }
     ws.broadcast(msg)

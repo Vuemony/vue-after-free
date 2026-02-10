@@ -31,45 +31,45 @@ export function binloader_init () {
   fn.register(thrd_create_addr, 'thrd_create', ['bigint', 'bigint', 'bigint'], 'bigint')
   fn.register(thrd_join_addr, 'thrd_join', ['bigint', 'bigint'], 'bigint')
 
-  const thrd_create = fn.thrd_create
-  const thrd_join = fn.thrd_join
+  const thrd_create = fn.thrd_create!
+  const thrd_join = fn.thrd_join!
 
   log('thrd_create @ ' + thrd_create_addr.toString())
   log('thrd_join @ ' + thrd_join_addr.toString())
 
   // Register syscalls needed for binloader
   fn.register(0xBC, 'stat_sys', ['bigint', 'bigint'], 'bigint')
-  const stat_sys = fn.stat_sys
+  const stat_sys = fn.stat_sys!
 
   fn.register(0x05, 'open_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
-  const open_sys = fn.open_sys
+  const open_sys = fn.open_sys!
 
   fn.register(0x03, 'read_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
-  const read_sys = fn.read_sys
+  const read_sys = fn.read_sys!
 
   fn.register(0x04, 'write_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
-  const write_sys = fn.write_sys
+  const write_sys = fn.write_sys!
 
   fn.register(0x06, 'close_sys', ['number'], 'bigint')
-  const close_sys = fn.close_sys
+  const close_sys = fn.close_sys!
 
   fn.register(0x1DD, 'mmap_sys', ['bigint', 'bigint', 'bigint', 'bigint', 'bigint', 'bigint'], 'bigint')
-  const mmap_sys = fn.mmap_sys
+  const mmap_sys = fn.mmap_sys!
 
   fn.register(0x68, 'bind_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
-  const bind_sys = fn.bind_sys
+  const bind_sys = fn.bind_sys!
 
   fn.register(0x6A, 'listen_sys', ['bigint', 'bigint'], 'bigint')
-  const listen_sys = fn.listen_sys
+  const listen_sys = fn.listen_sys!
 
   fn.register(0x1E, 'accept_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
-  const accept_sys = fn.accept_sys
+  const accept_sys = fn.accept_sys!
 
   fn.register(0x61, 'socket', ['number', 'number', 'number'], 'bigint')
-  const socket = fn.socket
+  const socket = fn.socket!
 
   fn.register(0x69, 'setsockopt', ['number', 'number', 'number', 'bigint', 'number'], 'bigint')
-  const setsockopt = fn.setsockopt
+  const setsockopt = fn.setsockopt!
 
   // Constants
   const BIN_LOADER_PORT = 9020

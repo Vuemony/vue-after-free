@@ -11,7 +11,7 @@ if (typeof lang === 'undefined') {
 }
 
 (function () {
-  log(lang.loadingConfig)
+  log(lang.loadingConfig || '')
 
   const fs = {
     write: function (filename: string, content: string, callback: (error: Error | null) => void) {
@@ -59,11 +59,11 @@ if (typeof lang === 'undefined') {
 
   let currentButton = 0
   const buttons: Image[] = []
-  const buttonTexts: jsmaf.Text[] = []
+  const buttonTexts: (jsmaf.Text | Image)[] = []
   const buttonMarkers: (Image | null)[] = []
   const buttonOrigPos: { x: number; y: number }[] = []
   const textOrigPos: { x: number; y: number }[] = []
-  const valueTexts: Image[] = []
+  const valueTexts: (Image | jsmaf.Text)[] = []
 
   const normalButtonImg = 'file:///assets/img/button_over_9.png'
   const selectedButtonImg = 'file:///assets/img/button_over_9.png'
@@ -108,7 +108,7 @@ if (typeof lang === 'undefined') {
     jsmaf.root.children.push(title)
   } else {
     const title = new jsmaf.Text()
-    title.text = lang.config
+    title.text = lang.config || ''
     title.x = 910
     title.y = 120
     title.style = 'title'
@@ -147,7 +147,7 @@ if (typeof lang === 'undefined') {
       jsmaf.root.children.push(valueText)
     } else {
       const lineText = new jsmaf.Text()
-      lineText.text = statsLabels[i] + statsValues[i]
+      lineText.text = (statsLabels[i] || '') + statsValues[i]
       lineText.x = 20
       lineText.y = yPos
       lineText.style = 'white'
@@ -197,7 +197,7 @@ if (typeof lang === 'undefined') {
       })
     } else {
       btnText = new jsmaf.Text()
-      btnText.text = configOption.label
+      btnText.text = configOption.label || ''
       btnText.x = btnX + 30
       btnText.y = btnY + 28
       btnText.style = 'white'
@@ -275,7 +275,7 @@ if (typeof lang === 'undefined') {
     })
   } else {
     backText = new jsmaf.Text()
-    backText.text = lang.back
+    backText.text = lang.back || ''
     backText.x = backX + buttonWidth / 2 - 20
     backText.y = backY + buttonHeight / 2 - 12
     backText.style = 'white'
@@ -294,7 +294,7 @@ if (typeof lang === 'undefined') {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
 
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
+  function animateZoomIn (btn: Image, text: jsmaf.Text | Image, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
     if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
     const btnW = buttonWidth
     const btnH = buttonHeight
@@ -326,7 +326,7 @@ if (typeof lang === 'undefined') {
     }, step)
   }
 
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
+  function animateZoomOut (btn: Image, text: jsmaf.Text | Image, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
     if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
     const btnW = buttonWidth
     const btnH = buttonHeight
@@ -418,7 +418,7 @@ if (typeof lang === 'undefined') {
       if (useImageText) {
         (valueText as Image).url = textImageBase + jbBehaviorImgKeys[currentConfig.jb_behavior] + '.png'
       } else {
-        (valueText as jsmaf.Text).text = jbBehaviorLabels[currentConfig.jb_behavior] || jbBehaviorLabels[0]
+        (valueText as jsmaf.Text).text = jbBehaviorLabels[currentConfig.jb_behavior] || jbBehaviorLabels[0] || ''
       }
     }
   }
@@ -485,7 +485,7 @@ if (typeof lang === 'undefined') {
   function handleButtonPress () {
     if (currentButton === buttons.length - 1) {
       log('Restarting...')
-      debugging.restart()
+      if (debugging) debugging.restart()
     } else if (currentButton < configOptions.length) {
       const option = configOptions[currentButton]!
       const key = option.key
@@ -536,12 +536,12 @@ if (typeof lang === 'undefined') {
       handleButtonPress()
     } else if (keyCode === 13) {
       log('Restarting...')
-      debugging.restart()
+      if (debugging) debugging.restart()
     }
   }
 
   updateHighlight()
   loadConfig()
 
-  log(lang.configLoaded)
+  log(lang.configLoaded || '')
 })()
