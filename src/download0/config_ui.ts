@@ -67,6 +67,8 @@ if (typeof lang === 'undefined') {
   const textOrigPos: { x: number; y: number }[] = []
   const valueTexts: Image[] = []
 
+  let bgm: any = null
+
   const normalButtonImg = 'file:///assets/img/button_over_9.png'
   const selectedButtonImg = 'file:///assets/img/button_over_9.png'
 
@@ -76,9 +78,9 @@ if (typeof lang === 'undefined') {
   new Style({ name: 'title', color: 'white', size: 32 })
 
   if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-    const audio = new jsmaf.AudioClip()
-    audio.volume = 0.5  // 50% volume
-    audio.open('file://../download0/sfx/bgm.wav')
+    bgm = new jsmaf.AudioClip()
+    bgm.volume = 0.5  // 50% volume
+    bgm.open('file://../download0/sfx/bgm.wav')
   }
 
   const background = new Image({
@@ -501,6 +503,26 @@ if (typeof lang === 'undefined') {
       } else {
         const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music' | 'usb_scan'
         currentConfig[boolKey] = !currentConfig[boolKey]
+
+        if (key === 'music') {
+          if (typeof CONFIG !== 'undefined') {
+            CONFIG.music = currentConfig.music
+          }
+
+          if (currentConfig.music) {
+            if (!bgm) {
+              bgm = new jsmaf.AudioClip()
+              bgm.volume = 0.5
+              bgm.open('file://../download0/sfx/bgm.wav')
+            }
+          } else {
+            if (bgm) {
+              if (typeof bgm.stop === 'function') bgm.stop()
+              if (typeof bgm.close === 'function') bgm.close()
+              bgm = null
+            }
+          }
+        }
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {
           currentConfig.autopoop = false
