@@ -599,8 +599,7 @@ footer {
         <div class="brand-box">
             <div class="logo-icon"><div class="logo-inner"></div></div>
             <div class="title-group">
-                <div class="main-title">PS4 SYSTEM LOADER</div>
-                <div class="sub-title">KERNEL EXPLOIT DELIVERY</div>
+                <div class="main-title">PS4 JAILBREAK LOADER</div>
             </div>
         </div>
         <div class="header-stats">
@@ -636,9 +635,9 @@ footer {
                 <div class="circle-outer"></div>
                 <div class="circle-inner"></div>
                 <button class="jb-button" onclick="executeChain()">
-                    Inject
+                    INJECT
                     <br>
-                    Payload
+                    JIALBREAK
                 </button>
             </div>
 
@@ -667,8 +666,7 @@ footer {
 
     <footer>
         <div class="footer-left">
-            <div class="footer-item"><div class="footer-icon"></div> <span>SECURE CONNECTION</span></div>
-            <div class="footer-item"><div class="footer-icon"></div> <span>VER: 2.5.0</span></div>
+            <div class="footer-item"><div class="footer-icon"></div> <span>FW</span></div>
         </div>
         <div class="footer-right">
             <span>DESIGNED FOR PS4</span>
