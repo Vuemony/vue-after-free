@@ -105,42 +105,252 @@ const js_files = scan_js_files()
 log('found ' + js_files.length + ' js files')
 
 // build html with log panel and button
-const html = '<!DOCTYPE html>\n' +
-'<html>\n' +
-'<head>\n' +
-'<title>ps4</title>\n' +
-'<style>\n' +
-'body{background:#000;color:#0f0;font-family:monospace;margin:0;padding:0;display:flex;height:100vh;overflow:hidden;}\n' +
-'#log{width:33.333%;background:#111;border-right:2px solid #0f0;padding:10px;overflow-y:auto;font-size:16px;}\n' +
-'#main{flex:1;display:flex;align-items:center;justify-content:center;}\n' +
-'button{background:#0a0;color:#000;border:none;padding:60px 120px;font-size:48px;cursor:pointer;font-family:monospace;font-weight:bold;border-radius:20px;box-shadow:0 0 50px #0f0;}\n' +
-'button:hover{background:#0f0;box-shadow:0 0 100px #0f0;}\n' +
-'.line{margin:2px 0;}\n' +
-'#status{position:absolute;top:10px;right:10px;font-size:10px;opacity:0.5;}\n' +
-'</style>\n' +
-'</head>\n' +
-'<body>\n' +
-'<div id="log"></div>\n' +
-'<div id="main">\n' +
-'<button onclick="loadPayload()">jelbrek</button>\n' +
-'</div>\n' +
-'<div id="status">disconnected</div>\n' +
-'<script>\n' +
-'const logEl=document.getElementById("log");\n' +
-'const statusEl=document.getElementById("status");\n' +
-'const ws=null;\n' +
-'function addLog(msg){const div=document.createElement("div");div.className="line";div.textContent=msg;logEl.appendChild(div);logEl.scrollTop=logEl.scrollHeight;}\n' +
-'function connectWS(){try{ws=new WebSocket("ws://127.0.0.1:40404");ws.onopen=function(){statusEl.textContent="connected";statusEl.style.opacity="1";addLog("[connected to ws]");};ws.onmessage=function(e){addLog(e.data);};ws.onclose=function(){statusEl.textContent="disconnected";statusEl.style.opacity="0.5";addLog("[disconnected]");setTimeout(connectWS,2000);};ws.onerror=function(){statusEl.textContent="error";statusEl.style.opacity="0.5";};}catch(e){addLog("[ws error: "+e.message+"]");setTimeout(connectWS,5000);}}\n' +
-'function goFullscreen(){const elem=document.documentElement;try{if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}else{addLog("[fullscreen not supported]");}}catch(e){addLog("[fullscreen error: "+e.message+"]");}}\n' +
-'function loadPayload(){fetch("/load").then(function(){addLog("[payload loaded]");});}\n' +
-'connectWS();\n' +
-'window.onload = function() {\n' +
-'goFullscreen();\n' +
-'};\n' +
+const html = `<!DOCTYPE html>
+<html>
+<head>
+<title>PS4 Webkit</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --primary-color: #ffffff;
+  --primary-dark: #e3f2fd;
+  --primary-light: #f1f8ff;
+  --accent-color: #2196f3;
+  --text-color: #0d47a1;
+  --bg-light: #bbdefb;
+  --card-border: #90caf9;
+  --region-bg: #e3f2fd;
+}
+body.dark-mode {
+  --primary-color: #0d47a1;
+  --primary-dark: #002171;
+  --primary-light: #1565c0;
+  --accent-color: #64b5f6;
+  --text-color: #ffffff;
+  --bg-light: #000000;
+  --card-border: #1e88e5;
+  --region-bg: #002171;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-light);
+  color: var(--text-color);
+  min-height: 100vh;
+  text-align: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 12px;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  height: 90vh;
+}
+.featured-games-bar {
+  width: 100%;
+  background: var(--primary-dark);
+  padding: 15px 0;
+  position: relative;
+  border-bottom: 1px solid var(--card-border);
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(33, 150, 243, 0.2);
+}
+.featured-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+.featured-title {
+  font-size: 1.5rem;
+  color: var(--accent-color);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.status-badge {
+  background: var(--primary-color);
+  color: var(--accent-color);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.main-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.action-card {
+  background: var(--primary-color);
+  border: 1px solid var(--card-border);
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(33, 150, 243, 0.3);
+  transition: all 0.3s ease;
+  max-width: 400px;
+  width: 100%;
+}
+.action-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(33, 150, 243, 0.4);
+}
+button {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 20px 40px;
+  font-size: 24px;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 10px;
+  width: 100%;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+button:hover {
+  background: #1976d2;
+  transform: scale(1.02);
+}
+.comments-section {
+  width: 100%;
+  margin-top: auto;
+  padding: 20px 0;
+}
+.comments-container-full {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: var(--primary-color);
+  border-radius: 10px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+  border: 1px solid var(--card-border);
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+.comments-title {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+  margin-bottom: 10px;
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 2px solid var(--primary-dark);
+  padding-bottom: 10px;
+}
+#log {
+  flex: 1;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 14px;
+  text-align: left;
+  padding: 10px;
+  background: var(--primary-dark);
+  border-radius: 5px;
+  color: var(--text-color);
+}
+.line {
+  margin: 4px 0;
+  border-bottom: 1px solid rgba(33, 150, 243, 0.1);
+  padding-bottom: 2px;
+}
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--primary-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
 
-'</script>\n' +
-'</body>\n' +
-'</html>\n'
+<div class="featured-games-bar">
+  <div class="featured-header">
+    <div class="featured-title">PS4 Webkit Loader</div>
+    <div id="status" class="status-badge">Disconnected</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main-content">
+    <div class="action-card">
+      <h2 style="margin-bottom:20px; color:var(--text-color);">System Ready</h2>
+      <button onclick="loadPayload()">Jailbreak</button>
+      <p style="margin-top:15px; font-size:12px; opacity:0.7;">Firmware 9.00 / 11.00</p>
+    </div>
+  </div>
+
+  <div class="comments-section">
+    <div class="comments-container-full">
+      <h3 class="comments-title">Kernel Log</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const logEl=document.getElementById("log");
+const statusEl=document.getElementById("status");
+const ws=null;
+function addLog(msg){
+  const div=document.createElement("div");
+  div.className="line";
+  div.textContent="> " + msg;
+  logEl.appendChild(div);
+  logEl.scrollTop=logEl.scrollHeight;
+}
+function connectWS(){
+  try{
+    ws=new WebSocket("ws://127.0.0.1:40404");
+    ws.onopen=function(){
+      statusEl.textContent="Connected";
+      statusEl.style.color="green";
+      addLog("[Connected to WS]");
+    };
+    ws.onmessage=function(e){addLog(e.data);};
+    ws.onclose=function(){
+      statusEl.textContent="Disconnected";
+      statusEl.style.color="red";
+      addLog("[Disconnected]");
+      setTimeout(connectWS,2000);
+    };
+    ws.onerror=function(){
+      statusEl.textContent="Error";
+    };
+  }catch(e){
+    addLog("[WS Error: "+e.message+"]");
+    setTimeout(connectWS,5000);
+  }
+}
+function loadPayload(){
+  fetch("/load").then(function(){addLog("[Payload Loaded]");});
+}
+connectWS();
+</script>
+</body>
+</html>
+`
 
 // detect local ip by connecting to 8.8.8.8 (doesnt actually send anything)
 log('detecting local ip...')
