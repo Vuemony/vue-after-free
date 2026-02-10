@@ -96,8 +96,6 @@ const TCP_INFO = 32
 const TCPS_ESTABLISHED = 4
 const size_tcp_info = 0xec  /* struct tcp_info */
 
-var lapse_ran = false
-
 // Create shorthand references
 fn.register(42, 'pipe', ['bigint'], 'bigint')
 const pipe = fn.pipe
@@ -2065,7 +2063,6 @@ export function lapse () {
 
     cleanup()
 
-    lapse_ran = true
     return true
   } catch (e) {
     log('Lapse error: ' + (e as Error).message)
