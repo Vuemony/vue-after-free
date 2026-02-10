@@ -82,6 +82,11 @@ A network connection of any kind is required, before trying to run Vue please co
   13. Optionally after jailbreaking run the [np-fake-signin](https://github.com/Vuemony/vue-after-free/blob/main/README.md#np-fake-signin) payload to avoid the PSN pop-up.
 
 ## Non-Jailbroken PS4
+
+> [!WARNING]
+> Please make sure that you have no updates downloaded on your system. Otherwise this will update your system to the downloaded version. (Even if it is offline). Pottentialy breaking the jailbreak.
+
+
 A network connection of any kind is required, before trying to run Vue please connect to a local network even if it does not have internet. [Connection Instructions](https://github.com/Vuemony/vue-after-free?tab=readme-ov-file#connecting-to-the-internet)
   1. Format your USB Drive to Exfat.
 > [!WARNING]
