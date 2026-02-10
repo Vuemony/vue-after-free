@@ -84,7 +84,7 @@ A network connection of any kind is required, before trying to run Vue please co
 ## Non-Jailbroken PS4
 
 > [!WARNING]
-> Please make sure that you have no updates downloaded on your system. Otherwise this will update your system to the downloaded version. (Even if it is offline). Pottentialy breaking the jailbreak.
+> Please make sure that you have no updates downloaded on your system. Otherwise this will update your system to the downloaded version. (Even if it is offline). Potentially breaking the jailbreak.
 
 
 A network connection of any kind is required, before trying to run Vue please connect to a local network even if it does not have internet. [Connection Instructions](https://github.com/Vuemony/vue-after-free?tab=readme-ov-file#connecting-to-the-internet)
