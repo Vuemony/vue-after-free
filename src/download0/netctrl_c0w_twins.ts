@@ -622,6 +622,7 @@ function wait_uio_writev () {
 
 function init () {
   log('=== PS4 NetCtrl Jailbreak ===')
+  log('build: %VERSION_STRING%')
 
   FW_VERSION = get_fwversion()
   log('Detected PS4 firmware: ' + FW_VERSION)
