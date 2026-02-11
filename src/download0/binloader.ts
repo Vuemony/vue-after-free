@@ -71,6 +71,9 @@ export function binloader_init () {
   fn.register(0x69, 'setsockopt', ['number', 'number', 'number', 'bigint', 'number'], 'bigint')
   const setsockopt = fn.setsockopt
 
+  fn.register(0x62, 'connect_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
+  const connect_sys = fn.connect_sys
+
   // Constants
   const BIN_LOADER_PORT = 9020
   const MAX_PAYLOAD_SIZE = 4 * 1024 * 1024  // 4MB max
@@ -603,6 +606,56 @@ export function binloader_init () {
 
     BinLoader.skip_autoclose = skip_autoclose
 
+    // Check if GoldHEN Binloader is active on port 9090
+    log('Checking for GoldHEN Binloader on port 9090...')
+    const gh_sock = socket(BL_AF_INET, BL_SOCK_STREAM, 0)
+    const gh_sock_num = (gh_sock instanceof BigInt) ? gh_sock.lo : gh_sock
+
+    if (!bl_is_error(gh_sock)) {
+      const sockaddr = mem.malloc(16)
+      for (let j = 0; j < 16; j++) {
+        mem.view(sockaddr).setUint8(j, 0)
+      }
+      mem.view(sockaddr).setUint8(1, 2) // AF_INET
+      mem.view(sockaddr).setUint8(2, (9090 >> 8) & 0xff)
+      mem.view(sockaddr).setUint8(3, 9090 & 0xff)
+      // Connect to 127.0.0.1 (0x0100007f)
+      mem.view(sockaddr).setUint8(4, 127)
+      mem.view(sockaddr).setUint8(5, 0)
+      mem.view(sockaddr).setUint8(6, 0)
+      mem.view(sockaddr).setUint8(7, 1)
+
+      const conn_ret = connect_sys(new BigInt(0, gh_sock_num), sockaddr, new BigInt(0, 16))
+
+      if (!bl_is_error(conn_ret)) {
+        log('GoldHEN Binloader detected! Sending payload...')
+
+        let total_sent = 0
+        while (total_sent < payload.size) {
+          const chunk = payload.size - total_sent > READ_CHUNK ? READ_CHUNK : payload.size - total_sent
+          const bytes_sent = write_sys(
+            new BigInt(0, gh_sock_num),
+            payload.buf.add(new BigInt(0, total_sent)),
+            new BigInt(0, chunk)
+          )
+
+          if (bl_is_error(bytes_sent) || bytes_sent.eq(0)) {
+            log('Failed to send payload to GoldHEN')
+            break
+          }
+          total_sent += bytes_sent.lo
+        }
+
+        close_sys(gh_sock_num)
+        log('Sent ' + total_sent + ' bytes to GoldHEN')
+        if (total_sent === payload.size) {
+          return true // Success, stop here
+        }
+      }
+      close_sys(gh_sock_num)
+    }
+
+    log('GoldHEN Binloader not active, loading locally...')
     try {
       BinLoader.init(payload.buf, payload.size)
       BinLoader.run()
@@ -677,6 +730,58 @@ export function binloader_init () {
 
     BinLoader.skip_autoclose = false
 
+    // Check if GoldHEN Binloader is active on port 9090
+    log('Checking for GoldHEN Binloader on port 9090...')
+    const gh_sock = socket(BL_AF_INET, BL_SOCK_STREAM, 0)
+    const gh_sock_num = (gh_sock instanceof BigInt) ? gh_sock.lo : gh_sock
+
+    if (!bl_is_error(gh_sock)) {
+      const sockaddr = mem.malloc(16)
+      for (let j = 0; j < 16; j++) {
+        mem.view(sockaddr).setUint8(j, 0)
+      }
+      mem.view(sockaddr).setUint8(1, 2) // AF_INET
+      mem.view(sockaddr).setUint8(2, (9090 >> 8) & 0xff)
+      mem.view(sockaddr).setUint8(3, 9090 & 0xff)
+      // Connect to 127.0.0.1 (0x0100007f)
+      mem.view(sockaddr).setUint8(4, 127)
+      mem.view(sockaddr).setUint8(5, 0)
+      mem.view(sockaddr).setUint8(6, 0)
+      mem.view(sockaddr).setUint8(7, 1)
+
+      const conn_ret = connect_sys(new BigInt(0, gh_sock_num), sockaddr, new BigInt(0, 16))
+
+      if (!bl_is_error(conn_ret)) {
+        log('GoldHEN Binloader detected! Sending payload...')
+
+        let total_sent = 0
+        while (total_sent < payload.size) {
+          const chunk = payload.size - total_sent > READ_CHUNK ? READ_CHUNK : payload.size - total_sent
+          const bytes_sent = write_sys(
+            new BigInt(0, gh_sock_num),
+            payload.buf.add(new BigInt(0, total_sent)),
+            new BigInt(0, chunk)
+          )
+
+          if (bl_is_error(bytes_sent) || bytes_sent.eq(0)) {
+            log('Failed to send payload to GoldHEN')
+            break
+          }
+          total_sent += bytes_sent.lo
+        }
+
+        close_sys(gh_sock_num)
+        log('Sent ' + total_sent + ' bytes to GoldHEN')
+        if (total_sent === payload.size) {
+          show_success()
+          return true // Success, stop here
+        }
+        return false
+      }
+      close_sys(gh_sock_num)
+    }
+
+    log('GoldHEN Binloader not active, loading locally...')
     try {
       BinLoader.init(payload.buf, payload.size)
       BinLoader.run()
