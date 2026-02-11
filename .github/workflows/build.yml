@@ -27,6 +27,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Replace version string with commit hash
+        run: find ./dist -type f -name '*.js' -exec sed -i "s/%VERSION_STRING%/${{ github.sha }}/g" {} +
+
       - name: Copy assets to dist
         run: |
           cp src/download0/payloads/*.elf dist/download0/payloads/
