@@ -22,6 +22,7 @@
     "typescript-eslint": "^8.50.0"
   },
   "dependencies": {
+    "@babel/plugin-bugfix-firefox-class-in-computed-class-key": "^7.28.5",
     "jiti": "^2.6.1",
     "neostandard": "^0.12.2"
   }

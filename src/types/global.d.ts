@@ -26,14 +26,27 @@ declare var debugging: {
       available_libc: number
     }
   }
+  restart (): void
 } | undefined
 
 declare var is_jailbroken: boolean
 
 declare var CONFIG: {
-  autolapse?: boolean;
-  autopoop?: boolean;
-  autoclose?: boolean;
+  autolapse?: boolean
+  autopoop?: boolean
+  autoclose?: boolean
+  music?: boolean
+  jb_behavior?: number
+  theme?: number
+  retry_count?: number
+  auto_payload?: string
+  nav_sounds?: boolean
+  fan_fix_mode?: number  // 0=Off, 1=Built-in ICC, 2=Launch PS4 Temp App (LAPY20006)
+  fan_threshold?: number      // Low→Med transition temp (°C)
+  fan_threshold_high?: number // Med→High transition temp (°C)
+  fan_low_speed?: number      // Slow fan speed (%)
+  fan_med_speed?: number      // Medium fan speed (%)
+  fan_high_speed?: number     // Fast fan speed (%)
 } | undefined
 
 declare var payloads: string[] | undefined

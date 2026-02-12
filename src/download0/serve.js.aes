@@ -1,4 +1,5 @@
 // Remote loader - downloads and evals inject.js from WebSocketServer
+// Enhanced with error recovery, theme loading, and structured logging
 
 var WS_PORT = 40404;
 
@@ -118,9 +119,9 @@ try {
     
     
     
-    // Random image selection for success/fail screens
-    var successImageCount = 50;
-    var failImageCount = 60;
+    // Random image selection for success/fail screens (HD 1920x1080 cyberpunk images)
+    var successImageCount = 15;
+    var failImageCount = 15;
     var randomSuccessNum = Math.floor(Math.random() * successImageCount) + 1;
     var randomFailNum = Math.floor(Math.random() * failImageCount) + 1;
 
@@ -141,7 +142,6 @@ try {
         height: 1080
     });
     
-
 
    
    
@@ -196,13 +196,13 @@ try {
         ws.broadcast(msg); // Still send to websocket too
     }
     log = function(msg) {
-        _log(`[+] ${msg}`, true)
+        _log("[+] " + msg, true)
     }
     debug = function(msg) {
-        _log(`[*] ${msg}`, false)
+        _log("[*] " + msg, false)
     }
     error = function(msg) {
-        _log(`[-] ${msg}`, true)
+        _log("[-] " + msg, true)
     }
     
     
@@ -228,7 +228,16 @@ try {
             '    autopoop: false,',
             '    autoclose: false,',
             '    music: true,',
-            '    jb_behavior: 0',
+            '    jb_behavior: 0,',
+            '    theme: 0,',
+            '    retry_count: 1,',
+            '    nav_sounds: true,',
+            '    fan_fix_mode: 1,',
+            '    fan_threshold: 55,',
+            '    fan_threshold_high: 70,',
+            '    fan_low_speed: 25,',
+            '    fan_med_speed: 50,',
+            '    fan_high_speed: 80',
             '};',
             '',
             'var payloads = [ //to be ran after jailbroken',
@@ -238,6 +247,16 @@ try {
             if (!err) console.log("config.js written");
             include('config.js');
         });
+    }
+
+    // Apply theme from config
+    try {
+        if (typeof CONFIG !== 'undefined' && typeof CONFIG.theme === 'number') {
+            include('themes.js');
+            themes_setTheme(CONFIG.theme);
+        }
+    } catch(e) {
+        log('Theme load: ' + e.message);
     }
     
     if(CONFIG.autolapse){
@@ -266,6 +285,76 @@ try {
         }
     };
 } catch(e) {
-    alert(`${e.message}\n${e.stack}`);
-    //var i = 0;
+    // === Global Error Recovery ===
+    // If anything crashes, try to recover gracefully
+    try {
+        log("CRITICAL ERROR: " + e.message);
+        log("Attempting recovery...");
+        
+        // Try to show error on screen
+        jsmaf.root.children.length = 0;
+        var errorBg = new Image({
+            url: "file:///../download0/img/multiview_bg_VAF.png",
+            x: 0, y: 0, width: 1920, height: 1080
+        });
+        jsmaf.root.children.push(errorBg);
+        
+        new Style({ name: "err_title", color: "rgb(255,80,80)", size: 36 });
+        new Style({ name: "err_msg", color: "white", size: 22 });
+        new Style({ name: "err_hint", color: "rgb(160,160,160)", size: 20 });
+        
+        var errTitle = new jsmaf.Text();
+        errTitle.text = "An error occurred";
+        errTitle.x = 660;
+        errTitle.y = 300;
+        errTitle.style = "err_title";
+        jsmaf.root.children.push(errTitle);
+        
+        var errMsg = new jsmaf.Text();
+        errMsg.text = e.message || "Unknown error";
+        errMsg.x = 460;
+        errMsg.y = 380;
+        errMsg.style = "err_msg";
+        jsmaf.root.children.push(errMsg);
+        
+        var errHint = new jsmaf.Text();
+        errHint.text = "Press X to retry  |  Press CIRCLE to restart app";
+        errHint.x = 520;
+        errHint.y = 500;
+        errHint.style = "err_hint";
+        jsmaf.root.children.push(errHint);
+        
+        // Show stack trace lines
+        if (e.stack) {
+            var stackLines = e.stack.split('\n');
+            for (var si = 0; si < Math.min(stackLines.length, 8); si++) {
+                var stackText = new jsmaf.Text();
+                stackText.text = stackLines[si];
+                stackText.x = 200;
+                stackText.y = 560 + (si * 25);
+                stackText.style = "err_hint";
+                jsmaf.root.children.push(stackText);
+            }
+        }
+        
+        // Allow user to retry or restart
+        jsmaf.onKeyDown = function(keyCode) {
+            if (keyCode === 14) {
+                // X - try loading main menu
+                try {
+                    include('main-menu.js');
+                } catch(retryErr) {
+                    log("Recovery failed: " + retryErr.message);
+                }
+            } else if (keyCode === 13) {
+                // Circle - restart app
+                if (typeof debugging !== 'undefined' && debugging) {
+                    debugging.restart();
+                }
+            }
+        };
+    } catch(recoveryErr) {
+        // Last resort - show alert
+        alert(e.message + "\n" + (e.stack || ""));
+    }
 }

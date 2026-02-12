@@ -3,8 +3,11 @@ import { binloader_init } from 'download0/binloader'
 import { libc_addr } from 'download0/userland'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 import { checkJailbroken } from 'download0/check-jailbroken'
+import { themes_getTheme } from 'download0/themes'
+import { ui_initScreen, ui_addBackground, ui_addLogo, ui_addTitle, ui_playMusic, ui_createMenuState, ui_updateHighlight, UI_NORMAL_BTN, UI_MARKER_IMG, UIMenuState } from 'download0/ui'
+import { sfx_playNav, sfx_playSelect } from 'download0/sfx'
 
-(function () {
+;(function () {
   if (typeof libc_addr === 'undefined') {
     log('Loading userland.js...')
     include('userland.js')
@@ -15,67 +18,24 @@ import { checkJailbroken } from 'download0/check-jailbroken'
 
   log('Loading check-jailbroken.js...')
   include('check-jailbroken.js')
+  include('themes.js')
+  include('sfx.js')
+  include('languages.js')
+  include('ui.js')
 
-  if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-    const audio = new jsmaf.AudioClip()
-    audio.volume = 0.5
-    audio.open('file://../download0/sfx/bgm.wav')
-  }
+  ui_playMusic()
 
   is_jailbroken = checkJailbroken()
+  const theme = themes_getTheme()
 
-  jsmaf.root.children.length = 0
-
-  new Style({ name: 'white', color: 'white', size: 24 })
-  new Style({ name: 'title', color: 'white', size: 32 })
-
-  let currentButton = 0
-  const buttons: Image[] = []
-  const buttonTexts: jsmaf.Text[] = []
-  const buttonMarkers: Image[] = []
-  const buttonOrigPos: { x: number, y: number }[] = []
-  const textOrigPos: { x: number, y: number }[] = []
-
-  type FileEntry = { name: string, path: string }
-  const fileList: FileEntry[] = []
-
-  const normalButtonImg = 'file:///assets/img/button_over_9.png'
-  const selectedButtonImg = 'file:///assets/img/button_over_9.png'
-
-  const background = new Image({
-    url: 'file:///../download0/img/multiview_bg_VAF.png',
-    x: 0,
-    y: 0,
-    width: 1920,
-    height: 1080
-  })
-  jsmaf.root.children.push(background)
-
-  const logo = new Image({
-    url: 'file:///../download0/img/logo.png',
-    x: 1620,
-    y: 0,
-    width: 300,
-    height: 169
-  })
-  jsmaf.root.children.push(logo)
+  ui_initScreen()
+  ui_addBackground()
+  ui_addLogo(1620, 0, 300, 169)
 
   if (useImageText) {
-    const title = new Image({
-      url: textImageBase + 'payloadMenu.png',
-      x: 830,
-      y: 100,
-      width: 250,
-      height: 60
-    })
-    jsmaf.root.children.push(title)
+    ui_addTitle(lang.payloadMenu, 'payloadMenu', 830, 100, 250, 60)
   } else {
-    const title = new jsmaf.Text()
-    title.text = lang.payloadMenu
-    title.x = 880
-    title.y = 120
-    title.style = 'title'
-    jsmaf.root.children.push(title)
+    ui_addTitle(lang.payloadMenu, 'payloadMenu', 880, 100, 250, 60)
   }
 
   fn.register(0x05, 'open_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
@@ -83,13 +43,74 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   fn.register(0x110, 'getdents', ['bigint', 'bigint', 'bigint'], 'bigint')
   fn.register(0x03, 'read_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
 
+  type FileEntry = { name: string, path: string, isFavorite: boolean }
+  const fileList: FileEntry[] = []
+
+  // === Favorites System ===
+  let favorites: string[] = []
+
+  function loadFavorites (): void {
+    try {
+      const xhr = new jsmaf.XMLHttpRequest()
+      xhr.open('GET', 'file://../download0/favorites.json', false) // synchronous
+      xhr.send()
+      if (xhr.status === 0 || xhr.status === 200) {
+        if (xhr.responseText) {
+          try {
+            favorites = JSON.parse(xhr.responseText)
+            if (!Array.isArray(favorites)) favorites = []
+          } catch (e) {
+            favorites = []
+          }
+        }
+      }
+    } catch (e) {
+      favorites = []
+    }
+  }
+
+  function saveFavorites (): void {
+    try {
+      const xhr = new jsmaf.XMLHttpRequest()
+      xhr.open('POST', 'file://../download0/favorites.json', true)
+      xhr.send(JSON.stringify(favorites))
+    } catch (e) {
+      log('Failed to save favorites: ' + (e as Error).message)
+    }
+  }
+
+  function toggleFavorite (path: string): boolean {
+    const idx = favorites.indexOf(path)
+    if (idx >= 0) {
+      favorites.splice(idx, 1)
+      saveFavorites()
+      return false
+    } else {
+      favorites.push(path)
+      saveFavorites()
+      return true
+    }
+  }
+
+  function isFavorite (path: string): boolean {
+    return favorites.indexOf(path) >= 0
+  }
+
+  // Load favorites first
+  loadFavorites()
+
   const scanPaths = ['/download0/payloads']
 
   if (is_jailbroken) {
     scanPaths.push('/data/payloads')
     for (let i = 0; i <= 7; i++) {
       scanPaths.push('/mnt/usb' + i + '/payloads')
+      scanPaths.push('/mnt/usb' + i) // Also scan USB root
+      scanPaths.push('/mnt/usb' + i + '/PS4/payloads') // Common PS4 folder
     }
+    // Also scan common HDD locations
+    scanPaths.push('/data')
+    scanPaths.push('/user/home')
   }
 
   log('Scanning paths: ' + scanPaths.join(', '))
@@ -106,11 +127,9 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     mem.view(path_addr).setUint8(currentPath.length, 0)
 
     const fd = fn.open_sys(path_addr, new BigInt(0, 0), new BigInt(0, 0))
-    // log('open_sys (' + currentPath + ') returned: ' + fd.toString())
 
     if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
       const count = fn.getdents(fd, buf, new BigInt(0, 4096))
-      // log('getdents returned: ' + count.toString() + ' bytes')
 
       if (!count.eq(new BigInt(0xffffffff, 0xffffffff)) && count.lo > 0) {
         let offset = 0
@@ -124,12 +143,11 @@ import { checkJailbroken } from 'download0/check-jailbroken'
             name += String.fromCharCode(mem.view(buf.add(new BigInt(0, offset + 8 + i))).getUint8(0))
           }
 
-          // log('Entry: ' + name + ' type=' + d_type)
-
           if (d_type === 8 && name !== '.' && name !== '..') {
             const lowerName = name.toLowerCase()
             if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
-              fileList.push({ name, path: currentPath + '/' + name })
+              const fullPath = currentPath + '/' + name
+              fileList.push({ name, path: fullPath, isFavorite: isFavorite(fullPath) })
               log('Added file: ' + name + ' from ' + currentPath)
             }
           }
@@ -143,6 +161,12 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     }
   }
 
+  // Sort: favorites first, then alphabetical
+  fileList.sort(function (a, b) {
+    if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+
   log('Total files found: ' + fileList.length)
 
   const startY = 200
@@ -152,6 +176,8 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const buttonHeight = 80
   const startX = 130
   const xSpacing = 340
+
+  const state = ui_createMenuState(buttonWidth, buttonHeight)
 
   for (let i = 0; i < fileList.length; i++) {
     const row = Math.floor(i / buttonsPerRow)
@@ -163,256 +189,171 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     const btnY = startY + row * buttonSpacing
 
     const button = new Image({
-      url: normalButtonImg,
+      url: UI_NORMAL_BTN,
       x: btnX,
       y: btnY,
       width: buttonWidth,
       height: buttonHeight
     })
-    buttons.push(button)
+    state.buttons.push(button)
     jsmaf.root.children.push(button)
 
     const marker = new Image({
-      url: 'file:///assets/img/ad_pod_marker.png',
+      url: UI_MARKER_IMG,
       x: btnX + buttonWidth - 50,
       y: btnY + 35,
       width: 12,
       height: 12,
       visible: false
     })
-    buttonMarkers.push(marker)
+    state.buttonMarkers.push(marker)
     jsmaf.root.children.push(marker)
 
     if (displayName.length > 30) {
       displayName = displayName.substring(0, 27) + '...'
     }
 
+    // Show star prefix for favorites
+    const favPrefix = fileList[i]!.isFavorite ? '* ' : ''
+
     const text = new jsmaf.Text()
-    text.text = displayName
+    text.text = favPrefix + displayName
     text.x = btnX + 20
     text.y = btnY + 30
     text.style = 'white'
-    buttonTexts.push(text)
+    state.buttonTexts.push(text)
     jsmaf.root.children.push(text)
 
-    buttonOrigPos.push({ x: btnX, y: btnY })
-    textOrigPos.push({ x: text.x, y: text.y })
+    state.buttonOrigPos.push({ x: btnX, y: btnY })
+    state.textOrigPos.push({ x: text.x, y: text.y })
   }
 
+  // Exit/Back button
   const exitX = 810
   const exitY = 980
 
   const exitButton = new Image({
-    url: normalButtonImg,
+    url: UI_NORMAL_BTN,
     x: exitX,
     y: exitY,
     width: buttonWidth,
     height: buttonHeight
   })
-  buttons.push(exitButton)
+  state.buttons.push(exitButton)
   jsmaf.root.children.push(exitButton)
 
   const exitMarker = new Image({
-    url: 'file:///assets/img/ad_pod_marker.png',
+    url: UI_MARKER_IMG,
     x: exitX + buttonWidth - 50,
     y: exitY + 35,
     width: 12,
     height: 12,
     visible: false
   })
-  buttonMarkers.push(exitMarker)
+  state.buttonMarkers.push(exitMarker)
   jsmaf.root.children.push(exitMarker)
 
   const exitText = new jsmaf.Text()
-  exitText.text = 'Back'
+  exitText.text = lang.back
   exitText.x = exitX + buttonWidth / 2 - 20
   exitText.y = exitY + buttonHeight / 2 - 12
   exitText.style = 'white'
-  buttonTexts.push(exitText)
+  state.buttonTexts.push(exitText)
   jsmaf.root.children.push(exitText)
 
-  buttonOrigPos.push({ x: exitX, y: exitY })
-  textOrigPos.push({ x: exitText.x, y: exitText.y })
+  state.buttonOrigPos.push({ x: exitX, y: exitY })
+  state.textOrigPos.push({ x: exitText.x, y: exitText.y })
 
-  let zoomInInterval: number | null = null
-  let zoomOutInterval: number | null = null
-  let prevButton = -1
+  // Controls hint
+  const controlsText = new jsmaf.Text()
+  controlsText.text = 'X: Launch  |  SQUARE: Favorite  |  CIRCLE: Back'
+  controlsText.x = 600
+  controlsText.y = 1040
+  controlsText.style = 'dim'
+  jsmaf.root.children.push(controlsText)
 
-  function easeInOut (t: number) {
-    return (1 - Math.cos(t * Math.PI)) / 2
-  }
-
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.0
-    const endScale = 1.1
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomInInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomInInterval ?? -1)
-        zoomInInterval = null
-      }
-    }, step)
-  }
-
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.1
-    const endScale = 1.0
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomOutInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomOutInterval ?? -1)
-        zoomOutInterval = null
-      }
-    }, step)
-  }
-
-  function updateHighlight () {
-    // Animate out the previous button
-    const prevButtonObj = buttons[prevButton]
-    const buttonMarker = buttonMarkers[prevButton]
-    if (prevButton >= 0 && prevButton !== currentButton && prevButtonObj) {
-      prevButtonObj.url = normalButtonImg
-      prevButtonObj.alpha = 0.7
-      prevButtonObj.borderColor = 'transparent'
-      prevButtonObj.borderWidth = 0
-      if (buttonMarker) buttonMarker.visible = false
-      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y)
-    }
-
-    // Set styles for all buttons
-    for (let i = 0; i < buttons.length; i++) {
-      const button = buttons[i]
-      const buttonMarker = buttonMarkers[i]
-      const buttonText = buttonTexts[i]
-      const buttonOrigPos_ = buttonOrigPos[i]
-      const textOrigPos_ = textOrigPos[i]
-      if (button === undefined || buttonText === undefined || buttonOrigPos_ === undefined || textOrigPos_ === undefined) continue
-      if (i === currentButton) {
-        button.url = selectedButtonImg
-        button.alpha = 1.0
-        button.borderColor = 'rgb(100,180,255)'
-        button.borderWidth = 3
-        if (buttonMarker) buttonMarker.visible = true
-        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y)
-      } else if (i !== prevButton) {
-        button.url = normalButtonImg
-        button.alpha = 0.7
-        button.borderColor = 'transparent'
-        button.borderWidth = 0
-        button.scaleX = 1.0
-        button.scaleY = 1.0
-        button.x = buttonOrigPos_.x
-        button.y = buttonOrigPos_.y
-        buttonText.scaleX = 1.0
-        buttonText.scaleY = 1.0
-        buttonText.x = textOrigPos_.x
-        buttonText.y = textOrigPos_.y
-        if (buttonMarker) buttonMarker.visible = false
-      }
-    }
-
-    prevButton = currentButton
-  }
-
+  // Grid navigation (custom - not using ui_handleVerticalNav)
   jsmaf.onKeyDown = function (keyCode) {
     log('Key pressed: ' + keyCode)
 
     const fileButtonCount = fileList.length
-    const exitButtonIndex = buttons.length - 1
+    const exitButtonIndex = state.buttons.length - 1
 
-    if (keyCode === 6) {
-      if (currentButton === exitButtonIndex) {
+    if (keyCode === 6) { // Down
+      if (state.currentButton === exitButtonIndex) {
         return
       }
-      const nextButton = currentButton + buttonsPerRow
+      const nextButton = state.currentButton + buttonsPerRow
       if (nextButton >= fileButtonCount) {
-        currentButton = exitButtonIndex
+        state.currentButton = exitButtonIndex
       } else {
-        currentButton = nextButton
+        state.currentButton = nextButton
       }
-      updateHighlight()
-    } else if (keyCode === 4) {
-      if (currentButton === exitButtonIndex) {
+      sfx_playNav()
+      ui_updateHighlight(state)
+    } else if (keyCode === 4) { // Up
+      if (state.currentButton === exitButtonIndex) {
         const lastRow = Math.floor((fileButtonCount - 1) / buttonsPerRow)
         const firstInLastRow = lastRow * buttonsPerRow
         let col = 0
         if (fileButtonCount > 0) {
           col = Math.min(buttonsPerRow - 1, (fileButtonCount - 1) % buttonsPerRow)
         }
-        currentButton = Math.min(firstInLastRow + col, fileButtonCount - 1)
+        state.currentButton = Math.min(firstInLastRow + col, fileButtonCount - 1)
       } else {
-        const nextButton = currentButton - buttonsPerRow
+        const nextButton = state.currentButton - buttonsPerRow
         if (nextButton >= 0) {
-          currentButton = nextButton
+          state.currentButton = nextButton
         }
       }
-      updateHighlight()
-    } else if (keyCode === 5) {
-      if (currentButton === exitButtonIndex) {
+      sfx_playNav()
+      ui_updateHighlight(state)
+    } else if (keyCode === 5) { // Right
+      if (state.currentButton === exitButtonIndex) {
         return
       }
-      const row = Math.floor(currentButton / buttonsPerRow)
-      const col = currentButton % buttonsPerRow
+      const col = state.currentButton % buttonsPerRow
       if (col < buttonsPerRow - 1) {
-        const nextButton = currentButton + 1
+        const nextButton = state.currentButton + 1
         if (nextButton < fileButtonCount) {
-          currentButton = nextButton
+          state.currentButton = nextButton
         }
       }
-      updateHighlight()
-    } else if (keyCode === 7) {
-      if (currentButton === exitButtonIndex) {
-        currentButton = fileButtonCount - 1
+      sfx_playNav()
+      ui_updateHighlight(state)
+    } else if (keyCode === 7) { // Left
+      if (state.currentButton === exitButtonIndex) {
+        state.currentButton = fileButtonCount - 1
       } else {
-        const col = currentButton % buttonsPerRow
+        const col = state.currentButton % buttonsPerRow
         if (col > 0) {
-          currentButton = currentButton - 1
+          state.currentButton = state.currentButton - 1
         }
       }
-      updateHighlight()
-    } else if (keyCode === 14) {
+      sfx_playNav()
+      ui_updateHighlight(state)
+    } else if (keyCode === 14) { // X - Launch
+      sfx_playSelect()
       handleButtonPress()
-    } else if (keyCode === 13) {
+    } else if (keyCode === 15) { // Square - Toggle Favorite
+      if (state.currentButton < fileList.length) {
+        const entry = fileList[state.currentButton]
+        if (entry) {
+          const nowFav = toggleFavorite(entry.path)
+          entry.isFavorite = nowFav
+          // Update display text
+          const textElem = state.buttonTexts[state.currentButton]
+          if (textElem) {
+            let displayName = entry.name
+            if (displayName.length > 30) {
+              displayName = displayName.substring(0, 27) + '...'
+            }
+            (textElem as jsmaf.Text).text = (nowFav ? '* ' : '') + displayName
+          }
+          log((nowFav ? 'Added to' : 'Removed from') + ' favorites: ' + entry.name)
+        }
+      }
+    } else if (keyCode === 13) { // Circle - Back
       log('Going back to main menu...')
       try {
         include('main-menu.js')
@@ -425,7 +366,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   }
 
   function handleButtonPress () {
-    if (currentButton === buttons.length - 1) {
+    if (state.currentButton === state.buttons.length - 1) {
       log('Going back to main menu...')
       try {
         include('main-menu.js')
@@ -434,8 +375,8 @@ import { checkJailbroken } from 'download0/check-jailbroken'
         log('ERROR loading main-menu.js: ' + err.message)
         if (err.stack) log(err.stack)
       }
-    } else if (currentButton < fileList.length) {
-      const selectedEntry = fileList[currentButton]
+    } else if (state.currentButton < fileList.length) {
+      const selectedEntry = fileList[state.currentButton]
       if (!selectedEntry) {
         log('No file selected!')
         return
@@ -465,8 +406,8 @@ import { checkJailbroken } from 'download0/check-jailbroken'
 
             if (!fd.eq(new BigInt(0xffffffff, 0xffffffff))) {
               const buf_size = 1024 * 1024 * 1  // 1 MiB
-              const buf = mem.malloc(buf_size)
-              const read_len = fn.read_sys(fd, buf, new BigInt(0, buf_size))
+              const readBuf = mem.malloc(buf_size)
+              const read_len = fn.read_sys(fd, readBuf, new BigInt(0, buf_size))
 
               fn.close_sys(fd)
 
@@ -476,7 +417,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
               log('File read size: ' + len + ' bytes')
 
               for (let i = 0; i < len; i++) {
-                scriptContent += String.fromCharCode(mem.view(buf).getUint8(i))
+                scriptContent += String.fromCharCode(mem.view(readBuf).getUint8(i))
               }
 
               log('Executing via eval()...')
@@ -506,10 +447,11 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     }
   }
 
-  updateHighlight()
+  ui_updateHighlight(state)
 
   log('Interactive UI loaded!')
   log('Total elements: ' + jsmaf.root.children.length)
-  log('Buttons: ' + buttons.length)
-  log('Use arrow keys to navigate, Enter/X to select')
+  log('Buttons: ' + state.buttons.length)
+  log('Favorites: ' + favorites.length)
+  log('Use arrow keys to navigate, X to select, SQUARE to favorite')
 })()
