@@ -1402,7 +1402,7 @@ function trigger_ucred_triplefree () {
       count++
     }
 
-    if (count === 1000) {
+    if (count === 10000) {
       log('Dropped out from reclaim loop')
       // Clean up and start again
       close(new BigInt(uaf_socket))
