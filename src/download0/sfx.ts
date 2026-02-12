@@ -5,6 +5,7 @@ var sfx_enabled = true
 var sfx_navClip: jsmaf.AudioClip | null = null
 var sfx_successClip: jsmaf.AudioClip | null = null
 var sfx_failClip: jsmaf.AudioClip | null = null
+var sfx_bgmClip: jsmaf.AudioClip | null = null
 
 function sfx_setEnabled (enabled: boolean): void {
   sfx_enabled = enabled
@@ -67,12 +68,26 @@ function sfx_playFail (): void {
 function sfx_playBgm (): void {
   if (typeof CONFIG !== 'undefined' && CONFIG.music) {
     try {
-      const audio = new jsmaf.AudioClip()
-      audio.volume = 0.5
-      audio.open('file://../download0/sfx/bgm.wav')
+      if (!sfx_bgmClip) {
+        sfx_bgmClip = new jsmaf.AudioClip()
+        sfx_bgmClip.volume = 0.5
+      }
+      sfx_bgmClip.open('file://../download0/sfx/bgm.wav')
     } catch (e) {
       // Silently fail
     }
+  }
+}
+
+function sfx_stopBgm (): void {
+  try {
+    if (sfx_bgmClip) {
+      sfx_bgmClip.stop()
+      sfx_bgmClip.close()
+      sfx_bgmClip = null
+    }
+  } catch (e) {
+    // Silently fail - stop/close may not be available on all FW
   }
 }
 
@@ -83,6 +98,7 @@ export {
   sfx_playSelect,
   sfx_playSuccess,
   sfx_playFail,
-  sfx_playBgm
+  sfx_playBgm,
+  sfx_stopBgm
 }
 

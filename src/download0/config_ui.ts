@@ -2,7 +2,7 @@ import { libc_addr } from 'download0/userland'
 import { stats } from 'download0/stats-tracker'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 import { themes_getTheme, themes_setTheme, themes_getNames, themes_getCount, themes_getIndex, THEMES } from 'download0/themes'
-import { sfx_setEnabled, sfx_isEnabled, sfx_playBgm, sfx_playNav, sfx_playSelect } from 'download0/sfx'
+import { sfx_setEnabled, sfx_isEnabled, sfx_playBgm, sfx_stopBgm, sfx_playNav, sfx_playSelect } from 'download0/sfx'
 import { ui_initScreen, ui_addBackground, ui_addLogo, ui_addTitle, ui_playMusic, ui_createMenuState, ui_updateHighlight, ui_handleVerticalNav, UI_NORMAL_BTN, UI_MARKER_IMG, UIMenuState } from 'download0/ui'
 
 if (typeof libc_addr === 'undefined') {
@@ -466,9 +466,11 @@ if (typeof lang === 'undefined') {
       for (let idx = 0; idx < configOptions.length; idx++) {
         updateValueText(idx)
       }
+      configLoaded = true
       log('Config loaded successfully (safe parser)')
     } catch (e) {
       log('ERROR: Failed to parse config: ' + (e as Error).message)
+      configLoaded = true // Allow saving even on parse error
     }
   }
 
@@ -549,6 +551,15 @@ if (typeof lang === 'undefined') {
             }
           }
           log('autolapse disabled (autopoop enabled)')
+        }
+
+        // Apply music toggle immediately
+        if (key === 'music') {
+          if (currentConfig.music) {
+            sfx_playBgm()
+          } else {
+            sfx_stopBgm()
+          }
         }
 
         // Apply sound toggle immediately

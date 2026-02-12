@@ -230,6 +230,11 @@ export function binloader_init () {
 
     const fd_num = (fd instanceof BigInt) ? fd.lo : fd
     const buf = mem.malloc(size)
+    if (!buf || (buf instanceof BigInt && buf.eq(0))) {
+      log('  ERROR: malloc failed for ' + size + ' bytes (buffer is zero)')
+      close_sys(fd_num)
+      return null
+    }
     let total_read = 0
 
     while (total_read < size) {
@@ -396,6 +401,12 @@ export function binloader_init () {
     entry_point: null,
     skip_autoclose: false,
     init: function (bin_data_addr, bin_size) {
+      if (!bin_data_addr || (bin_data_addr instanceof BigInt && bin_data_addr.eq(0))) {
+        throw new Error('buffer cannot be zero — payload data address is null')
+      }
+      if (!bin_size || bin_size <= 0) {
+        throw new Error('buffer cannot be zero — payload size is invalid: ' + bin_size)
+      }
       this.data = bin_data_addr
       this.data_size = bin_size
 
@@ -416,7 +427,11 @@ export function binloader_init () {
       )
 
       if (bl_is_error(ret)) {
-        throw new Error('mmap failed: ' + ret.toString())
+        throw new Error('mmap failed: ' + ret.toString() + ' — kernel patches may not have enabled RWX mmap')
+      }
+
+      if (ret.eq(0)) {
+        throw new Error('mmap returned zero address — RWX mapping not available')
       }
 
       this.mmap_base = ret
@@ -475,7 +490,7 @@ export function binloader_init () {
 
         // Check if autoclose is enabled
         if (typeof CONFIG !== 'undefined' && CONFIG.autoclose && !BinLoader.skip_autoclose) {
-          log('CONFIG.autoclose enabled - terminating current process')
+          log('CONFIG.autoclose enabled - waiting for save data to flush before closing...')
 
           fn.register(0x14, 'getpid', [], 'bigint')
           fn.register(0x25, 'kill', ['bigint', 'bigint'], 'bigint')
@@ -483,8 +498,16 @@ export function binloader_init () {
           const pid = fn.getpid()
           const pid_num = (pid instanceof BigInt) ? pid.lo : pid
           log('Current PID: ' + pid_num)
-          log('Sending SIGKILL to PID ' + pid_num)
 
+          // Wait 5 seconds before killing to allow save data to flush
+          // This prevents save corruption reported in issue #33
+          log('Waiting 5s for filesystem flush before auto-close...')
+          const flush_start = Date.now()
+          while (Date.now() - flush_start < 5000) {
+            // Busy wait to let filesystem operations complete
+          }
+
+          log('Sending SIGKILL to PID ' + pid_num)
           fn.kill(pid, new BigInt(0, 9))
         } else {
         // Call thrd_join to wait for thread completion

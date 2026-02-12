@@ -260,13 +260,41 @@ try {
     }
     
     if(CONFIG.autolapse){
-        include('loader.js')
-    } else if(CONFIG.autopoop && psn.mainUser.signedIn){
+        try {
+            include('loader.js')
+        } catch(e) {
+            log('Failed to load loader.js: ' + e.message);
+            try { include('main-menu.js') } catch(e2) { log('Failed to load main-menu.js: ' + e2.message) }
+        }
+    } else if(CONFIG.autopoop){
+        // PSN sign-in check removed - exploit doesn't require PSN authentication
+        // Previously: CONFIG.autopoop && psn.mainUser.signedIn
+        // This fixes issue #85: "np fake sign in not work"
+        var isSignedIn = false;
+        try {
+            isSignedIn = psn && psn.mainUser && psn.mainUser.signedIn;
+        } catch(e) {
+            log('PSN sign-in check skipped: ' + e.message);
+        }
+        if (!isSignedIn) {
+            log('PSN not signed in — proceeding anyway (fake sign-in not required for exploit)');
+        }
         CONFIG.jb_behavior = 1
-        include('loader.js')
+        try {
+            include('loader.js')
+        } catch(e) {
+            log('Failed to load loader.js: ' + e.message);
+            try { include('main-menu.js') } catch(e2) { log('Failed to load main-menu.js: ' + e2.message) }
+        }
     } 
     else {
-        include('main-menu.js')
+        try {
+            include('main-menu.js')
+        } catch(e) {
+            log('Failed to include main-menu.js: ' + e.message);
+            log('This may indicate missing files in download0/');
+            log('Try re-deploying the download0 files via FTP');
+        }
     }
     
     // handle WebSocket received messages
