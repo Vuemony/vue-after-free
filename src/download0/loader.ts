@@ -180,41 +180,41 @@ if (!is_jailbroken) {
 
   function attemptExploit () {
     currentAttempt++
-    stats.incrementTotal()
+  stats.incrementTotal()
 
     if (maxRetries > 1) {
       logger_info(lang.attempt + ' ' + currentAttempt + ' ' + lang.of + ' ' + maxRetries)
       utils.notify(FW_VERSION + ' - ' + lang.attempt + ' ' + currentAttempt + '/' + maxRetries)
     } else {
-      utils.notify(FW_VERSION + ' Detected!')
+  utils.notify(FW_VERSION + ' Detected!')
     }
 
-    let use_lapse = false
+  let use_lapse = false
 
-    if (jb_behavior === 1) {
-      log('JB Behavior: NetControl (forced)')
+  if (jb_behavior === 1) {
+    log('JB Behavior: NetControl (forced)')
       logger_info('Using NetControl kernel exploit')
-      include('netctrl_c0w_twins.js')
-    } else if (jb_behavior === 2) {
-      log('JB Behavior: Lapse (forced)')
+    include('netctrl_c0w_twins.js')
+  } else if (jb_behavior === 2) {
+    log('JB Behavior: Lapse (forced)')
       logger_info('Using Lapse kernel exploit')
-      use_lapse = true
-      lapse()
-    } else {
-      log('JB Behavior: Auto Detect')
+    use_lapse = true
+    lapse()
+  } else {
+    log('JB Behavior: Auto Detect')
       logger_info('Auto-detecting kernel exploit for FW ' + FW_VERSION)
-      if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
-        use_lapse = true
+    if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+      use_lapse = true
         logger_info('Selected: Lapse (FW ' + FW_VERSION + ')')
-        lapse()
-      } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
+      lapse()
+    } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
         logger_info('Selected: NetControl (FW ' + FW_VERSION + ')')
-        include('netctrl_c0w_twins.js')
-      }
+      include('netctrl_c0w_twins.js')
     }
+  }
 
-    // Only wait for lapse - netctrl handles its own completion
-    if (use_lapse) {
+  // Only wait for lapse - netctrl handles its own completion
+  if (use_lapse) {
       const max_wait_ms = 5000
 
       waitForExploit(max_wait_ms,
@@ -254,21 +254,21 @@ if (!is_jailbroken) {
               }, 2000) // 2 second delay so notification appears
             } catch (e) {
               log('Close failed: ' + (e as Error).message + ' — open PS4 Temp app manually')
-            }
+  }
             return // Don't continue to binloader
           }
 
           // Initialize binloader
-          log('Initializing binloader...')
-          try {
-            binloader_init()
-            log('Binloader initialized and running!')
-          } catch (e) {
-            log('ERROR: Failed to initialize binloader')
-            log('Error message: ' + (e as Error).message)
-            if ((e as Error).stack) {
-              log('Stack trace: ' + (e as Error).stack)
-            }
+    log('Initializing binloader...')
+    try {
+      binloader_init()
+      log('Binloader initialized and running!')
+    } catch (e) {
+      log('ERROR: Failed to initialize binloader')
+      log('Error message: ' + (e as Error).message)
+      if ((e as Error).stack) {
+        log('Stack trace: ' + (e as Error).stack)
+      }
           }
         },
         function onExploitTimeout () {
