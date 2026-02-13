@@ -152,7 +152,6 @@ For some config changes to apply the application needs to be closed and opened a
 Vue comes with a few custom options. Firstly the jailbreak button auto detects firmware and the Lapse exploit from 7.00-12.02, as of 12.50-13.00 it then runs the Netctrl exploit. You can change the defaults in the config menu in the JB Behaviour section.   
 Another available option is to automatically launch a kernel exploit upon opening the Vue app. You can choose to either automatically launch Lapse or Netctrl on their respective compatible firmwares. Auto Lapse and Auto Poop.    
 After a successful jailbreak run you can choose to have the application automatically close, the Auto Close option.   
-Music can be enabled or disabled.
 
 # Automatic Payloads
 In config.js you can add .bin or .elf files to be loaded automatically on kernel exploit completion. HEN or GoldHEN should not be added there as they are already loaded via USB or from the /data/ directory automatically.

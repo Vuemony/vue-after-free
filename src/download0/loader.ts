@@ -41,12 +41,6 @@ export function show_success (immediate?: boolean, skipStats?: boolean) {
   }
 }
 
-if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-  const audio = new jsmaf.AudioClip()
-  audio.volume = 0.5  // 50% volume
-  audio.open('file://../download0/sfx/bgm.wav')
-}
-
 const is_jailbroken = checkJailbroken()
 
 // Check if exploit has completed successfully

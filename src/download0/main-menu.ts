@@ -21,12 +21,6 @@ import { fn, BigInt } from 'download0/types'
   new Style({ name: 'white', color: 'white', size: 24 })
   new Style({ name: 'title', color: 'white', size: 32 })
 
-  if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-    const audio = new jsmaf.AudioClip()
-    audio.volume = 0.5
-    audio.open('file://../download0/sfx/bgm.wav')
-  }
-
   const background = new Image({
     url: 'file:///../download0/img/multiview_bg_VAF.png',
     x: 0,
