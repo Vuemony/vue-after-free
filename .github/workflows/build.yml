@@ -78,17 +78,7 @@ jobs:
           cp dist/download0/img/bg-fail.jpg dist-lite/download0/img/ 2>/dev/null || true
 
           # Hardcoded lite config - auto detect, auto close, no music, no menus
-          cat > dist-lite/download0/config.js <<'LITECONF'
-var CONFIG = {
-    autolapse: true,
-    autopoop: false,
-    autoclose: true,
-    autoclose_delay: 0,
-    music: false,
-    jb_behavior: 0
-};
-var payloads = [];
-LITECONF
+          printf 'var CONFIG = {\n    autolapse: true,\n    autopoop: false,\n    autoclose: true,\n    autoclose_delay: 0,\n    music: false,\n    jb_behavior: 0\n};\nvar payloads = [];\n' > dist-lite/download0/config.js
 
           # Generate lite manifest
           cd dist-lite/download0
