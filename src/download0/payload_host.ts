@@ -199,40 +199,12 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     textOrigPos.push({ x: text.x, y: text.y })
   }
 
-  const exitX = 810
-  const exitY = 980
-
-  const exitButton = new Image({
-    url: normalButtonImg,
-    x: exitX,
-    y: exitY,
-    width: buttonWidth,
-    height: buttonHeight
-  })
-  buttons.push(exitButton)
-  jsmaf.root.children.push(exitButton)
-
-  const exitMarker = new Image({
-    url: 'file:///assets/img/ad_pod_marker.png',
-    x: exitX + buttonWidth - 50,
-    y: exitY + 35,
-    width: 12,
-    height: 12,
-    visible: false
-  })
-  buttonMarkers.push(exitMarker)
-  jsmaf.root.children.push(exitMarker)
-
-  const exitText = new jsmaf.Text()
-  exitText.text = 'Back'
-  exitText.x = exitX + buttonWidth / 2 - 20
-  exitText.y = exitY + buttonHeight / 2 - 12
-  exitText.style = 'white'
-  buttonTexts.push(exitText)
-  jsmaf.root.children.push(exitText)
-
-  buttonOrigPos.push({ x: exitX, y: exitY })
-  textOrigPos.push({ x: exitText.x, y: exitText.y })
+  const backHint = new jsmaf.Text()
+  backHint.text = jsmaf.isCircleAdvance ? 'X to go back' : 'O to go back'
+  backHint.x = 890
+  backHint.y = 1000
+  backHint.style = 'white'
+  jsmaf.root.children.push(backHint)
 
   let zoomInInterval: number | null = null
   let zoomOutInterval: number | null = null
@@ -354,65 +326,43 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     prevButton = currentButton
   }
 
+  const confirmKey = jsmaf.isCircleAdvance ? 13 : 14
+  const backKey = jsmaf.isCircleAdvance ? 14 : 13
+
   jsmaf.onKeyDown = function (keyCode) {
     log('Key pressed: ' + keyCode)
 
     const fileButtonCount = fileList.length
-    const exitButtonIndex = buttons.length - 1
 
     if (keyCode === 6) {
-      if (currentButton === exitButtonIndex) {
-        return
-      }
       const nextButton = currentButton + buttonsPerRow
-      if (nextButton >= fileButtonCount) {
-        currentButton = exitButtonIndex
-      } else {
+      if (nextButton < fileButtonCount) {
         currentButton = nextButton
       }
       updateHighlight()
     } else if (keyCode === 4) {
-      if (currentButton === exitButtonIndex) {
-        const lastRow = Math.floor((fileButtonCount - 1) / buttonsPerRow)
-        const firstInLastRow = lastRow * buttonsPerRow
-        let col = 0
-        if (fileButtonCount > 0) {
-          col = Math.min(buttonsPerRow - 1, (fileButtonCount - 1) % buttonsPerRow)
-        }
-        currentButton = Math.min(firstInLastRow + col, fileButtonCount - 1)
-      } else {
-        const nextButton = currentButton - buttonsPerRow
-        if (nextButton >= 0) {
-          currentButton = nextButton
-        }
+      const nextButton = currentButton - buttonsPerRow
+      if (nextButton >= 0) {
+        currentButton = nextButton
       }
       updateHighlight()
     } else if (keyCode === 5) {
-      if (currentButton === exitButtonIndex) {
-        return
-      }
+      const nextButton = currentButton + 1
       const row = Math.floor(currentButton / buttonsPerRow)
-      const col = currentButton % buttonsPerRow
-      if (col < buttonsPerRow - 1) {
-        const nextButton = currentButton + 1
-        if (nextButton < fileButtonCount) {
-          currentButton = nextButton
-        }
+      const nextRow = Math.floor(nextButton / buttonsPerRow)
+      if (nextButton < fileButtonCount && nextRow === row) {
+        currentButton = nextButton
       }
       updateHighlight()
     } else if (keyCode === 7) {
-      if (currentButton === exitButtonIndex) {
-        currentButton = fileButtonCount - 1
-      } else {
-        const col = currentButton % buttonsPerRow
-        if (col > 0) {
-          currentButton = currentButton - 1
-        }
+      const col = currentButton % buttonsPerRow
+      if (col > 0) {
+        currentButton = currentButton - 1
       }
       updateHighlight()
-    } else if (keyCode === 14) {
+    } else if (keyCode === confirmKey) {
       handleButtonPress()
-    } else if (keyCode === 13) {
+    } else if (keyCode === backKey) {
       log('Going back to main menu...')
       try {
         include('main-menu.js')
@@ -425,16 +375,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   }
 
   function handleButtonPress () {
-    if (currentButton === buttons.length - 1) {
-      log('Going back to main menu...')
-      try {
-        include('main-menu.js')
-      } catch (e) {
-        const err = e as Error
-        log('ERROR loading main-menu.js: ' + err.message)
-        if (err.stack) log(err.stack)
-      }
-    } else if (currentButton < fileList.length) {
+    if (currentButton < fileList.length) {
       const selectedEntry = fileList[currentButton]
       if (!selectedEntry) {
         log('No file selected!')

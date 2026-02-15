@@ -613,7 +613,7 @@ export function binloader_init () {
       BinLoader.init(payload.buf, payload.size)
 
       if (!skip_autoclose) {
-        show_success(true, true)
+        show_success(true)
         log('Running payload in 3 seconds...')
         const id = jsmaf.setInterval(function () {
           jsmaf.clearInterval(id)
@@ -698,7 +698,7 @@ export function binloader_init () {
       BinLoader.init(payload.buf, payload.size)
       BinLoader.run()
       log('Payload loaded successfully')
-      show_success(false, true)
+      show_success(false)
     } catch (e) {
       log('ERROR loading payload: ' + (e as Error).message)
       if ((e as Error).stack) log((e as Error).stack ?? '')

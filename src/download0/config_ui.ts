@@ -1,5 +1,4 @@
 import { libc_addr } from 'download0/userland'
-import { stats } from 'download0/stats-tracker'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 
 if (typeof libc_addr === 'undefined') {
@@ -116,46 +115,6 @@ if (typeof lang === 'undefined') {
     jsmaf.root.children.push(title)
   }
 
-  // Include the stats tracker
-  include('stats-tracker.js')
-
-  // Load and display stats
-  stats.load()
-  const statsData = stats.get()
-
-  // Create text elements for each stat
-  const statsImgKeys = ['totalAttempts', 'successes', 'failures', 'successRate', 'failureRate']
-  const statsValues = [statsData.total, statsData.success, statsData.failures, statsData.successRate, statsData.failureRate]
-  const statsLabels = [lang.totalAttempts, lang.successes, lang.failures, lang.successRate, lang.failureRate]
-
-  // Display each stat line
-  for (let i = 0; i < statsImgKeys.length; i++) {
-    const yPos = 120 + (i * 25)
-    if (useImageText) {
-      const labelImg = new Image({
-        url: textImageBase + statsImgKeys[i] + '.png',
-        x: 20,
-        y: yPos,
-        width: 180,
-        height: 25
-      })
-      jsmaf.root.children.push(labelImg)
-      const valueText = new jsmaf.Text()
-      valueText.text = String(statsValues[i])
-      valueText.x = 210
-      valueText.y = yPos
-      valueText.style = 'white'
-      jsmaf.root.children.push(valueText)
-    } else {
-      const lineText = new jsmaf.Text()
-      lineText.text = statsLabels[i] + statsValues[i]
-      lineText.x = 20
-      lineText.y = yPos
-      lineText.style = 'white'
-      jsmaf.root.children.push(lineText)
-    }
-  }
-
   const configOptions = [
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
@@ -241,51 +200,12 @@ if (typeof lang === 'undefined') {
     textOrigPos.push({ x: btnText.x, y: btnText.y })
   }
 
-  const backX = centerX - buttonWidth / 2
-  const backY = startY + configOptions.length * buttonSpacing + 100
-
-  const backButton = new Image({
-    url: normalButtonImg,
-    x: backX,
-    y: backY,
-    width: buttonWidth,
-    height: buttonHeight
-  })
-  buttons.push(backButton)
-  jsmaf.root.children.push(backButton)
-
-  const backMarker = new Image({
-    url: 'file:///assets/img/ad_pod_marker.png',
-    x: backX + buttonWidth - 50,
-    y: backY + 35,
-    width: 12,
-    height: 12,
-    visible: false
-  })
-  buttonMarkers.push(backMarker)
-  jsmaf.root.children.push(backMarker)
-
-  let backText: Image | jsmaf.Text
-  if (useImageText) {
-    backText = new Image({
-      url: textImageBase + 'back.png',
-      x: backX + 20,
-      y: backY + 15,
-      width: 200,
-      height: 50
-    })
-  } else {
-    backText = new jsmaf.Text()
-    backText.text = lang.back
-    backText.x = backX + buttonWidth / 2 - 20
-    backText.y = backY + buttonHeight / 2 - 12
-    backText.style = 'white'
-  }
-  buttonTexts.push(backText)
-  jsmaf.root.children.push(backText)
-
-  buttonOrigPos.push({ x: backX, y: backY })
-  textOrigPos.push({ x: backText.x, y: backText.y })
+  const backHint = new jsmaf.Text()
+  backHint.text = jsmaf.isCircleAdvance ? 'X to go back' : 'O to go back'
+  backHint.x = centerX - 60
+  backHint.y = startY + configOptions.length * buttonSpacing + 120
+  backHint.style = 'white'
+  jsmaf.root.children.push(backHint)
 
   let zoomInInterval: number | null = null
   let zoomOutInterval: number | null = null
@@ -490,10 +410,7 @@ if (typeof lang === 'undefined') {
   }
 
   function handleButtonPress () {
-    if (currentButton === buttons.length - 1) {
-      log('Restarting...')
-      debugging.restart()
-    } else if (currentButton < configOptions.length) {
+    if (currentButton < configOptions.length) {
       const option = configOptions[currentButton]!
       const key = option.key
 
@@ -532,6 +449,9 @@ if (typeof lang === 'undefined') {
     }
   }
 
+  const confirmKey = jsmaf.isCircleAdvance ? 13 : 14
+  const backKey = jsmaf.isCircleAdvance ? 14 : 13
+
   jsmaf.onKeyDown = function (keyCode) {
     if (keyCode === 6 || keyCode === 5) {
       currentButton = (currentButton + 1) % buttons.length
@@ -539,9 +459,9 @@ if (typeof lang === 'undefined') {
     } else if (keyCode === 4 || keyCode === 7) {
       currentButton = (currentButton - 1 + buttons.length) % buttons.length
       updateHighlight()
-    } else if (keyCode === 14) {
+    } else if (keyCode === confirmKey) {
       handleButtonPress()
-    } else if (keyCode === 13) {
+    } else if (keyCode === backKey) {
       log('Restarting...')
       debugging.restart()
     }

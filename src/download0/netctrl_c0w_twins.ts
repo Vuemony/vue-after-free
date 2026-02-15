@@ -9,7 +9,6 @@ if (typeof libc_addr === 'undefined') {
   include('userland.js')
 }
 include('kernel.js')
-include('stats-tracker.js')
 include('binloader.js')
 if (!String.prototype.padStart) {
   String.prototype.padStart = function padStart (targetLength, padString) {
@@ -1081,7 +1080,7 @@ function setup_arbitrary_rw () {
 
   if (ret_write.eq(BigInt_Error)) {
     cleanup()
-    throw new Error('Netctrl failed - Reboot and try again')
+    throw new Error('Netctrl failed - Shutdown and try again')
   }
 
     // Test if kwriteslow worked as expected or try again
@@ -1095,12 +1094,12 @@ function setup_arbitrary_rw () {
     ret_write = kwriteslow(master_r_pipe_data, master_pipe_buf, PIPEBUF_SIZE)
     if (ret_write.eq(BigInt_Error)) {
       cleanup();
-      throw new Error('Netctrl failed - Reboot and try again')
+      throw new Error('Netctrl failed - Shutdown and try again')
     }
   }
 
   if (kws_success==0) {
-    throw new Error('Netctrl failed - Reboot and try again')
+    throw new Error('Netctrl failed - Shutdown and try again')
   }
 
   // Increase reference counts for the pipes.
@@ -1395,7 +1394,7 @@ function trigger_ucred_triplefree () {
 
     if (!end) {
       if (cleanup_called) {
-        throw new Error('Netctrl failed - Reboot and try again')
+        throw new Error('Netctrl failed - Shutdown and try again')
       }
       // Clean up and start again
       close(new BigInt(uaf_socket))
@@ -1550,7 +1549,7 @@ function kreadslow64 (address: BigInt) {
   // debug("Buffer from kreadslow: " + hex(buffer));
   if (buffer.eq(BigInt_Error)) {
     cleanup()
-    throw new Error('Netctrl failed - Reboot and try again')
+    throw new Error('Netctrl failed - Shutdown and try again')
   }
   return read64(buffer)
 }
