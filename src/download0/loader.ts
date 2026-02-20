@@ -33,10 +33,8 @@ export function show_success (immediate?: boolean) {
   }
 }
 
-if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-  const audio = new jsmaf.AudioClip()
-  audio.volume = 0.5  // 50% volume
-  audio.open('file://../download0/sfx/bgm.wav')
+if (typeof startBgmIfEnabled === 'function') {
+  startBgmIfEnabled()
 }
 
 const is_jailbroken = checkJailbroken()

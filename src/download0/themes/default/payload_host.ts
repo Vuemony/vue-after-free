@@ -16,10 +16,8 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   log('Loading check-jailbroken.js...')
   include('check-jailbroken.js')
 
-  if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-    const audio = new jsmaf.AudioClip()
-    audio.volume = 0.5
-    audio.open('file://../download0/sfx/bgm.wav')
+  if (typeof startBgmIfEnabled === 'function') {
+    startBgmIfEnabled()
   }
 
   is_jailbroken = checkJailbroken()

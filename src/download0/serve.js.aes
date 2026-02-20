@@ -37,6 +37,51 @@ var fs = {
     }
 };
 
+// Shared BGM helpers (single instance across screens)
+var bgmClip = null;
+function stopBgm () {
+    if (bgmClip) {
+        try {
+            if (typeof bgmClip.stop === 'function') {
+                bgmClip.stop();
+            }
+            if (typeof bgmClip.close === 'function') {
+                bgmClip.close();
+            }
+        } catch (e) {
+            log('ERROR stopping BGM: ' + (e && e.message ? e.message : e));
+        }
+        bgmClip = null;
+    }
+}
+
+function startBgmIfEnabled () {
+    var clip = null;
+    try {
+        if (typeof CONFIG !== 'undefined' && CONFIG.music === false) {
+            stopBgm();
+            return;
+        }
+
+        if (typeof CONFIG !== 'undefined' && CONFIG.music && !bgmClip) {
+            clip = new jsmaf.AudioClip();
+            clip.volume = 0.5;
+            clip.open('file://../download0/sfx/bgm.wav');
+            bgmClip = clip;
+        }
+    } catch (e) {
+        log('ERROR starting BGM: ' + (e && e.message ? e.message : e));
+        try {
+            if (clip && typeof clip.close === 'function') {
+                clip.close();
+            }
+        } catch (closeErr) {
+            log('ERROR closing failed BGM clip: ' + (closeErr && closeErr.message ? closeErr.message : closeErr));
+        }
+        stopBgm();
+    }
+}
+
 
 try {
     //allow remoteplay

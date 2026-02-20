@@ -34,6 +34,7 @@ declare var CONFIG: {
   autolapse?: boolean;
   autopoop?: boolean;
   autoclose?: boolean;
+  music?: boolean;
 } | undefined
 
 declare var payloads: string[] | undefined
@@ -112,3 +113,6 @@ declare class Video {
 
 declare var bg_success: Image
 declare var bg_fail: Image
+declare var bgmClip: jsmaf.AudioClip | null | undefined
+declare function startBgmIfEnabled (): void
+declare function stopBgm (): void

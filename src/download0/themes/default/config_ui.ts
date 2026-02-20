@@ -135,12 +135,6 @@ if (typeof lang === 'undefined') {
   new Style({ name: 'white', color: 'white', size: 24 })
   new Style({ name: 'title', color: 'white', size: 32 })
 
-  if (typeof CONFIG !== 'undefined' && CONFIG.music) {
-    const audio = new jsmaf.AudioClip()
-    audio.volume = 0.5
-    audio.open('file://../download0/sfx/bgm.wav')
-  }
-
   const background = new Image({
     url: 'file:///../download0/img/multiview_bg_VAF.png',
     x: 0,
@@ -487,6 +481,9 @@ if (typeof lang === 'undefined') {
           currentConfig.autoclose = CONFIG.autoclose || false
           currentConfig.autoclose_delay = CONFIG.autoclose_delay || 0
           currentConfig.music = CONFIG.music !== false
+          if (typeof CONFIG !== 'undefined') {
+            CONFIG.music = currentConfig.music
+          }
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
 
           // Validate and set theme (themes are auto-discovered from directory scan)
@@ -504,6 +501,11 @@ if (typeof lang === 'undefined') {
 
           for (let i = 0; i < configOptions.length; i++) {
             updateValueText(i)
+          }
+          if (currentConfig.music) {
+            startBgmIfEnabled()
+          } else {
+            stopBgm()
           }
           configLoaded = true
           log('Config loaded successfully')
@@ -534,6 +536,18 @@ if (typeof lang === 'undefined') {
       } else {
         const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music'
         currentConfig[boolKey] = !currentConfig[boolKey]
+
+        if (boolKey === 'music') {
+          if (typeof CONFIG !== 'undefined') {
+            CONFIG.music = currentConfig.music
+          }
+          if (currentConfig.music) {
+            startBgmIfEnabled()
+          } else {
+            stopBgm()
+          }
+          saveConfig()
+        }
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {
           currentConfig.autopoop = false
