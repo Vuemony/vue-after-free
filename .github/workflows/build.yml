@@ -67,8 +67,18 @@ jobs:
             cp dist/download0/$f dist-lite/download0/
           done
 
-          # Hardcoded lite config - auto detect, auto close, no music, no menus
-          printf 'var CONFIG = {\n    autolapse: true,\n    autopoop: false,\n    autoclose: true,\n    autoclose_delay: 0,\n    music: false,\n    jb_behavior: 0\n};\nvar payloads = [];\n' > dist-lite/download0/config.js
+          # Hardcoded lite config - auto detect, auto close, no music, no menu
+          printf '{
+              "CONFIG": {
+                  "autolapse": true,
+                  "autopoop": false,
+                  "autoclose": true,
+                  "autoclose_delay": 0,
+                  "music": false,
+                  "jb_behavior": 0
+              },
+              "payloads": []
+          }' > dist-lite/download0/config.json
 
           # Generate lite manifest
           cd dist-lite/download0
