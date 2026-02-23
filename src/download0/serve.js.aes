@@ -285,7 +285,7 @@ try {
                     autolapse: false,
                     autopoop: false,
                     autoclose: false,
-                    autoclose_delay: 0,
+                    autoclose_delay: 3000,
                     music: true,
                     jb_behavior: 0,
                     theme: 'default'
