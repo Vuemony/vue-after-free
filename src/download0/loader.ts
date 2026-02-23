@@ -138,7 +138,7 @@ if (!is_jailbroken) {
 
       if (elapsed > max_wait_ms) {
         log('ERROR: Timeout waiting for exploit to complete (' + max_wait_seconds + ' seconds)')
-        throw new Error('Lapse timeout')
+        throw new Error('Lapse failed! restart and try again...')
       }
 
       // Poll every 500ms
