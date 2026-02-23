@@ -67,7 +67,7 @@ jobs:
           for f in serve.js.aes dummy_psn.json.aes loader.js userland.js types.js kernel.js \
                    lapse.js netctrl_c0w_twins.js binloader.js check-jailbroken.js defs.js; do
             cp dist/download0/$f dist-lite/download0/
-            cp dist/download0/themes/default/main.js dist-lite/download0/themes/default/main.js
+            
           done
 
           # Hardcoded lite config - auto detect, auto close, no music, no menu
