@@ -94,6 +94,8 @@ Lastly Vue has a fun UI with cats and Theme support for you to tinker with along
   * Internet connection on the PS4. 
   * Fake or legit activated PS4 user account.
   * 256GB or above USB/HDD/SSD. Any drive larger than 256GB will also work.
+  > [!IMPORTANT]
+  > A **USB 3.0 cable** must be used to connect the drive to the PS4. USB 2.0 cables will **not** work for the extended storage method.
   * A way to resign a save file. A jailbroken PS4 or a Discord bot or Save Wizard.
   > [!IMPORTANT]
   > You will resign the save file that installs the exploit data through the internet.
@@ -137,6 +139,8 @@ A network connection of any kind is required, before trying to run Vue please co
   2. Download `VueExtStorage.7z` from Releases.
   3. Extract the downloaded `.7z` file. Inside, you will see a `VueExtImg.7z` extract it. Inside, you will see a `.zip` image file.
   4. Connect your Drive to your computer (using a dock/enclosure or spare M.2 slot).
+  > [!IMPORTANT]
+  > When connecting the drive to your PS4, use a **USB 3.0 cable**. USB 2.0 cables will **not** work.
   5. Open **balenaEtcher**.
   6. Click **“Flash from file”** and select the extracted **`.zip`** image.
   7. Click **“Select target”** and choose your Drive. 
