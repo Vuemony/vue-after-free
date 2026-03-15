@@ -27,7 +27,7 @@ export let textImageBase = ''
 
 let detectedLocale = jsmaf.locale
 if (!detectedLocale) {
-  detectedLocale = 'ar' 
+  detectedLocale = 'ar'
 }
 
 log('Detected locale: ' + detectedLocale)
