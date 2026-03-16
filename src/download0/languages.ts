@@ -17,8 +17,8 @@ export const lang: Record<string, string> = {
   theme: 'Theme',
   xToGoBack: 'X to go back',
   oToGoBack: 'O to go back',
-  sortAlphabetical: 'Sort Alphabetical',
-  sortSize: 'Sort by Size'
+  sortAlphabetical: 'Sort A-Z',
+  sortReverse: 'Sort Z-A'
 }
 
 export let useImageText = false
@@ -61,7 +61,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X para volver'
     lang.oToGoBack = 'O para volver'
     lang.sortAlphabetical = 'Orden Alfabético'
-    lang.sortSize = 'Ordenar por Tamaño'
+    lang.sortReverse = 'Orden Inverso'
     break
 
   case 'pt':
@@ -82,7 +82,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X para voltar'
     lang.oToGoBack = 'O para voltar'
     lang.sortAlphabetical = 'Ordem Alfabética'
-    lang.sortSize = 'Ordenar por Tamanho'
+    lang.sortReverse = 'Ordem Inversa'
     break
 
   case 'fr':
@@ -103,7 +103,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X pour retourner'
     lang.oToGoBack = 'O pour retourner'
     lang.sortAlphabetical = 'Ordre Alphabétique'
-    lang.sortSize = 'Trier par Taille'
+    lang.sortReverse = 'Ordre Inverse'
     break
 
   case 'de':
@@ -124,7 +124,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X für Zurueck'
     lang.oToGoBack = 'O für Zurueck'
     lang.sortAlphabetical = 'Alphabetisch'
-    lang.sortSize = 'Nach Größe sortieren'
+    lang.sortReverse = 'Umgekehrte Reihenfolge'
     break
 
   case 'it':
@@ -145,7 +145,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X per tornare indietro'
     lang.oToGoBack = 'O per tornare indietro'
     lang.sortAlphabetical = 'Ordine Alfabetico'
-    lang.sortSize = 'Ordina per Dimensione'
+    lang.sortReverse = 'Ordine Inverso'
     break
 
   case 'nl':
@@ -166,7 +166,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X om terug te gaan'
     lang.oToGoBack = 'O om terug te gaan'
     lang.sortAlphabetical = 'Alfabetisch Sorteren'
-    lang.sortSize = 'Sorteren op Grootte'
+    lang.sortReverse = 'Omgekeerd Sorteren'
     break
 
   case 'pl':
@@ -187,7 +187,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X aby wrocic'
     lang.oToGoBack = 'O aby wrocic'
     lang.sortAlphabetical = 'Sortuj Alfabetycznie'
-    lang.sortSize = 'Sortuj wg Rozmiaru'
+    lang.sortReverse = 'Sortuj Odwrotnie'
     break
 
   case 'tr':
@@ -208,7 +208,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'Geri gitmek icin X'
     lang.oToGoBack = 'Geri gitmek icin O'
     lang.sortAlphabetical = 'Alfabetik Sırala'
-    lang.sortSize = 'Boyuta Göre Sırala'
+    lang.sortReverse = 'Ters Sırala'
     break
 
   case 'ar':
@@ -229,7 +229,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X للرجوع'
     lang.oToGoBack = 'O للرجوع'
     lang.sortAlphabetical = 'ترتيب أبجدي'
-    lang.sortSize = 'ترتيب حسب الحجم'
+    lang.sortReverse = 'ترتيب عكسي'
     break
 
   case 'ja':
@@ -250,7 +250,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'Xで戻る'
     lang.oToGoBack = 'Oで戻る'
     lang.sortAlphabetical = 'アルファベット順'
-    lang.sortSize = 'サイズ順'
+    lang.sortReverse = '逆順'
     break
 
   case 'ko':
@@ -271,7 +271,7 @@ switch (detectedLocale) {
     lang.xToGoBack = 'X로 뒤로 가기'
     lang.oToGoBack = 'O로 뒤로 가기'
     lang.sortAlphabetical = '알파벳순'
-    lang.sortSize = '크기순'
+    lang.sortReverse = '역순'
     break
 
   case 'zh':
@@ -292,7 +292,7 @@ switch (detectedLocale) {
     lang.xToGoBack = '按 X 返回'
     lang.oToGoBack = '按 O 返回'
     lang.sortAlphabetical = '按字母排序'
-    lang.sortSize = '按大小排序'
+    lang.sortReverse = '逆序排序'
     break
 
   case 'en':
