@@ -368,36 +368,53 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   jsmaf.onKeyDown = function (keyCode) {
     log('Key pressed: ' + keyCode)
 
-    const fileButtonCount = fileList.length + 2
+    const btnAIndex = fileList.length
+    const btnZIndex = fileList.length + 1
 
     if (keyCode === 6) {
-      const nextButton = currentButton + buttonsPerRow
-      if (nextButton < fileButtonCount) {
-        currentButton = nextButton
+      if (currentButton === btnAIndex) {
+        if (fileList.length > 0) currentButton = 0
+      } else if (currentButton === btnZIndex) {
+        if (fileList.length > 0) currentButton = Math.min(3, fileList.length - 1)
+      } else {
+        const nextButton = currentButton + buttonsPerRow
+        if (nextButton < fileList.length) {
+          currentButton = nextButton
+        }
       }
       updateHighlight()
     } else if (keyCode === 4) {
-      const nextButton = currentButton - buttonsPerRow
-      if (nextButton >= 0) {
-        currentButton = nextButton
+      if (currentButton < fileList.length) {
+        if (currentButton < buttonsPerRow) {
+          if (currentButton < 3) {
+            currentButton = btnAIndex
+          } else {
+            currentButton = btnZIndex
+          }
+        } else {
+          currentButton = currentButton - buttonsPerRow
+        }
       }
       updateHighlight()
     } else if (keyCode === 5) {
-      const nextButton = currentButton + 1
-      const row = Math.floor(currentButton / buttonsPerRow)
-      const nextRow = Math.floor(nextButton / buttonsPerRow)
-      if (nextButton < fileButtonCount && nextRow === row) {
-        currentButton = nextButton
-      } else if (nextButton < fileButtonCount && currentButton >= fileList.length - 1) {
-        currentButton = nextButton
+      if (currentButton === btnAIndex) {
+        currentButton = btnZIndex
+      } else if (currentButton !== btnZIndex && currentButton < fileList.length) {
+        const row = Math.floor(currentButton / buttonsPerRow)
+        const nextButton = currentButton + 1
+        if (nextButton < fileList.length && Math.floor(nextButton / buttonsPerRow) === row) {
+          currentButton = nextButton
+        }
       }
       updateHighlight()
     } else if (keyCode === 7) {
-      const col = currentButton % buttonsPerRow
-      if (col > 0) {
-        currentButton = currentButton - 1
-      } else if (currentButton > fileList.length - 1) {
-        currentButton = currentButton - 1
+      if (currentButton === btnZIndex) {
+        currentButton = btnAIndex
+      } else if (currentButton !== btnAIndex && currentButton < fileList.length) {
+        const col = currentButton % buttonsPerRow
+        if (col > 0) {
+          currentButton = currentButton - 1
+        }
       }
       updateHighlight()
     } else if (keyCode === confirmKey) {
@@ -420,7 +437,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       if (displayName.length > 30) {
         displayName = displayName.substring(0, 27) + '...'
       }
-      if (buttonTexts[i]) {
+      if (buttonTexts[i] && !(buttonTexts[i] instanceof Image)) {
         buttonTexts[i]!.text = displayName
       }
     }
