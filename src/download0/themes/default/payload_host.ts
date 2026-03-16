@@ -34,7 +34,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const buttonOrigPos: { x: number, y: number }[] = []
   const textOrigPos: { x: number, y: number }[] = []
 
-  type FileEntry = { name: string, path: string }
+  type FileEntry = { name: string, path: string, size?: number }
   const fileList: FileEntry[] = []
 
   const normalButtonImg = 'file:///assets/img/button_over_9.png'
@@ -128,7 +128,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
           if (d_type === 8 && name !== '.' && name !== '..') {
             const lowerName = name.toLowerCase()
             if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
-              fileList.push({ name, path: currentPath + '/' + name })
+              fileList.push({ name, path: currentPath + '/' + name, size: 0 })
               log('Added file: ' + name + ' from ' + currentPath)
             }
           }
@@ -152,11 +152,20 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const startX = 130
   const xSpacing = 340
 
-  for (let i = 0; i < fileList.length; i++) {
+  const totalButtons = fileList.length + 2
+
+  for (let i = 0; i < totalButtons; i++) {
     const row = Math.floor(i / buttonsPerRow)
     const col = i % buttonsPerRow
 
-    let displayName = fileList[i]!.name
+    let displayName = ''
+    if (i < fileList.length) {
+      displayName = fileList[i]!.name
+    } else if (i === fileList.length) {
+      displayName = lang.sortAlphabetical || 'Sort Alphabetical'
+    } else {
+      displayName = lang.sortSize || 'Sort Size'
+    }
 
     const btnX = startX + col * xSpacing
     const btnY = startY + row * buttonSpacing
@@ -342,7 +351,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   jsmaf.onKeyDown = function (keyCode) {
     log('Key pressed: ' + keyCode)
 
-    const fileButtonCount = fileList.length
+    const fileButtonCount = fileList.length + 2
 
     if (keyCode === 6) {
       const nextButton = currentButton + buttonsPerRow
@@ -380,6 +389,18 @@ import { checkJailbroken } from 'download0/check-jailbroken'
         const err = e as Error
         log('ERROR loading main.js: ' + err.message)
         if (err.stack) log(err.stack)
+      }
+    }
+  }
+
+  function updateButtonLabels () {
+    for (let i = 0; i < fileList.length; i++) {
+      let displayName = fileList[i]!.name
+      if (displayName.length > 30) {
+        displayName = displayName.substring(0, 27) + '...'
+      }
+      if (buttonTexts[i]) {
+        buttonTexts[i]!.text = displayName
       }
     }
   }
@@ -454,6 +475,12 @@ import { checkJailbroken } from 'download0/check-jailbroken'
         log('ERROR: ' + err.message)
         if (err.stack) log(err.stack)
       }
+    } else if (currentButton === fileList.length) {
+      fileList.sort((a, b) => a.name.localeCompare(b.name))
+      updateButtonLabels()
+    } else if (currentButton === fileList.length + 1) {
+      fileList.sort((a, b) => (b.size || 0) - (a.size || 0))
+      updateButtonLabels()
     }
   }
 
