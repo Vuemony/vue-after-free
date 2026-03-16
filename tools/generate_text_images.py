@@ -50,6 +50,8 @@ TRANSLATIONS = {
         "theme": "سمة",
         "xToGoBack": "X للرجوع",
         "oToGoBack": "O للرجوع",
+        "sortAlphabetical": "ترتيب أبجدي",
+        "sortReverse": "ترتيب عكسي",
     },
     "ja": {
         "jailbreak": "脱獄",
@@ -67,6 +69,8 @@ TRANSLATIONS = {
         "theme": "テーマ",
         "xToGoBack": "Xで戻る",
         "oToGoBack": "Oで戻る",
+        "sortAlphabetical": "アルファベット順",
+        "sortReverse": "逆順",
     },
     "ko": {
         "jailbreak": "탈옥",
@@ -84,6 +88,8 @@ TRANSLATIONS = {
         "theme": "테마",
         "xToGoBack": "X로 뒤로 가기",
         "oToGoBack": "O로 뒤로 가기",
+        "sortAlphabetical": "알파벳순",
+        "sortReverse": "역순",
     },
     "zh": {
         "jailbreak": "越狱",
@@ -101,6 +107,8 @@ TRANSLATIONS = {
         "theme": "主题",
         "xToGoBack": "按 X 返回",
         "oToGoBack": "按 O 返回",
+        "sortAlphabetical": "按字母排序",
+        "sortReverse": "逆序排序",
     },
 }
 
