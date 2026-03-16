@@ -34,7 +34,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const buttonOrigPos: { x: number, y: number }[] = []
   const textOrigPos: { x: number, y: number }[] = []
 
-  type FileEntry = { name: string, path: string, size?: number }
+  type FileEntry = { name: string, path: string }
   const fileList: FileEntry[] = []
 
   const normalButtonImg = 'file:///assets/img/button_over_9.png'
@@ -128,7 +128,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
           if (d_type === 8 && name !== '.' && name !== '..') {
             const lowerName = name.toLowerCase()
             if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
-              fileList.push({ name, path: currentPath + '/' + name, size: 0 })
+              fileList.push({ name, path: currentPath + '/' + name })
               log('Added file: ' + name + ' from ' + currentPath)
             }
           }
@@ -155,20 +155,25 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const totalButtons = fileList.length + 2
 
   for (let i = 0; i < totalButtons; i++) {
-    const row = Math.floor(i / buttonsPerRow)
-    const col = i % buttonsPerRow
-
+    let btnX = 0
+    let btnY = 0
     let displayName = ''
+
     if (i < fileList.length) {
+      const row = Math.floor(i / buttonsPerRow)
+      const col = i % buttonsPerRow
+      btnX = startX + col * xSpacing
+      btnY = startY + row * buttonSpacing
       displayName = fileList[i]!.name
     } else if (i === fileList.length) {
-      displayName = lang.sortAlphabetical || 'Sort Alphabetical'
+      btnX = 130
+      btnY = 100
+      displayName = lang.sortAlphabetical || 'Sort A-Z'
     } else {
-      displayName = lang.sortSize || 'Sort Size'
+      btnX = 450
+      btnY = 100
+      displayName = lang.sortReverse || 'Sort Z-A'
     }
-
-    const btnX = startX + col * xSpacing
-    const btnY = startY + row * buttonSpacing
 
     const button = new Image({
       url: normalButtonImg,
@@ -191,20 +196,32 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     buttonMarkers.push(marker)
     jsmaf.root.children.push(marker)
 
-    if (displayName.length > 30) {
-      displayName = displayName.substring(0, 27) + '...'
+    let textNode: any
+    if (i >= fileList.length && useImageText) {
+      const imgName = i === fileList.length ? 'sortAlphabetical.png' : 'sortReverse.png'
+      textNode = new Image({
+        url: textImageBase + imgName,
+        x: btnX + 50,
+        y: btnY + 20,
+        width: 200,
+        height: 40
+      })
+    } else {
+      if (displayName.length > 30) {
+        displayName = displayName.substring(0, 27) + '...'
+      }
+      textNode = new jsmaf.Text()
+      textNode.text = displayName
+      textNode.x = btnX + 20
+      textNode.y = btnY + 30
+      textNode.style = 'white'
     }
 
-    const text = new jsmaf.Text()
-    text.text = displayName
-    text.x = btnX + 20
-    text.y = btnY + 30
-    text.style = 'white'
-    buttonTexts.push(text)
-    jsmaf.root.children.push(text)
+    buttonTexts.push(textNode as jsmaf.Text)
+    jsmaf.root.children.push(textNode)
 
     buttonOrigPos.push({ x: btnX, y: btnY })
-    textOrigPos.push({ x: text.x, y: text.y })
+    textOrigPos.push({ x: textNode.x, y: textNode.y })
   }
 
   let backHint: Image | jsmaf.Text
@@ -371,11 +388,15 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       const nextRow = Math.floor(nextButton / buttonsPerRow)
       if (nextButton < fileButtonCount && nextRow === row) {
         currentButton = nextButton
+      } else if (nextButton < fileButtonCount && currentButton >= fileList.length - 1) {
+        currentButton = nextButton
       }
       updateHighlight()
     } else if (keyCode === 7) {
       const col = currentButton % buttonsPerRow
       if (col > 0) {
+        currentButton = currentButton - 1
+      } else if (currentButton > fileList.length - 1) {
         currentButton = currentButton - 1
       }
       updateHighlight()
@@ -479,7 +500,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       fileList.sort((a, b) => a.name.localeCompare(b.name))
       updateButtonLabels()
     } else if (currentButton === fileList.length + 1) {
-      fileList.sort((a, b) => (b.size || 0) - (a.size || 0))
+      fileList.sort((a, b) => b.name.localeCompare(a.name))
       updateButtonLabels()
     }
   }
