@@ -72,6 +72,9 @@ export function binloader_init () {
   fn.register(0x69, 'setsockopt', ['number', 'number', 'number', 'bigint', 'number'], 'bigint')
   const setsockopt = fn.setsockopt
 
+  fn.register(0x62, 'connect_sys', ['bigint', 'bigint', 'bigint'], 'bigint')
+  const connect_sys = fn.connect_sys
+
   // Constants
   const BIN_LOADER_PORT = 9020
   const MAX_PAYLOAD_SIZE = 4 * 1024 * 1024  // 4MB max
@@ -665,6 +668,94 @@ export function binloader_init () {
     return { buf: payload_buf, size: total_read }
   }
 
+  // Try sending payload to GoldHEN Binloader (port 9090); returns false if not active
+  function bl_try_goldhen (payload_buf: BigInt, payload_size: number): boolean {
+    log('Checking for GoldHEN Binloader on port 9090...')
+
+    const gh_sock = socket(BL_AF_INET, BL_SOCK_STREAM, 0)
+    if (bl_is_error(gh_sock)) {
+      log('GoldHEN check: socket() failed, skipping')
+      return false
+    }
+
+    const gh_sock_num = (gh_sock instanceof BigInt) ? gh_sock.lo : gh_sock
+
+    const sockaddr = mem.malloc(16)
+    for (let j = 0; j < 16; j++) {
+      mem.view(sockaddr).setUint8(j, 0)
+    }
+    mem.view(sockaddr).setUint8(1, 2)                    // sin_family = AF_INET
+    mem.view(sockaddr).setUint8(2, (9090 >> 8) & 0xff)  // sin_port high byte
+    mem.view(sockaddr).setUint8(3, 9090 & 0xff)          // sin_port low byte
+    mem.view(sockaddr).setUint8(4, 127)                  // 127.0.0.1
+    mem.view(sockaddr).setUint8(5, 0)
+    mem.view(sockaddr).setUint8(6, 0)
+    mem.view(sockaddr).setUint8(7, 1)
+
+    const conn_ret = connect_sys(new BigInt(0, gh_sock_num), sockaddr, new BigInt(0, 16))
+
+    if (bl_is_error(conn_ret)) {
+      log('GoldHEN Binloader not active on port 9090')
+      close_sys(gh_sock_num)
+      return false
+    }
+
+    log('GoldHEN Binloader detected! Sending payload (' + payload_size + ' bytes)...')
+
+    let total_sent = 0
+    while (total_sent < payload_size) {
+      const chunk = payload_size - total_sent > READ_CHUNK ? READ_CHUNK : payload_size - total_sent
+      const bytes_sent = write_sys(
+        new BigInt(0, gh_sock_num),
+        payload_buf.add(new BigInt(0, total_sent)),
+        new BigInt(0, chunk)
+      )
+
+      if (bl_is_error(bytes_sent) || bytes_sent.eq(0)) {
+        log('GoldHEN: send failed at ' + total_sent + '/' + payload_size)
+        close_sys(gh_sock_num)
+        return false
+      }
+      total_sent += bytes_sent.lo
+    }
+
+    close_sys(gh_sock_num)
+    log('GoldHEN: sent ' + total_sent + '/' + payload_size + ' bytes successfully')
+    return total_sent === payload_size
+  }
+
+  // Run payload locally via elfdr (fallback when GoldHEN is not active)
+  function bl_run_elfdr (payload_buf: BigInt, payload_size: number, skip_autoclose: boolean, call_show_success: boolean): boolean {
+    log('Running payload via elfdr (local BinLoader)...')
+    BinLoader.skip_autoclose = skip_autoclose
+    try {
+      BinLoader.init(payload_buf, payload_size)
+      BinLoader.run()
+      log('Payload loaded successfully via elfdr')
+      if (call_show_success) show_success(skip_autoclose)
+      return true
+    } catch (e) {
+      log('ERROR loading payload via elfdr: ' + (e as Error).message)
+      if ((e as Error).stack) log((e as Error).stack ?? '')
+      return false
+    }
+  }
+
+  // Try GoldHEN first; fall back to elfdr if not active
+  function bl_try_send_or_run (
+    payload_buf: BigInt,
+    payload_size: number,
+    skip_autoclose: boolean,
+    call_show_success: boolean
+  ): boolean {
+    if (bl_try_goldhen(payload_buf, payload_size)) {
+      if (call_show_success) show_success(skip_autoclose)
+      return true
+    }
+
+    return bl_run_elfdr(payload_buf, payload_size, skip_autoclose, call_show_success)
+  }
+
   // Load and run payload from file
   function bl_load_from_file (path: string, skip_autoclose: boolean = true) {
     log('Loading payload from: ' + path)
@@ -682,21 +773,7 @@ export function binloader_init () {
       return false
     }
 
-    BinLoader.skip_autoclose = skip_autoclose
-
-    try {
-      BinLoader.init(payload.buf, payload.size)
-
-      BinLoader.run()
-      log('Payload loaded successfully')
-      if (!skip_autoclose) show_success(true)
-    } catch (e) {
-      log('ERROR loading payload: ' + (e as Error).message)
-      if ((e as Error).stack) log((e as Error).stack ?? '')
-      return false
-    }
-
-    return true
+    return bl_try_send_or_run(payload.buf, payload.size, skip_autoclose, !skip_autoclose)
   }
 
   // Network binloader (fallback)
@@ -758,20 +835,7 @@ export function binloader_init () {
       return false
     }
 
-    BinLoader.skip_autoclose = false
-
-    try {
-      BinLoader.init(payload.buf, payload.size)
-      BinLoader.run()
-      log('Payload loaded successfully')
-      show_success(false)
-    } catch (e) {
-      log('ERROR loading payload: ' + (e as Error).message)
-      if ((e as Error).stack) log((e as Error).stack ?? '')
-      return false
-    }
-
-    return true
+    return bl_try_send_or_run(payload.buf, payload.size, false, true)
   }
 
   // Main entry point with USB loader logic
