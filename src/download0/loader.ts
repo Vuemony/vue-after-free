@@ -114,9 +114,15 @@ if (!is_jailbroken) {
     log('JB Behavior: NetControl (forced)')
     include('netctrl_c0w_twins.js')
   } else if (jb_behavior === 2) {
-    log('JB Behavior: Lapse (forced)')
-    use_lapse = true
-    lapse()
+    // Check if system is newer than 12.02 and load poops (netctrl) instead
+    if (compare_version(FW_VERSION, '12.02') > 0) {
+      log('JB Behavior: Lapse forced but FW > 12.02, using Poops instead')
+      include('netctrl_c0w_twins.js')
+    } else {
+      log('JB Behavior: Lapse (forced)')
+      use_lapse = true
+      lapse()
+    }
   } else {
     log('JB Behavior: Auto Detect')
     if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
