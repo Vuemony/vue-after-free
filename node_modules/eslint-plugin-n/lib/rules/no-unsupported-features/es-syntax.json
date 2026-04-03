@@ -1,0 +1,615 @@
+{
+    "no-accessor-properties": {
+        "supported": ">=0.10.0"
+    },
+    "no-arbitrary-module-namespace-names": {
+        "supported": ">=13.2.0"
+    },
+    "no-array-from": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-isarray": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-of": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-prototype-copywithin": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-prototype-entries": {
+        "supported": ">=0.12.0"
+    },
+    "no-array-prototype-every": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-fill": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-prototype-filter": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-find": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-prototype-findindex": {
+        "supported": ">=4.0.0"
+    },
+    "no-array-prototype-findlast-findlastindex": {
+        "supported": ">=18.0.0"
+    },
+    "no-array-prototype-flat": {
+        "supported": ">=11.0.0"
+    },
+    "no-array-prototype-foreach": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-includes": {
+        "supported": ">=6.0.0"
+    },
+    "no-array-prototype-indexof": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-keys": {
+        "supported": ">=0.12.0"
+    },
+    "no-array-prototype-lastindexof": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-map": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-reduce": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-reduceright": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-some": {
+        "supported": ">=0.10.0"
+    },
+    "no-array-prototype-toreversed": {
+        "supported": ">=20.0.0"
+    },
+    "no-array-prototype-tosorted": {
+        "supported": ">=20.0.0"
+    },
+    "no-array-prototype-tospliced": {
+        "supported": ">=20.0.0"
+    },
+    "no-array-prototype-values": {
+        "supported": ">=10.9.0"
+    },
+    "no-array-prototype-with": {
+        "supported": ">=20.0.0"
+    },
+    "no-array-string-prototype-at": {
+        "supported": ">=16.6.0"
+    },
+    "no-arrow-functions": {
+        "supported": ">=4.0.0"
+    },
+    "no-async-functions": {
+        "supported": ">=7.6.0"
+    },
+    "no-async-iteration": {
+        "supported": ">=10.0.0"
+    },
+    "no-atomics-waitasync": {
+        "supported": ">=16.0.0"
+    },
+    "no-atomics": {
+        "supported": ">=8.10.0"
+    },
+    "no-bigint": {
+        "supported": ">=10.4.0"
+    },
+    "no-binary-numeric-literals": {
+        "supported": ">=4.0.0"
+    },
+    "no-block-scoped-functions": {
+        "supported": ">=4.0.0",
+        "strictMode": ">=6.0.0"
+    },
+    "no-block-scoped-variables": {
+        "supported": ">=4.0.0",
+        "strictMode": ">=6.0.0"
+    },
+    "no-class-fields": {
+        "supported": ">=12.0.0"
+    },
+    "no-class-static-block": {
+        "supported": ">=16.11.0"
+    },
+    "no-classes": {
+        "supported": ">=4.0.0",
+        "strictMode": ">=6.0.0"
+    },
+    "no-computed-properties": {
+        "supported": ">=4.0.0"
+    },
+    "no-date-now": {
+        "supported": ">=0.10.0"
+    },
+    "no-date-prototype-getyear-setyear": {
+        "supported": ">=0.10.0",
+        "deprecated": ">=0.10.0"
+    },
+    "no-date-prototype-togmtstring": {
+        "supported": ">=0.10.0",
+        "deprecated": ">=0.10.0"
+    },
+    "no-default-parameters": {
+        "supported": ">=6.0.0"
+    },
+    "no-destructuring": {
+        "supported": ">=6.0.0"
+    },
+    "no-dynamic-import": {
+        "supported": "^12.17.0 || >=13.2.0"
+    },
+    "no-error-cause": {
+        "supported": ">=16.9.0"
+    },
+    "no-escape-unescape": {
+        "supported": ">=0.10.0",
+        "deprecated": ">=0.10.0"
+    },
+    "no-exponential-operators": {
+        "supported": ">=7.0.0"
+    },
+    "no-export-ns-from": {
+        "supported": ">=13.2.0"
+    },
+    "no-for-of-loops": {
+        "supported": ">=0.12.0"
+    },
+    "no-function-declarations-in-if-statement-clauses-without-block": {
+        "supported": ">=0.10.0"
+    },
+    "no-function-prototype-bind": {
+        "supported": ">=0.10.0"
+    },
+    "no-generators": {
+        "supported": ">=4.0.0"
+    },
+    "no-global-this": {
+        "supported": ">=12.0.0"
+    },
+    "no-hashbang": {
+        "supported": ">=12.5.0"
+    },
+    "no-import-meta": {
+        "supported": ">=10.4.0"
+    },
+    "no-initializers-in-for-in": {
+        "supported": ">=0.10.0"
+    },
+    "no-intl-datetimeformat-prototype-formatrange": {
+        "supported": ">=12.9.0"
+    },
+    "no-intl-datetimeformat-prototype-formattoparts": {
+        "supported": ">=12.9.0"
+    },
+    "no-intl-displaynames": {
+        "supported": ">=14.0.0"
+    },
+    "no-intl-getcanonicallocales": {
+        "supported": ">=7.0.0"
+    },
+    "no-intl-listformat": {
+        "supported": ">=12.0.0"
+    },
+    "no-intl-locale": {
+        "supported": ">=12.0.0"
+    },
+    "no-intl-numberformat-prototype-formatrange": {
+        "supported": ">=19.0.0"
+    },
+    "no-intl-numberformat-prototype-formatrangetoparts": {
+        "supported": ">=19.0.0"
+    },
+    "no-intl-numberformat-prototype-formattoparts": {
+        "supported": ">=10.0.0"
+    },
+    "no-intl-pluralrules-prototype-selectrange": {
+        "supported": ">=19.0.0"
+    },
+    "no-intl-pluralrules": {
+        "supported": ">=10.0.0"
+    },
+    "no-intl-relativetimeformat": {
+        "supported": ">=12.0.0"
+    },
+    "no-intl-segmenter": {
+        "supported": ">=16.0.0"
+    },
+    "no-intl-supportedvaluesof": {
+        "supported": ">=18.0.0"
+    },
+    "no-json-superset": {
+        "supported": ">=10.0.0"
+    },
+    "no-json": {
+        "supported": ">=0.10.0"
+    },
+    "no-keyword-properties": {
+        "supported": ">=0.10.0"
+    },
+    "no-labelled-function-declarations": {
+        "supported": ">=0.10.0"
+    },
+    "no-legacy-object-prototype-accessor-methods": {
+        "supported": ">=0.10.0",
+        "deprecated": ">=0.10.0"
+    },
+    "no-logical-assignment-operators": {
+        "supported": ">=15.0.0"
+    },
+    "no-malformed-template-literals": {
+        "supported": ">=8.10.0"
+    },
+    "no-map": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-acosh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-asinh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-atanh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-cbrt": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-clz32": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-cosh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-expm1": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-fround": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-hypot": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-imul": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-log10": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-log1p": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-log2": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-sign": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-sinh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-tanh": {
+        "supported": ">=0.12.0"
+    },
+    "no-math-trunc": {
+        "supported": ">=0.12.0"
+    },
+    "no-modules": {
+        "supported": "^12.17.0 || >=13.2.0"
+    },
+    "no-new-target": {
+        "aliases": ["new.target"],
+        "supported": ">=5.0.0"
+    },
+    "no-nullish-coalescing-operators": {
+        "supported": ">=14.0.0"
+    },
+    "no-number-epsilon": {
+        "supported": ">=0.12.0"
+    },
+    "no-number-isfinite": {
+        "supported": ">=0.10.0"
+    },
+    "no-number-isinteger": {
+        "supported": ">=0.10.0"
+    },
+    "no-number-isnan": {
+        "supported": ">=0.10.0"
+    },
+    "no-number-issafeinteger": {
+        "supported": ">=0.12.0"
+    },
+    "no-number-maxsafeinteger": {
+        "supported": ">=0.12.0"
+    },
+    "no-number-minsafeinteger": {
+        "supported": ">=0.12.0"
+    },
+    "no-number-parsefloat": {
+        "supported": ">=0.12.0"
+    },
+    "no-number-parseint": {
+        "supported": ">=0.12.0"
+    },
+    "no-numeric-separators": {
+        "supported": ">=12.5.0"
+    },
+    "no-object-assign": {
+        "supported": ">=4.0.0"
+    },
+    "no-object-create": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-defineproperties": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-defineproperty": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-entries": {
+        "supported": ">=7.0.0"
+    },
+    "no-object-freeze": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-fromentries": {
+        "supported": ">=12.0.0"
+    },
+    "no-object-getownpropertydescriptor": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-getownpropertydescriptors": {
+        "supported": ">=7.0.0"
+    },
+    "no-object-getownpropertynames": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-getownpropertysymbols": {
+        "supported": ">=0.12.0"
+    },
+    "no-object-getprototypeof": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-hasown": {
+        "supported": ">=16.9.0"
+    },
+    "no-object-is": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-isextensible": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-isfrozen": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-issealed": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-keys": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-map-groupby": {
+        "supported": ">=21.0.0"
+    },
+    "no-object-preventextensions": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-seal": {
+        "supported": ">=0.10.0"
+    },
+    "no-object-setprototypeof": {
+        "supported": ">=0.12.0"
+    },
+    "no-object-super-properties": {
+        "supported": ">=4.0.0"
+    },
+    "no-object-values": {
+        "supported": ">=7.0.0"
+    },
+    "no-octal-numeric-literals": {
+        "supported": ">=4.0.0"
+    },
+    "no-optional-catch-binding": {
+        "supported": ">=10.0.0"
+    },
+    "no-optional-chaining": {
+        "supported": ">=14.0.0"
+    },
+    "no-private-in": {
+        "supported": ">=16.4.0"
+    },
+    "no-promise-all-settled": {
+        "supported": ">=12.9.0"
+    },
+    "no-promise-any": {
+        "supported": ">=15.0.0"
+    },
+    "no-promise-prototype-finally": {
+        "supported": ">=10.0.0"
+    },
+    "no-promise-withresolvers": {
+        "supported": ">=22.11.0"
+    },
+    "no-promise": {
+        "supported": ">=0.12.0"
+    },
+    "no-property-shorthands": {
+        "supported": ">=4.0.0"
+    },
+    "no-proxy": {
+        "supported": ">=6.0.0"
+    },
+    "no-reflect": {
+        "supported": ">=6.0.0"
+    },
+    "no-regexp-d-flag": {
+        "supported": ">=16.0.0"
+    },
+    "no-regexp-lookbehind-assertions": {
+        "aliases": ["regexpLookbehind"],
+        "supported": ">=8.10.0"
+    },
+    "no-regexp-named-capture-groups": {
+        "supported": ">=10.0.0"
+    },
+    "no-regexp-prototype-compile": {
+        "supported": ">=0.10.0"
+    },
+    "no-regexp-prototype-flags": {
+        "supported": ">=6.0.0"
+    },
+    "no-regexp-s-flag": {
+        "aliases": ["regexpS"],
+        "supported": ">=8.10.0"
+    },
+    "no-regexp-u-flag": {
+        "aliases": ["regexpU"],
+        "supported": ">=6.0.0"
+    },
+    "no-regexp-unicode-property-escapes-2019": {
+        "supported": ">=12.1.0 || ^10.16.0"
+    },
+    "no-regexp-unicode-property-escapes-2020": {
+        "supported": ">=13.12.0 || ^12.17.0"
+    },
+    "no-regexp-unicode-property-escapes-2021": {
+        "supported": ">=17.2.0 || ^16.14.0"
+    },
+    "no-regexp-unicode-property-escapes-2022": {
+        "supported": ">=19.1.0 || ^18.13.0"
+    },
+    "no-regexp-unicode-property-escapes-2023": {
+        "supported": null
+    },
+    "no-regexp-unicode-property-escapes": {
+        "aliases": ["regexpUnicodeProperties"],
+        "supported": ">=10.0.0"
+    },
+    "no-regexp-v-flag": {
+        "supported": ">=20.0.0"
+    },
+    "no-regexp-y-flag": {
+        "aliases": ["regexpY"],
+        "supported": ">=6.0.0"
+    },
+    "no-resizable-and-growable-arraybuffers": {
+        "supported": ">=20.0.0"
+    },
+    "no-rest-parameters": {
+        "supported": ">=6.0.0"
+    },
+    "no-rest-spread-properties": {
+        "supported": ">=8.3.0"
+    },
+    "no-set": {
+        "supported": ">=0.12.0"
+    },
+    "no-shadow-catch-param": {
+        "supported": ">=0.10.0"
+    },
+    "no-shared-array-buffer": {
+        "supported": ">=8.10.0"
+    },
+    "no-spread-elements": {
+        "supported": ">=5.0.0"
+    },
+    "no-string-create-html-methods": {
+        "supported": ">=0.10.0",
+        "deprecated": ">=0.10.0"
+    },
+    "no-string-fromcodepoint": {
+        "supported": ">=4.0.0"
+    },
+    "no-string-prototype-codepointat": {
+        "supported": ">=4.0.0"
+    },
+    "no-string-prototype-endswith": {
+        "supported": ">=4.0.0"
+    },
+    "no-string-prototype-includes": {
+        "supported": ">=6.0.0"
+    },
+    "no-string-prototype-iswellformed-towellformed": {
+        "supported": ">=20.0.0"
+    },
+    "no-string-prototype-matchall": {
+        "supported": ">=12.0.0"
+    },
+    "no-string-prototype-normalize": {
+        "supported": ">=0.12.0"
+    },
+    "no-string-prototype-padstart-padend": {
+        "supported": ">=8.0.0"
+    },
+    "no-string-prototype-repeat": {
+        "supported": ">=4.0.0"
+    },
+    "no-string-prototype-replaceall": {
+        "supported": ">=15.0.0"
+    },
+    "no-string-prototype-startswith": {
+        "supported": ">=4.0.0"
+    },
+    "no-string-prototype-substr": {
+        "supported": ">=0.10.0"
+    },
+    "no-string-prototype-trim": {
+        "supported": ">=0.10.0"
+    },
+    "no-string-prototype-trimleft-trimright": {
+        "supported": ">=0.10.0"
+    },
+    "no-string-prototype-trimstart-trimend": {
+        "supported": ">=10.0.0"
+    },
+    "no-string-raw": {
+        "supported": ">=4.0.0"
+    },
+    "no-subclassing-builtins": {
+        "supported": ">=4.0.0"
+    },
+    "no-symbol-prototype-description": {
+        "supported": ">=11.0.0"
+    },
+    "no-symbol": {
+        "supported": ">=0.12.0"
+    },
+    "no-template-literals": {
+        "supported": ">=4.0.0"
+    },
+    "no-top-level-await": {
+        "supported": ">=14.8.0"
+    },
+    "no-trailing-commas": {
+        "supported": ">=0.10.0"
+    },
+    "no-trailing-function-commas": {
+        "aliases": ["trailingCommasInFunctions"],
+        "supported": ">=8.0.0"
+    },
+    "no-typed-arrays": {
+        "supported": ">=0.10.0"
+    },
+    "no-unicode-codepoint-escapes": {
+        "aliases": ["unicodeCodePointEscapes"],
+        "supported": ">=4.0.0"
+    },
+    "no-weak-map": {
+        "supported": ">=0.12.0"
+    },
+    "no-weak-set": {
+        "supported": ">=0.12.0"
+    },
+    "no-weakrefs": {
+        "supported": ">=14.6.0"
+    }
+}

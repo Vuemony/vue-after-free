@@ -1,0 +1,2 @@
+export function peowly<Flags extends import("./flag-types.d.ts").AnyFlags>(options: import("./peowly-types.d.ts").PeowlyOptions<Flags>): import("./peowly-types.d.ts").PeowlyResult<Flags>;
+//# sourceMappingURL=peowly.d.ts.map

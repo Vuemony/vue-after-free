@@ -1,0 +1,141 @@
+{
+  "name": "ts-declaration-location",
+  "version": "1.0.7",
+  "description": "Determine where a ts type declaration comes from",
+  "keywords": [],
+  "homepage": "https://github.com/RebeccaStevens/ts-declaration-location#readme",
+  "bugs": {
+    "url": "https://github.com/RebeccaStevens/ts-declaration-location/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RebeccaStevens/ts-declaration-location"
+  },
+  "funding": [
+    {
+      "type": "ko-fi",
+      "url": "https://ko-fi.com/rebeccastevens"
+    },
+    {
+      "type": "tidelift",
+      "url": "https://tidelift.com/funding/github/npm/ts-declaration-location"
+    }
+  ],
+  "license": "BSD-3-Clause",
+  "author": {
+    "name": "Rebecca Stevens",
+    "email": "rebecca.stevens@outlook.co.nz"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "types": {
+      "import": "./dist/index.d.mts",
+      "require": "./dist/index.d.cts"
+    },
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.cjs"
+  },
+  "files": [
+    "dist/",
+    "package.json",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rimraf dist && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript --configImportAttributesKey with",
+    "cz": "git-cz",
+    "lint": "eslint && pnpm run lint:md && pnpm run lint:spelling && pnpm run lint:knip && pnpm run lint:packages",
+    "lint-fix": "eslint --fix && pnpm run lint:md-fix && pnpm run lint:packages-fix",
+    "lint:js": "eslint \"**/*.?([cm])[jt]s?(x)\"",
+    "lint:js-fix": "eslint \"**/*.?([cm])[jt]s?(x)\" --fix",
+    "lint:knip": "knip",
+    "lint:md": "markdownlint-cli2",
+    "lint:md-fix": "markdownlint-cli2 --fix",
+    "lint:md-full": "pnpm run lint:md && eslint \"**/*.md\"",
+    "lint:md-full-fix": "pnpm run lint:md-fix && eslint \"**/*.md\" --fix",
+    "lint:packages": "pnpm dedupe --check",
+    "lint:packages-fix": "pnpm dedupe",
+    "lint:spelling": "cspell lint --no-progress --show-suggestions --show-context --dot \"**\" \".github/**/*\"",
+    "lint:yaml": "eslint \"**/*.y?(a)ml\"",
+    "lint:yaml-fix": "eslint \"**/*.y?(a)ml\" --fix",
+    "prepare": "husky",
+    "release": "semantic-release",
+    "test": "pnpm run test:js",
+    "test:js": "vitest --coverage",
+    "test:js-run": "vitest run --coverage",
+    "typecheck": "pnpm run typecheck:root && pnpm run typecheck:src",
+    "typecheck:root": "tsc -p ./tsconfig.json --noEmit",
+    "typecheck:src": "tsc -p ./src/tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.8.0",
+    "@commitlint/config-conventional": "19.8.0",
+    "@cspell/dict-cryptocurrencies": "5.0.4",
+    "@eslint/compat": "1.2.7",
+    "@rebeccastevens/eslint-config": "3.7.1",
+    "@rollup/plugin-typescript": "12.1.2",
+    "@sebbo2002/semantic-release-jsr": "2.0.5",
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "11.0.1",
+    "@semantic-release/npm": "12.0.1",
+    "@semantic-release/release-notes-generator": "14.0.3",
+    "@stylistic/eslint-plugin": "4.2.0",
+    "@types/node": "22.13.10",
+    "@types/picomatch": "^3.0.2",
+    "@typescript-eslint/eslint-plugin": "8.26.0",
+    "@typescript-eslint/parser": "8.26.0",
+    "@vitest/coverage-v8": "3.0.8",
+    "@vitest/eslint-plugin": "1.1.37",
+    "commitizen": "4.3.1",
+    "cspell": "8.17.5",
+    "cz-conventional-changelog": "3.3.0",
+    "eslint": "9.22.0",
+    "eslint-config-prettier": "10.1.1",
+    "eslint-flat-config-utils": "2.0.1",
+    "eslint-import-resolver-typescript": "3.9.1",
+    "eslint-merge-processors": "2.0.0",
+    "eslint-plugin-eslint-comments": "3.2.0",
+    "eslint-plugin-format": "1.0.1",
+    "eslint-plugin-functional": "9.0.1",
+    "eslint-plugin-import-x": "4.8.0",
+    "eslint-plugin-jsdoc": "50.6.6",
+    "eslint-plugin-jsonc": "2.19.1",
+    "eslint-plugin-markdown": "5.1.0",
+    "eslint-plugin-n": "17.16.2",
+    "eslint-plugin-no-only-tests": "3.3.0",
+    "eslint-plugin-optimize-regex": "1.2.1",
+    "eslint-plugin-prettier": "5.2.3",
+    "eslint-plugin-promise": "7.2.1",
+    "eslint-plugin-regexp": "2.7.0",
+    "eslint-plugin-sonarjs": "3.0.2",
+    "eslint-plugin-unicorn": "57.0.0",
+    "eslint-plugin-yml": "1.17.0",
+    "husky": "9.1.7",
+    "jsonc-eslint-parser": "2.4.0",
+    "knip": "5.46.0",
+    "lint-staged": "15.5.0",
+    "markdownlint-cli2": "0.17.2",
+    "prettier": "3.5.3",
+    "rimraf": "6.0.1",
+    "rollup": "4.35.0",
+    "rollup-plugin-deassert": "1.3.0",
+    "rollup-plugin-dts-bundle-generator-2": "2.0.0",
+    "semantic-release": "24.2.3",
+    "tsc-files": "1.1.4",
+    "typescript": "5.8.2",
+    "vite-tsconfig-paths": "5.1.4",
+    "vitest": "3.0.8",
+    "yaml-eslint-parser": "1.3.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  },
+  "packageManager": "pnpm@10.6.3"
+}
