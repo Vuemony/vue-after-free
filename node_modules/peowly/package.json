@@ -1,0 +1,66 @@
+{
+  "name": "peowly",
+  "version": "1.3.3",
+  "description": "meow inspired parseArgs() based CLI parser with help text helpers",
+  "homepage": "http://github.com/voxpelli/peowly",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/voxpelli/peowly.git"
+  },
+  "keywords": [],
+  "author": "Pelle Wessman <pelle@kodfabrik.se> (http://kodfabrik.se/)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.6.0",
+    "typescript": ">=5.8"
+  },
+  "type": "module",
+  "exports": "./index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "index.d.ts.map",
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "lib/**/*.d.ts.map"
+  ],
+  "scripts": {
+    "build:0": "run-s clean",
+    "build:1-declaration": "tsc -p declaration.tsconfig.json",
+    "build:2-add-ignores": "ts-ignore-import '**/*.d.ts'",
+    "build": "run-s build:*",
+    "check-type-tests": "run-s build && tstyche --reporters list,summary && run-s clean",
+    "check:installed-check": "installed-check -i @voxpelli/eslint-config -i eslint -i tstyche -i knip -i npm-run-all2",
+    "check:knip": "knip",
+    "check:lint": "eslint --report-unused-disable-directives .",
+    "check:tsc": "tsc",
+    "check:type-coverage": "type-coverage --detail --strict --at-least 99 --ignore-files 'test/*'",
+    "check": "run-s clean && run-p check:* --continue-on-error && run-s check-type-tests",
+    "clean:declarations-top": "rm -rf $(find . -maxdepth 1 -type f -name '*.d.ts*' ! -name 'index.d.ts')",
+    "clean:declarations-lib": "rm -rf $(find lib -type f -name '*.d.ts*' ! -name '*-types.d.ts')",
+    "clean": "run-p clean:*",
+    "prepare": "husky",
+    "prepublishOnly": "run-s build",
+    "test:node": "c8 --reporter=lcov --reporter=text node --test",
+    "test:tstyche": "run-s build && tstyche --target \"$(jq -r '.engines.typescript' package.json)\" --reporters list,summary && run-s clean",
+    "test-ci": "run-s test:*",
+    "test": "run-s check test:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "@voxpelli/eslint-config": "^23.0.0",
+    "@voxpelli/tsconfig": "^16.1.0",
+    "c8": "^10.1.3",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "installed-check": "^9.3.0",
+    "knip": "^5.83.1",
+    "npm-run-all2": "^7.0.2",
+    "ts-ignore-import": "^4.0.1",
+    "tstyche": "^6.2.0",
+    "type-coverage": "^2.29.7",
+    "typescript": "~5.9.3",
+    "validate-conventional-commit": "^1.0.4"
+  }
+}

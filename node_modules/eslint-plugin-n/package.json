@@ -1,0 +1,125 @@
+{
+    "name": "eslint-plugin-n",
+    "version": "17.24.0",
+    "description": "Additional ESLint's rules for Node.js",
+    "engines": {
+        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+    },
+    "main": "lib/index.js",
+    "type": "commonjs",
+    "types": "types/index.d.ts",
+    "files": [
+        "lib/",
+        "configs/",
+        "types/index.d.ts"
+    ],
+    "peerDependencies": {
+        "eslint": ">=8.23.0"
+    },
+    "dependencies": {
+        "@eslint-community/eslint-utils": "^4.5.0",
+        "enhanced-resolve": "^5.17.1",
+        "eslint-plugin-es-x": "^7.8.0",
+        "get-tsconfig": "^4.8.1",
+        "globals": "^15.11.0",
+        "globrex": "^0.1.2",
+        "ignore": "^5.3.2",
+        "semver": "^7.6.3",
+        "ts-declaration-location": "^1.0.6"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.14.0",
+        "@types/eslint": "^9.6.1",
+        "@types/estree": "^1.0.6",
+        "@types/globrex": "^0.1.4",
+        "@types/node": "^20.17.5",
+        "@typescript-eslint/parser": "^8.26.1",
+        "@typescript-eslint/typescript-estree": "^8.26.1",
+        "eslint": "^9.31.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-doc-generator": "^1.7.1",
+        "eslint-plugin-eslint-plugin": "^6.3.1",
+        "eslint-plugin-n": "file:.",
+        "fast-glob": "^3.3.2",
+        "husky": "^9.1.6",
+        "lint-staged": "^15.2.10",
+        "markdownlint-cli": "^0.45.0",
+        "mocha": "^10.8.2",
+        "npm-run-all2": "^6.2.6",
+        "nyc": "^17.1.0",
+        "opener": "^1.5.2",
+        "prettier": "^3.3.3",
+        "punycode": "^2.3.1",
+        "release-it": "^17.10.0",
+        "rimraf": "^5.0.10",
+        "ts-ignore-import": "^4.0.1",
+        "type-fest": "^4.26.1",
+        "typescript": "~5.6"
+    },
+    "scripts": {
+        "build": "node scripts/update",
+        "clean": "rimraf .nyc_output coverage",
+        "coverage": "opener ./coverage/lcov-report/index.html",
+        "format": "prettier --write \"**/*.{js,json}\"",
+        "lint": "npm-run-all \"lint:*\"",
+        "lint:docs": "markdownlint \"**/*.md\"",
+        "lint:eslint-docs": "npm run update:eslint-docs -- --check",
+        "lint:js": "eslint .",
+        "new": "node scripts/new-rule",
+        "postversion": "git push && git push --tags",
+        "prepack": "tsc --emitDeclarationOnly && ts-ignore-import 'types/**/*.d.ts' --allow=@eslint-community/eslint-utils --allow=semver --allow=get-tsconfig",
+        "prepare": "husky",
+        "preversion": "npm test",
+        "test": "run-p lint:* test:types test:tests",
+        "test:mocha": "_mocha  --reporter progress --timeout 4000",
+        "test:tests": "npm run test:mocha \"tests/lib/**/*.js\"",
+        "test:types": "tsc --noEmit --emitDeclarationOnly false",
+        "update:eslint-docs": "eslint-doc-generator",
+        "version": "npm run -s build && eslint lib/rules --fix && git add .",
+        "watch": "npm run test:_mocha -- --watch --growl"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/eslint-community/eslint-plugin-n.git"
+    },
+    "keywords": [
+        "eslint",
+        "eslintplugin",
+        "eslint-plugin",
+        "node",
+        "nodejs",
+        "ecmascript",
+        "shebang",
+        "file",
+        "path",
+        "import",
+        "require"
+    ],
+    "author": "Toru Nagashima",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/eslint-community/eslint-plugin-n/issues"
+    },
+    "homepage": "https://github.com/eslint-community/eslint-plugin-n#readme",
+    "funding": "https://opencollective.com/eslint",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "release-it": {
+        "github": {
+            "release": true
+        },
+        "npm": {
+            "skipChecks": true
+        }
+    },
+    "lint-staged": {
+        "*.js": "eslint --cache --fix",
+        "*.{json,js}": "prettier --write --ignore-path .eslintignore",
+        "*.md": "markdownlint --fix"
+    },
+    "imports": {
+        "#test-helpers": "./tests/test-helpers.js"
+    }
+}

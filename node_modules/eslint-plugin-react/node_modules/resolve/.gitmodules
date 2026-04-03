@@ -1,0 +1,4 @@
+[submodule "test/list-exports"]
+	path = test/list-exports
+	url = https://github.com/ljharb/list-exports.git
+	shallow = true
