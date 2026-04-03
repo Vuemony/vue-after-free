@@ -41,8 +41,8 @@ jobs:
           cp src/download0/payloads/*.elf dist/download0/payloads/
           cp src/download0/payloads/*.bin dist/download0/payloads/
           cp -r src/download0/img dist/download0/
-          cp -r src/download0/sfx dist/download0/
-          cp -r src/download0/vid dist/download0/
+          cp -r src/download0/audio dist/download0/
+          cp -r src/download0/video dist/download0/
           cp src/download0/*.aes dist/download0/
           cp src/download0/config.json dist/download0/
 
@@ -54,7 +54,7 @@ jobs:
       - name: Encrypt savedata
         run: |
           pip install cryptography
-          python src/tools/encrypt_aes_files.py src/savedata/localstorage
+          python tools/encrypt_aes_files.py src/savedata/localstorage
           mkdir -p dist/savedata
           cp src/savedata/localstorage.aes dist/savedata/
 

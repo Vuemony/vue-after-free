@@ -43,9 +43,9 @@ import { fn, BigInt, mem } from 'download0/types'
   const O_RDONLY = 0
 
   // ===== VIDEO CONFIGURATION =====
-  const VIDEO_DIR = '/download0/vid'
-  const PLAYLIST_FILE = 'cat-meow.m3u8'
-  const SEGMENT_FILES = ['cat-meow0.ts']
+  const VIDEO_DIR = '/download0/video'
+  const PLAYLIST_FILE = 'demo.m3u8'
+  const SEGMENT_FILES = ['demo0.ts']
   // ================================
 
   // Create server socket
