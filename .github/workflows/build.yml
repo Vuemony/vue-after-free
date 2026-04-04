@@ -47,7 +47,6 @@ jobs:
           cp src/download0/payloads/*.bin dist/download0/payloads/
           cp -r src/download0/img dist/download0/
           cp -r src/download0/audio dist/download0/
-          cp -r src/download0/video dist/download0/
           cp src/download0/*.aes dist/download0/
           cp src/download0/config.json dist/download0/
 
