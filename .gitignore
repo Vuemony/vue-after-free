@@ -1,0 +1,15 @@
+# macOS related thing (i dont like it)
+.DS_Store
+
+# Node.js dependencies
+node_modules
+
+# Node.js package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb
+
+# Build output
+dist

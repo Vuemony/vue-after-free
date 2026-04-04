@@ -27,7 +27,6 @@ if (!detectedLocale) {
   detectedLocale = 'ar'
 }
 
-log('Detected locale: ' + detectedLocale)
 
 const IMAGE_TEXT_LOCALES = ['ar', 'ja', 'ko', 'zh']
 if (IMAGE_TEXT_LOCALES.includes(detectedLocale)) {
@@ -275,4 +274,3 @@ switch (detectedLocale) {
     break
 }
 
-log('Language loaded: ' + detectedLocale)

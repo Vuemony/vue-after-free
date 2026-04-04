@@ -19,7 +19,6 @@ include('binloader.js')
 include('lapse.js')
 include('kernel.js')
 include('check-jailbroken.js')
-log('All scripts loaded')
 
 export function show_success (immediate?: boolean) {
   if (immediate) {
@@ -89,7 +88,6 @@ function get_fwversion () {
 const FW_VERSION: string | null = get_fwversion()
 
 if (FW_VERSION === null) {
-  log('ERROR: Failed to determine FW version')
   throw new Error('Failed to determine FW version')
 }
 
@@ -172,7 +170,6 @@ if (!is_jailbroken) {
 }
 
 export function run_binloader () {
-  log('Initializing binloader...')
 
   try {
     binloader_init()

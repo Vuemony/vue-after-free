@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "babel --extensions \".ts\" src --out-dir dist && mkdir -p dist/download0/img && cp -r src/download0/img/text src/download0/img/success src/download0/img/fail dist/download0/img/",
+    "build": "babel --extensions \".ts\" src --out-dir dist && mkdir -p dist/download0/img dist/download0/audio dist/download0/payloads && cp -r src/download0/img/* dist/download0/img/ && cp -r src/download0/audio/* dist/download0/audio/ && cp src/download0/config.json src/download0/dummy_psn.json.aes src/download0/serve.js.aes dist/download0/ && cp src/download0/payloads/elfldr.elf src/download0/payloads/fake-signin.bin dist/download0/payloads/",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix"
   },
@@ -19,10 +19,9 @@
     "@eslint/js": "^9.39.2",
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
+    "jiti": "^2.6.1",
+    "neostandard": "^0.12.2",
     "typescript-eslint": "^8.50.0"
   },
-  "dependencies": {
-    "jiti": "^2.6.1",
-    "neostandard": "^0.12.2"
-  }
+  "dependencies": {}
 }

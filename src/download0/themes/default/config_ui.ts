@@ -1,6 +1,7 @@
 import { libc_addr } from 'download0/userland'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 import { fn, mem, BigInt } from 'download0/types'
+import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCancel } from 'download0/themes/default/anim'
 
 if (typeof libc_addr === 'undefined') {
   include('userland.js')
@@ -10,8 +11,9 @@ if (typeof lang === 'undefined') {
   include('languages.js')
 }
 
-(function () {
-  log('Loading config UI...')
+;(function () {
+  include('themes/default/anim.js')
+  initSfx()
 
   const fs = {
     write: function (filename: string, content: string, callback: (error: Error | null) => void) {
@@ -100,7 +102,6 @@ if (typeof lang === 'undefined') {
         fn.close_sys(fd)
       }
     } catch (e) {
-      log('Theme scan failed: ' + (e as Error).message)
     }
 
     const idx = themes.indexOf('default')
@@ -115,7 +116,6 @@ if (typeof lang === 'undefined') {
   }
 
   const availableThemes = scanThemes()
-  log('Discovered themes: ' + availableThemes.join(', '))
   const themeLabels: string[] = availableThemes.map((theme: string) => theme.charAt(0).toUpperCase() + theme.slice(1))
   const themeImgKeys: string[] = availableThemes.map((theme: string) => 'theme' + theme.charAt(0).toUpperCase() + theme.slice(1))
 
@@ -286,77 +286,14 @@ if (typeof lang === 'undefined') {
   }
   jsmaf.root.children.push(backHint)
 
-  let zoomInInterval: number | null = null
-  let zoomOutInterval: number | null = null
+  const zoomInRef:  { value: number | null } = { value: null }
+  const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
 
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.0
-    const endScale = 1.1
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomInInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomInInterval ?? -1)
-        zoomInInterval = null
-      }
-    }, step)
-  }
-
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.1
-    const endScale = 1.0
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomOutInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomOutInterval ?? -1)
-        zoomOutInterval = null
-      }
-    }, step)
-  }
 
   function updateHighlight () {
     // Animate out the previous button
@@ -368,7 +305,7 @@ if (typeof lang === 'undefined') {
       prevButtonObj.borderColor = 'transparent'
       prevButtonObj.borderWidth = 0
       if (buttonMarker) buttonMarker.visible = false
-      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y)
+      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y, buttonWidth, buttonHeight, zoomOutRef)
     }
 
     // Set styles for all buttons
@@ -385,7 +322,7 @@ if (typeof lang === 'undefined') {
         button.borderColor = 'rgb(100,180,255)'
         button.borderWidth = 3
         if (buttonMarker) buttonMarker.visible = true
-        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y)
+        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y, buttonWidth, buttonHeight, zoomInRef)
       } else if (i !== prevButton) {
         button.url = normalButtonImg
         button.alpha = 0.7
@@ -432,7 +369,6 @@ if (typeof lang === 'undefined') {
 
   function saveConfig () {
     if (!configLoaded) {
-      log('Config not loaded yet, skipping save')
       return
     }
     const configData = {
@@ -452,9 +388,7 @@ if (typeof lang === 'undefined') {
 
     fs.write('config.json', configContent, function (err) {
       if (err) {
-        log('ERROR: Failed to save config: ' + err.message)
       } else {
-        log('Config saved successfully')
       }
     })
   }
@@ -462,7 +396,6 @@ if (typeof lang === 'undefined') {
   function loadConfig () {
     fs.read('config.json', function (err: Error | null, data?: string) {
       if (err) {
-        log('ERROR: Failed to read config: ' + err.message)
         return
       }
 
@@ -483,7 +416,6 @@ if (typeof lang === 'undefined') {
           if (CONFIG.theme && availableThemes.includes(CONFIG.theme)) {
             currentConfig.theme = CONFIG.theme
           } else {
-            log('WARNING: Theme "' + (CONFIG.theme || 'undefined') + '" not found in available themes, using default')
             currentConfig.theme = availableThemes[0] || 'default'
           }
 
@@ -501,10 +433,8 @@ if (typeof lang === 'undefined') {
             stopBgm()
           }
           configLoaded = true
-          log('Config loaded successfully')
         }
       } catch (e) {
-        log('ERROR: Failed to parse config: ' + (e as Error).message)
         configLoaded = true // Allow saving even on error
       }
     })
@@ -515,16 +445,15 @@ if (typeof lang === 'undefined') {
       const option = configOptions[currentButton]!
       const key = option.key
 
+      playConfirm()
       if (option.type === 'cycle') {
         if (key === 'jb_behavior') {
           currentConfig.jb_behavior = (currentConfig.jb_behavior + 1) % jbBehaviorLabels.length
-          log(key + ' = ' + jbBehaviorLabels[currentConfig.jb_behavior])
         } else if (key === 'theme') {
           const themeIndex = availableThemes.indexOf(currentConfig.theme)
           const displayIndex = themeIndex >= 0 ? themeIndex : 0
           const nextIndex = (displayIndex + 1) % availableThemes.length
           currentConfig.theme = availableThemes[nextIndex]!
-          log(key + ' = ' + currentConfig.theme)
         }
       } else {
         const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music'
@@ -549,7 +478,6 @@ if (typeof lang === 'undefined') {
               break
             }
           }
-          log('autopoop disabled (autolapse enabled)')
         } else if (key === 'autopoop' && currentConfig.autopoop === true) {
           currentConfig.autolapse = false
           for (let i = 0; i < configOptions.length; i++) {
@@ -558,10 +486,8 @@ if (typeof lang === 'undefined') {
               break
             }
           }
-          log('autolapse disabled (autopoop enabled)')
         }
 
-        log(key + ' = ' + currentConfig[boolKey])
       }
 
       updateValueText(currentButton)
@@ -575,15 +501,16 @@ if (typeof lang === 'undefined') {
   jsmaf.onKeyDown = function (keyCode) {
     if (keyCode === 6 || keyCode === 5) {
       currentButton = (currentButton + 1) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === 4 || keyCode === 7) {
       currentButton = (currentButton - 1 + buttons.length) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === confirmKey) {
       handleButtonPress()
     } else if (keyCode === backKey) {
-      log('Restarting...')
-      // Save config before restart
+      playCancel()
       saveConfig()
       jsmaf.setTimeout(function () {
         debugging.restart()
@@ -594,5 +521,4 @@ if (typeof lang === 'undefined') {
   updateHighlight()
   loadConfig()
 
-  log('Config UI loaded.')
 })()

@@ -3,17 +3,17 @@ import { binloader_init } from 'download0/binloader'
 import { libc_addr } from 'download0/userland'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 import { checkJailbroken } from 'download0/check-jailbroken'
+import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCancel } from 'download0/themes/default/anim'
 
-(function () {
+;(function () {
+  include('themes/default/anim.js')
+  initSfx()
+
   if (typeof libc_addr === 'undefined') {
-    log('Loading userland.js...')
     include('userland.js')
-    log('userland.js loaded')
   } else {
-    log('userland.js already loaded (libc_addr defined)')
   }
 
-  log('Loading check-jailbroken.js...')
   include('check-jailbroken.js')
 
   if (typeof startBgmIfEnabled === 'function') {
@@ -91,13 +91,11 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     // }
   }
 
-  log('Scanning paths: ' + scanPaths.join(', '))
 
   const path_addr = mem.malloc(256)
   const buf = mem.malloc(4096)
 
   for (const currentPath of scanPaths) {
-    log('Scanning ' + currentPath + ' for files...')
 
     for (let i = 0; i < currentPath.length; i++) {
       mem.view(path_addr).setUint8(i, currentPath.charCodeAt(i))
@@ -129,7 +127,6 @@ import { checkJailbroken } from 'download0/check-jailbroken'
             const lowerName = name.toLowerCase()
             if (lowerName.endsWith('.elf') || lowerName.endsWith('.bin') || lowerName.endsWith('.js')) {
               fileList.push({ name, path: currentPath + '/' + name })
-              log('Added file: ' + name + ' from ' + currentPath)
             }
           }
 
@@ -138,11 +135,9 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       }
       fn.close_sys(fd)
     } else {
-      log('Failed to open ' + currentPath)
     }
   }
 
-  log('Total files found: ' + fileList.length)
 
   const startY = 200
   const buttonSpacing = 90
@@ -216,77 +211,14 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   }
   jsmaf.root.children.push(backHint)
 
-  let zoomInInterval: number | null = null
-  let zoomOutInterval: number | null = null
+  const zoomInRef:  { value: number | null } = { value: null }
+  const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
 
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.0
-    const endScale = 1.1
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomInInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomInInterval ?? -1)
-        zoomInInterval = null
-      }
-    }, step)
-  }
-
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.1
-    const endScale = 1.0
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomOutInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomOutInterval ?? -1)
-        zoomOutInterval = null
-      }
-    }, step)
-  }
 
   function updateHighlight () {
     // Animate out the previous button
@@ -298,7 +230,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       prevButtonObj.borderColor = 'transparent'
       prevButtonObj.borderWidth = 0
       if (buttonMarker) buttonMarker.visible = false
-      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y)
+      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y, buttonWidth, buttonHeight, zoomOutRef)
     }
 
     // Set styles for all buttons
@@ -315,7 +247,7 @@ import { checkJailbroken } from 'download0/check-jailbroken'
         button.borderColor = 'rgb(100,180,255)'
         button.borderWidth = 3
         if (buttonMarker) buttonMarker.visible = true
-        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y)
+        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y, buttonWidth, buttonHeight, zoomInRef)
       } else if (i !== prevButton) {
         button.url = normalButtonImg
         button.alpha = 0.7
@@ -340,7 +272,6 @@ import { checkJailbroken } from 'download0/check-jailbroken'
   const backKey = jsmaf.circleIsAdvanceButton ? 14 : 13
 
   jsmaf.onKeyDown = function (keyCode) {
-    log('Key pressed: ' + keyCode)
 
     const fileButtonCount = fileList.length
 
@@ -348,12 +279,14 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       const nextButton = currentButton + buttonsPerRow
       if (nextButton < fileButtonCount) {
         currentButton = nextButton
+        playCursor()
       }
       updateHighlight()
     } else if (keyCode === 4) {
       const nextButton = currentButton - buttonsPerRow
       if (nextButton >= 0) {
         currentButton = nextButton
+        playCursor()
       }
       updateHighlight()
     } else if (keyCode === 5) {
@@ -362,23 +295,23 @@ import { checkJailbroken } from 'download0/check-jailbroken'
       const nextRow = Math.floor(nextButton / buttonsPerRow)
       if (nextButton < fileButtonCount && nextRow === row) {
         currentButton = nextButton
+        playCursor()
       }
       updateHighlight()
     } else if (keyCode === 7) {
       const col = currentButton % buttonsPerRow
       if (col > 0) {
         currentButton = currentButton - 1
+        playCursor()
       }
       updateHighlight()
     } else if (keyCode === confirmKey) {
       handleButtonPress()
     } else if (keyCode === backKey) {
-      log('Going back to main menu...')
       try {
         include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/main.js')
       } catch (e) {
         const err = e as Error
-        log('ERROR loading main.js: ' + err.message)
         if (err.stack) log(err.stack)
       }
     }
@@ -388,24 +321,20 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     if (currentButton < fileList.length) {
       const selectedEntry = fileList[currentButton]
       if (!selectedEntry) {
-        log('No file selected!')
         return
       }
 
       const filePath = selectedEntry.path
       const fileName = selectedEntry.name
 
-      log('Selected: ' + fileName + ' from ' + filePath)
 
       try {
         if (fileName.toLowerCase().endsWith('.js')) {
           // Local JavaScript file case (from "/download0/payloads")
           if (filePath.startsWith('/download0/')) {
-            log('Including JavaScript file: ' + fileName)
             include('payloads/' + fileName)
           } else {
             // External JavaScript file case (from "/data/payloads")
-            log('Reading external JavaScript file: ' + filePath)
             const p_addr = mem.malloc(256)
             for (let i = 0; i < filePath.length; i++) {
               mem.view(p_addr).setUint8(i, filePath.charCodeAt(i))
@@ -424,34 +353,26 @@ import { checkJailbroken } from 'download0/check-jailbroken'
               let scriptContent = ''
               const len = (read_len instanceof BigInt) ? read_len.lo : read_len
 
-              log('File read size: ' + len + ' bytes')
 
               for (let i = 0; i < len; i++) {
                 scriptContent += String.fromCharCode(mem.view(buf).getUint8(i))
               }
 
-              log('Executing via eval()...')
               // eslint-disable-next-line no-eval
               eval(scriptContent)
             } else {
-              log('ERROR: Could not open file for reading!')
             }
           }
         } else {
-          log('Loading binloader.js...')
           include('binloader.js')
-          log('binloader.js loaded successfully')
 
-          log('Initializing binloader...')
           const { bl_load_from_file } = binloader_init()
 
-          log('Loading payload from: ' + filePath)
 
           bl_load_from_file(filePath)
         }
       } catch (e) {
         const err = e as Error
-        log('ERROR: ' + err.message)
         if (err.stack) log(err.stack)
       }
     }
@@ -459,8 +380,4 @@ import { checkJailbroken } from 'download0/check-jailbroken'
 
   updateHighlight()
 
-  log('Interactive UI loaded!')
-  log('Total elements: ' + jsmaf.root.children.length)
-  log('Buttons: ' + buttons.length)
-  log('Use arrow keys to navigate, Enter/X to select')
 })()

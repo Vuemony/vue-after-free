@@ -15,7 +15,7 @@
     ["@babel/preset-typescript"]
   ],
   "plugins": [
-    ["./tools/module-remover.js"]
+    ["./module-remover/index.js"]
   ],
-  "ignore": ["./src/download0/video"]
+  "ignore": []
 }
