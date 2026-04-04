@@ -11,14 +11,9 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
 
   if (typeof libc_addr === 'undefined') {
     include('userland.js')
-  } else {
   }
 
   include('check-jailbroken.js')
-
-  if (typeof startBgmIfEnabled === 'function') {
-    startBgmIfEnabled()
-  }
 
   is_jailbroken = checkJailbroken()
 
@@ -134,7 +129,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
         }
       }
       fn.close_sys(fd)
-    } else {
     }
   }
 
@@ -365,7 +359,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
 
               // eslint-disable-next-line no-eval
               eval(scriptContent)
-            } else {
             }
           }
         } else {

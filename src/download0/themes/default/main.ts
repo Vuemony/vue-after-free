@@ -22,10 +22,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   new Style({ name: 'white', color: 'white', size: 24 })
   new Style({ name: 'title', color: 'white', size: 32 })
 
-  if (typeof startBgmIfEnabled === 'function') {
-    startBgmIfEnabled()
-  }
-
   const background = new Image({
     url: 'file:///../download0/img/multiview_bg_VAF.png',
     x: 0,

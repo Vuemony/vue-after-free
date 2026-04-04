@@ -32,10 +32,6 @@ export function show_success (immediate?: boolean) {
   }
 }
 
-if (typeof startBgmIfEnabled === 'function') {
-  startBgmIfEnabled()
-}
-
 const is_jailbroken = checkJailbroken()
 const themeFolder = (typeof CONFIG !== 'undefined' && typeof CONFIG.theme === 'string') ? CONFIG.theme : 'default'
 

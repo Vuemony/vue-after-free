@@ -1874,11 +1874,6 @@ export function lapse () {
     }
   })()
 
-  // Patch the global log() to also render on screen during lapse
-  const _origLog = (typeof globalThis !== 'undefined' && (globalThis as any)._lapseOrigLog)
-    ? (globalThis as any)._lapseOrigLog
-    : null
-
   function lapseLog (msg: string) {
     log(msg)
     lapseLogBuf.push(msg)

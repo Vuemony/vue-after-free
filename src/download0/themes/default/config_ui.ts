@@ -44,7 +44,6 @@ if (typeof lang === 'undefined') {
     autopoop: boolean
     autoclose: boolean
     autoclose_delay: number
-    music: boolean
     jb_behavior: number
     theme: string
   } = {
@@ -52,7 +51,6 @@ if (typeof lang === 'undefined') {
     autopoop: false,
     autoclose: false,
     autoclose_delay: 0,
-    music: true,
     jb_behavior: 0,
     theme: 'default'
   }
@@ -175,8 +173,7 @@ if (typeof lang === 'undefined') {
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
     { key: 'autoclose', label: lang.autoClose, imgKey: 'autoClose', type: 'toggle' },
-    { key: 'music', label: lang.music, imgKey: 'music', type: 'toggle' },
-    { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
+{ key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
     { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
 
@@ -384,7 +381,6 @@ if (typeof lang === 'undefined') {
         autopoop: currentConfig.autopoop,
         autoclose: currentConfig.autoclose,
         autoclose_delay: currentConfig.autoclose_delay,
-        music: currentConfig.music,
         jb_behavior: currentConfig.jb_behavior,
         theme: currentConfig.theme
       },
@@ -393,10 +389,8 @@ if (typeof lang === 'undefined') {
 
     const configContent = JSON.stringify(configData, null, 2)
 
-    fs.write('config.json', configContent, function (err) {
-      if (err) {
-      } else {
-      }
+    fs.write('config.json', configContent, function (_err) {
+      // save complete
     })
   }
 
@@ -416,7 +410,6 @@ if (typeof lang === 'undefined') {
           currentConfig.autopoop = CONFIG.autopoop || false
           currentConfig.autoclose = CONFIG.autoclose || false
           currentConfig.autoclose_delay = CONFIG.autoclose_delay || 0
-          currentConfig.music = CONFIG.music !== false
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
 
           // Validate and set theme (themes are auto-discovered from directory scan)
@@ -433,11 +426,6 @@ if (typeof lang === 'undefined') {
 
           for (let i = 0; i < configOptions.length; i++) {
             updateValueText(i)
-          }
-          if (currentConfig.music) {
-            startBgmIfEnabled()
-          } else {
-            stopBgm()
           }
           configLoaded = true
         }
@@ -463,19 +451,8 @@ if (typeof lang === 'undefined') {
           currentConfig.theme = availableThemes[nextIndex]!
         }
       } else {
-        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music'
+        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose'
         currentConfig[boolKey] = !currentConfig[boolKey]
-
-        if (boolKey === 'music') {
-          if (typeof CONFIG !== 'undefined') {
-            CONFIG.music = currentConfig.music
-          }
-          if (currentConfig.music) {
-            startBgmIfEnabled()
-          } else {
-            stopBgm()
-          }
-        }
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {
           currentConfig.autopoop = false
