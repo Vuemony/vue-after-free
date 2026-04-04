@@ -10,7 +10,7 @@ export function checkJailbroken (): boolean {
     fn.setuid(0)
   } catch (_) {}
 
-  const uidAfter    = fn.getuid()
+  const uidAfter = fn.getuid()
   const uidAfterVal = uidAfter instanceof BigInt ? uidAfter.lo : uidAfter
   const uidBeforeVal = uidBefore instanceof BigInt ? uidBefore.lo : uidBefore
 

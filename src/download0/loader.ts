@@ -166,7 +166,6 @@ if (!is_jailbroken) {
 }
 
 export function run_binloader () {
-
   try {
     binloader_init()
     log('Binloader initialized and running!')
