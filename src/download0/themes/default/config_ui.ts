@@ -259,9 +259,16 @@ if (typeof lang === 'undefined') {
         valueLabel.x = btnX + 250
         valueLabel.y = btnY + 28
         valueLabel.style = 'white'
+      } else {
+        // Fallback for any future cycle options
+        valueLabel = new jsmaf.Text()
+        ;(valueLabel as jsmaf.Text).text = ''
+        ;(valueLabel as jsmaf.Text).x = btnX + 250
+        ;(valueLabel as jsmaf.Text).y = btnY + 28
+        ;(valueLabel as jsmaf.Text).style = 'white'
       }
-      valueTexts.push(valueLabel)
-      jsmaf.root.children.push(valueLabel)
+      valueTexts.push(valueLabel!)
+      jsmaf.root.children.push(valueLabel!)
     }
 
     buttonOrigPos.push({ x: btnX, y: btnY })
@@ -513,7 +520,13 @@ if (typeof lang === 'undefined') {
       playCancel()
       saveConfig()
       jsmaf.setTimeout(function () {
-        debugging.restart()
+        if (typeof debugging !== 'undefined' && debugging) {
+          debugging.restart()
+        } else {
+          try {
+            include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/main.js')
+          } catch (e) {}
+        }
       }, 100)
     }
   }

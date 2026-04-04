@@ -1833,14 +1833,72 @@ function make_kernel_arw (pktopts_sds: BigInt[], reqs1_addr: BigInt, kernel_addr
 }
 
 export function lapse () {
+  // ── Setup visible log screen so user sees progress ────────────────────────
+  const LAPSE_LOG_MAX  = 26
+  const LAPSE_LOG_H    = 32
+  const lapseLogBuf: string[] = []
+  const lapseLogLines: jsmaf.Text[] = []
+
+  ;(function initLapseScreen () {
+    jsmaf.root.children.length = 0
+    new Style({ name: 'lapse_log', color: 'white', size: 26 })
+    new Style({ name: 'lapse_title', color: 'white', size: 32 })
+
+    const bg = new Image({
+      url: 'file:///../download0/img/multiview_bg_VAF.png',
+      x: 0, y: 0, width: 1920, height: 1080
+    })
+    jsmaf.root.children.push(bg)
+
+    const logo = new Image({
+      url: 'file:///../download0/img/logo.png',
+      x: 1620, y: 0, width: 300, height: 169
+    })
+    jsmaf.root.children.push(logo)
+
+    const titleTxt = new jsmaf.Text()
+    titleTxt.text  = 'Lapse Jailbreak Running...'
+    titleTxt.x     = 40
+    titleTxt.y     = 40
+    titleTxt.style = 'lapse_title'
+    jsmaf.root.children.push(titleTxt)
+
+    for (let i = 0; i < LAPSE_LOG_MAX; i++) {
+      const line = new jsmaf.Text()
+      line.text  = ''
+      line.style = 'lapse_log'
+      line.x     = 40
+      line.y     = 100 + i * LAPSE_LOG_H
+      jsmaf.root.children.push(line)
+      lapseLogLines.push(line)
+    }
+  })()
+
+  // Patch the global log() to also render on screen during lapse
+  const _origLog = (typeof globalThis !== 'undefined' && (globalThis as any)._lapseOrigLog)
+    ? (globalThis as any)._lapseOrigLog
+    : null
+
+  function lapseLog (msg: string) {
+    log(msg)
+    lapseLogBuf.push(msg)
+    if (lapseLogBuf.length > LAPSE_LOG_MAX) lapseLogBuf.shift()
+    for (let i = 0; i < LAPSE_LOG_MAX; i++) {
+      lapseLogLines[i]!.text = lapseLogBuf[i] ?? ''
+    }
+  }
+
+  // Use lapseLog for all stage announcements below
+  // (individual internal log() calls remain untouched for compatibility)
+
   try {
-    log('=== PS4 Lapse Jailbreak ===')
+    lapseLog('=== PS4 Lapse Jailbreak ===')
 
     FW_VERSION = get_fwversion()
-    log('Detected PS4 firmware: ' + FW_VERSION)
+    lapseLog('Detected PS4 firmware: ' + FW_VERSION)
 
     if (FW_VERSION === null) {
-      log('Failed to detect PS4 firmware version.\nAborting...')
+      lapseLog('Failed to detect PS4 firmware version. Aborting...')
       send_notification('Failed to detect PS4 firmware version.\nAborting...')
       return false
     }
@@ -1856,52 +1914,50 @@ export function lapse () {
     }
 
     if (compare_version(FW_VERSION, '7.00') < 0 || compare_version(FW_VERSION, '12.02') > 0) {
-      log('Unsupported PS4 firmware\nSupported: 7.00-12.02\nAborting...')
+      lapseLog('Unsupported firmware: ' + FW_VERSION + ' (Supported: 7.00-12.02)')
       send_notification('Unsupported PS4 firmware\nAborting...')
       return false
     }
 
     kernel_offset = get_kernel_offset(FW_VERSION)
-    log('Kernel offsets loaded for FW ' + FW_VERSION)
+    lapseLog('Kernel offsets loaded for FW ' + FW_VERSION)
 
     // === STAGE 0: Setup ===
-    log('=== STAGE 0: Setup ===')
+    lapseLog('=== STAGE 0: Setup ===')
 
     const setup_success = setup()
     if (!setup_success) {
-      log('Setup failed')
+      lapseLog('Setup failed')
       send_notification('Lapse: Setup failed')
       return false
     }
-    log('Setup completed')
+    lapseLog('Setup completed')
 
-    log('')
-    log('=== STAGE 1: Double-free AIO ===')
+    lapseLog('=== STAGE 1: Double-free AIO ===')
 
     sd_pair = double_free_reqs2()
 
     if (sd_pair === null) {
-      log('[FAILED] Stage 1')
+      lapseLog('[FAILED] Stage 1')
       send_notification('Lapse: FAILED at Stage 1')
       return false
     }
-    log('Stage 1 completed')
+    lapseLog('Stage 1 completed')
 
     if (sds === null) {
-      log('Failed to create socket list')
+      lapseLog('Failed to create socket list')
       send_notification('Lapse: FAILED at Stage 1 (sds creation)')
       return false
     }
 
-    log('')
-    log('=== STAGE 2: Leak kernel addresses ===')
+    lapseLog('=== STAGE 2: Leak kernel addresses ===')
     const leak_result = leak_kernel_addrs(sd_pair, sds)
     if (leak_result === null) {
-      log('Stage 2 kernel address leak failed')
+      lapseLog('Stage 2 kernel address leak failed')
       cleanup_fail()
       return false
     }
-    log('Stage 2 completed')
+    lapseLog('Stage 2 completed')
     log('Leaked addresses:')
     log('  reqs1_addr: ' + hex(leak_result.reqs1_addr))
     log('  kbuf_addr: ' + hex(leak_result.kbuf_addr))
@@ -1911,8 +1967,7 @@ export function lapse () {
     log('  aio_info_addr: ' + hex(leak_result.aio_info_addr))
     log('  evf: ' + hex(leak_result.evf))
 
-    log('')
-    log('=== STAGE 3: Double free SceKernelAioRWRequest ===')
+    lapseLog('=== STAGE 3: Double free SceKernelAioRWRequest ===')
     const pktopts_sds = double_free_reqs1(
       leak_result.reqs1_addr,
       leak_result.target_id,
@@ -1926,16 +1981,15 @@ export function lapse () {
     close(leak_result.fake_reqs3_sd!)
 
     if (pktopts_sds === null) {
-      log('Stage 3 double free SceKernelAioRWRequest failed')
+      lapseLog('Stage 3 double free SceKernelAioRWRequest failed')
       cleanup_fail()
       return false
     }
 
-    log('Stage 3 completed!')
+    lapseLog('Stage 3 completed!')
     log('Aliased socket pair: ' + hex(pktopts_sds[0]) + ', ' + hex(pktopts_sds[1]))
 
-    log('')
-    log('=== STAGE 4: Get arbitrary kernel read/write ===')
+    lapseLog('=== STAGE 4: Get arbitrary kernel read/write ===')
 
     const arw_result = make_kernel_arw(
       pktopts_sds,
@@ -1947,15 +2001,14 @@ export function lapse () {
     )
 
     if (arw_result === null) {
-      log('Stage 4 get arbitrary kernel read/write failed')
+      lapseLog('Stage 4 get arbitrary kernel read/write failed')
       cleanup_fail()
       return false
     }
 
-    log('Stage 4 completed!')
+    lapseLog('Stage 4 completed!')
 
-    log('')
-    log('=== STAGE 5: Jailbreak ===')
+    lapseLog('=== STAGE 5: Jailbreak ===')
 
     const OFFSET_P_UCRED = 0x40
     const proc = kernel.addr.curproc
@@ -2058,15 +2111,14 @@ export function lapse () {
       log('[WARNING] Kernel patches failed - continuing without patches')
     }
 
-    log('Stage 5 completed - JAILBROKEN')
+    lapseLog('Stage 5 completed - JAILBROKEN ✓')
     // utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
 
     cleanup()
 
     return true
   } catch (e) {
-    log('Lapse error: ' + (e as Error).message)
-    alert('Lapse error: ' + (e as Error).message)
+    lapseLog('ERROR: ' + (e as Error).message)
     utils.notify('Reboot and try again!')
     log((e as Error).stack ?? '')
     return false

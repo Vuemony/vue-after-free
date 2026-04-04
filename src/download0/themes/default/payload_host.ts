@@ -215,11 +215,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
-  function easeInOut (t: number) {
-    return (1 - Math.cos(t * Math.PI)) / 2
-  }
-
-
   function updateHighlight () {
     // Animate out the previous button
     const prevButtonObj = buttons[prevButton]
@@ -353,13 +348,20 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
 
               fn.close_sys(fd)
 
-              let scriptContent = ''
               const len = (read_len instanceof BigInt) ? read_len.lo : read_len
 
-
-              for (let i = 0; i < len; i++) {
-                scriptContent += String.fromCharCode(mem.view(buf).getUint8(i))
+              // Build string in chunks for performance (char-by-char is O(n²))
+              const CHUNK = 4096
+              const chunks: string[] = []
+              for (let i = 0; i < len; i += CHUNK) {
+                const end = Math.min(i + CHUNK, len)
+                const chars: string[] = []
+                for (let j = i; j < end; j++) {
+                  chars.push(String.fromCharCode(mem.view(buf).getUint8(j)))
+                }
+                chunks.push(chars.join(''))
               }
+              const scriptContent = chunks.join('')
 
               // eslint-disable-next-line no-eval
               eval(scriptContent)

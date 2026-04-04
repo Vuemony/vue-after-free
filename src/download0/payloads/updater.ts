@@ -207,9 +207,29 @@ import { utils } from 'download0/types'
 
   function fetchManifest () {
     var xhr = new jsmaf.XMLHttpRequest()
+    var responded = false
+
+    // Timeout using a self-canceling interval
+    var elapsed = 0
+    var watchdog = jsmaf.setInterval(function () {
+      elapsed += 500
+      if (responded) {
+        jsmaf.clearInterval(watchdog)
+        return
+      }
+      if (elapsed >= 15000) {
+        jsmaf.clearInterval(watchdog)
+        responded = true
+        updateStatus('ERROR: Request timed out — check network / GitHub Pages')
+      }
+    }, 500)
+
     xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        if ((xhr.status === 200 || xhr.status === 0) && xhr.responseText) {
+      if (xhr.readyState === 4 && !responded) {
+        responded = true
+        jsmaf.clearInterval(watchdog)
+
+        if ((xhr.status === 200 || xhr.status === 0) && xhr.responseText && xhr.responseText.trim().length > 0) {
           var lines = xhr.responseText.split('\n')
           for (var i = 0; i < lines.length; i++) {
             var line = lines[i]!.trim()
@@ -217,10 +237,16 @@ import { utils } from 'download0/types'
               FILES.push(line)
             }
           }
+          if (FILES.length === 0) {
+            updateStatus('ERROR: Manifest is empty')
+            return
+          }
           updateStatus('Found ' + FILES.length + ' files')
           jsmaf.setTimeout(processNext, 500)
         } else {
-          updateStatus('ERROR: Failed to fetch manifest')
+          var errMsg = 'ERROR: Failed to fetch manifest'
+          if (xhr.status !== 0) errMsg += ' (HTTP ' + xhr.status + ')'
+          updateStatus(errMsg)
         }
       }
     }

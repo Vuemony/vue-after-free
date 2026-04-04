@@ -931,11 +931,8 @@ function init_threading () {
   saved_mxcsr = Number(read32(jmpbuf.add(0x44)))
 }
 
-const LOG_MAX_LINES = 38
-const LOG_COLORS = [
-  '#FF6B6B', '#FFA94D', '#FFD93D', '#6BCF7F',
-  '#4DABF7', '#9775FA', '#DA77F2'
-]
+const LOG_MAX_LINES = 28
+const LOG_LINE_HEIGHT = 30
 
 function setup_log_screen () {
   jsmaf.root.children.length = 0
@@ -949,9 +946,7 @@ function setup_log_screen () {
   })
   jsmaf.root.children.push(bg)
 
-  for (let i = 0; i < LOG_COLORS.length; i++) {
-    new Style({ name: 'log' + i, color: LOG_COLORS[i], size: 20 })
-  }
+  new Style({ name: 'log', color: 'white', size: 28 })
 
   const logLines: jsmaf.Text[] = []
   const logBuf: string[] = []
@@ -959,9 +954,9 @@ function setup_log_screen () {
   for (let i = 0; i < LOG_MAX_LINES; i++) {
     const line = new jsmaf.Text()
     line.text = ''
-    line.style = 'log' + (i % LOG_COLORS.length)
+    line.style = 'log'
     line.x = 20
-    line.y = 120 + i * 20
+    line.y = 120 + i * LOG_LINE_HEIGHT
     jsmaf.root.children.push(line)
     logLines.push(line)
   }
