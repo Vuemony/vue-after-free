@@ -4,7 +4,7 @@
 import { utils } from 'download0/types'
 
 (function () {
-  var BASE_URL = 'https://vuemony.github.io/vue-after-free/download0/'
+  var BASE_URL = 'https://algeria51.github.io/vue-after-free/download0/'
   var MANIFEST_URL = BASE_URL + 'manifest.txt'
   var ALLOWED_EXT = ['.js', '.aes', '.json']
   var EXCLUDE = ['config.js']

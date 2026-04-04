@@ -308,6 +308,7 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
     } else if (keyCode === confirmKey) {
       handleButtonPress()
     } else if (keyCode === backKey) {
+      playCancel()
       try {
         include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/main.js')
       } catch (e) {
@@ -323,6 +324,8 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
       if (!selectedEntry) {
         return
       }
+
+      playConfirm()
 
       const filePath = selectedEntry.path
       const fileName = selectedEntry.name
