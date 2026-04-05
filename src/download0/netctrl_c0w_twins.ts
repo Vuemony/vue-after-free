@@ -113,14 +113,14 @@ const IPPROTO_IPV6 = 41
 // Network interface spoofing — trick the kernel into allocating
 // ifnet/in_ifaddr structures as if a cable is plugged in.
 // This improves heap layout before the main exploit race.
-const SIOCGIFFLAGS = 0xC0206911   // get iface flags  (ifreq)
-const SIOCSIFFLAGS = 0x80206910   // set iface flags  (ifreq)
-const SIOCSIFADDR = 0x8020690C   // set interface address (ifreq + sockaddr_in)
-const SIOCSIFDSTADDR = 0x8020690E   // set dest/broadcast addr
-const IFF_UP = 0x0001
-const IFF_RUNNING = 0x0040
+const SIOCGIFFLAGS  = 0xC0206911   // get iface flags  (ifreq)
+const SIOCSIFFLAGS  = 0x80206910   // set iface flags  (ifreq)
+const SIOCSIFADDR   = 0x8020690C   // set interface address (ifreq + sockaddr_in)
+const SIOCSIFDSTADDR= 0x8020690E   // set dest/broadcast addr
+const IFF_UP        = 0x0001
+const IFF_RUNNING   = 0x0040
 const IFF_BROADCAST = 0x0002
-const IFREQ_SIZE = 32           // sizeof(struct ifreq) on FreeBSD/PS4
+const IFREQ_SIZE    = 32           // sizeof(struct ifreq) on FreeBSD/PS4
 const SOCKADDR_IN_SIZE = 16        // sizeof(struct sockaddr_in)
 
 const SO_SNDBUF = 0x1001

@@ -26,6 +26,7 @@ if (!detectedLocale) {
   detectedLocale = 'ar'
 }
 
+
 const IMAGE_TEXT_LOCALES = ['ar', 'ja', 'ko', 'zh']
 if (IMAGE_TEXT_LOCALES.includes(detectedLocale)) {
   useImageText = true
@@ -259,3 +260,4 @@ switch (detectedLocale) {
     // English (default) which is already set
     break
 }
+
