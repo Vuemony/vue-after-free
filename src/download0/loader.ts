@@ -105,19 +105,50 @@ if (!is_jailbroken) {
   let use_lapse = false
 
   if (jb_behavior === 1) {
-    log('JB Behavior: NetControl (forced)')
+    log('[*] Mode: NetCtrl (forced by user)')
     include('netctrl_c0w_twins.js')
+
   } else if (jb_behavior === 2) {
-    log('JB Behavior: Lapse (forced)')
+    log('[*] Mode: Lapse (forced by user)')
     use_lapse = true
-    lapse()
+    const lapse_ok = lapse()
+    // FW 9.00–12.02 supports both — fallback to netctrl if lapse fails
+    if (!lapse_ok && compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+      log('[~] Lapse failed — trying NetCtrl fallback on FW ' + FW_VERSION + '...')
+      utils.notify('[VAF] Lapse failed — switching to NetCtrl...')
+      include('netctrl_c0w_twins.js')
+      use_lapse = false
+    }
+
   } else {
-    log('JB Behavior: Auto Detect')
-    if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+    log('[*] Mode: Auto (' + FW_VERSION + ')')
+
+    if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '8.52') <= 0) {
+      // FW 7.00–8.52: Lapse only — netctrl not stable here
+      log('[*] FW ' + FW_VERSION + ' → Lapse (primary)')
       use_lapse = true
       lapse()
+
+    } else if (compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+      // FW 9.00–12.02: both exploits work — try lapse first, fallback to netctrl
+      log('[*] FW ' + FW_VERSION + ' → Lapse (primary) + NetCtrl (fallback)')
+      use_lapse = true
+      const lapse_ok = lapse()
+      if (!lapse_ok) {
+        log('[~] Lapse failed on FW ' + FW_VERSION + ' — falling back to NetCtrl...')
+        utils.notify('[VAF] Lapse failed — trying NetCtrl...')
+        include('netctrl_c0w_twins.js')
+        use_lapse = false
+      }
+
     } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
+      // FW 12.50–13.00: NetCtrl only
+      log('[*] FW ' + FW_VERSION + ' → NetCtrl (primary)')
       include('netctrl_c0w_twins.js')
+
+    } else {
+      log('[✗] No exploit available for FW ' + FW_VERSION)
+      utils.notify('[VAF] No exploit for FW ' + FW_VERSION + ' — check for updates')
     }
   }
 
