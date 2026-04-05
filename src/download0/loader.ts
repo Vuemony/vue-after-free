@@ -107,7 +107,6 @@ if (!is_jailbroken) {
   if (jb_behavior === 1) {
     log('[*] Mode: NetCtrl (forced by user)')
     include('netctrl_c0w_twins.js')
-
   } else if (jb_behavior === 2) {
     log('[*] Mode: Lapse (forced by user)')
     use_lapse = true
@@ -119,7 +118,6 @@ if (!is_jailbroken) {
       include('netctrl_c0w_twins.js')
       use_lapse = false
     }
-
   } else {
     log('[*] Mode: Auto (' + FW_VERSION + ')')
 
@@ -128,7 +126,6 @@ if (!is_jailbroken) {
       log('[*] FW ' + FW_VERSION + ' → Lapse (primary)')
       use_lapse = true
       lapse()
-
     } else if (compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
       // FW 9.00–12.02: both exploits work — try lapse first, fallback to netctrl
       log('[*] FW ' + FW_VERSION + ' → Lapse (primary) + NetCtrl (fallback)')
@@ -140,12 +137,10 @@ if (!is_jailbroken) {
         include('netctrl_c0w_twins.js')
         use_lapse = false
       }
-
     } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
       // FW 12.50–13.00: NetCtrl only
       log('[*] FW ' + FW_VERSION + ' → NetCtrl (primary)')
       include('netctrl_c0w_twins.js')
-
     } else {
       log('[✗] No exploit available for FW ' + FW_VERSION)
       utils.notify('[VAF] No exploit for FW ' + FW_VERSION + ' — check for updates')

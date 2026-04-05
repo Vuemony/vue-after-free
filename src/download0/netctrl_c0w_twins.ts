@@ -113,11 +113,11 @@ const IPPROTO_IPV6 = 41
 // Network interface spoofing — trick the kernel into allocating
 // ifnet/in_ifaddr structures as if a cable is plugged in.
 // This improves heap layout before the main exploit race.
-const SIOCGIFFLAGS  = 0xC0206911   // get iface flags  (ifreq)
-const SIOCSIFFLAGS  = 0x80206910   // set iface flags  (ifreq)
-const IFF_UP        = 0x0001
-const IFF_RUNNING   = 0x0040
-const IFREQ_SIZE    = 32           // sizeof(struct ifreq) on FreeBSD/PS4
+const SIOCGIFFLAGS = 0xC0206911   // get iface flags  (ifreq)
+const SIOCSIFFLAGS = 0x80206910   // set iface flags  (ifreq)
+const IFF_UP = 0x0001
+const IFF_RUNNING = 0x0040
+const IFREQ_SIZE = 32           // sizeof(struct ifreq) on FreeBSD/PS4
 
 const SO_SNDBUF = 0x1001
 const SOL_SOCKET = 0xffff
@@ -636,8 +636,8 @@ function wait_uio_writev () {
 }
 
 function init () {
-  log('╔══════════════════════════════╗');
-  log('║   PS4 NetCtrl Jailbreak      ║');
+  log('╔══════════════════════════════╗')
+  log('║   PS4 NetCtrl Jailbreak      ║')
   log('╚══════════════════════════════╝')
   log('build: %VERSION_STRING%')
   log('tag: %VERSION_TAG%')

