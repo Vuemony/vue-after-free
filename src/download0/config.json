@@ -2,8 +2,6 @@
   "config": {
     "autolapse": false,
     "autopoop": false,
-    "autoclose": false,
-    "autoclose_delay": 3000,
     "jb_behavior": 0,
     "theme": "default"
   },

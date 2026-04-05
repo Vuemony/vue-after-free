@@ -149,7 +149,7 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   buttonOrigPos.push({ x: exitX, y: exitY })
   textOrigPos.push({ x: exitText.x, y: exitText.y })
 
-  const zoomInRef: { value: number | null } = { value: null }
+  const zoomInRef:  { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 

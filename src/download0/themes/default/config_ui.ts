@@ -42,15 +42,11 @@ if (typeof lang === 'undefined') {
   const currentConfig: {
     autolapse: boolean
     autopoop: boolean
-    autoclose: boolean
-    autoclose_delay: number
     jb_behavior: number
     theme: string
   } = {
     autolapse: false,
     autopoop: false,
-    autoclose: false,
-    autoclose_delay: 0,
     jb_behavior: 0,
     theme: 'default'
   }
@@ -172,8 +168,7 @@ if (typeof lang === 'undefined') {
   const configOptions = [
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
-    { key: 'autoclose', label: lang.autoClose, imgKey: 'autoClose', type: 'toggle' },
-    { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
+{ key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
     { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
 
@@ -290,13 +285,14 @@ if (typeof lang === 'undefined') {
   }
   jsmaf.root.children.push(backHint)
 
-  const zoomInRef: { value: number | null } = { value: null }
+  const zoomInRef:  { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
+
 
   function updateHighlight () {
     // Animate out the previous button
@@ -378,8 +374,6 @@ if (typeof lang === 'undefined') {
       config: {
         autolapse: currentConfig.autolapse,
         autopoop: currentConfig.autopoop,
-        autoclose: currentConfig.autoclose,
-        autoclose_delay: currentConfig.autoclose_delay,
         jb_behavior: currentConfig.jb_behavior,
         theme: currentConfig.theme
       },
@@ -407,8 +401,6 @@ if (typeof lang === 'undefined') {
 
           currentConfig.autolapse = CONFIG.autolapse || false
           currentConfig.autopoop = CONFIG.autopoop || false
-          currentConfig.autoclose = CONFIG.autoclose || false
-          currentConfig.autoclose_delay = CONFIG.autoclose_delay || 0
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
 
           // Validate and set theme (themes are auto-discovered from directory scan)
@@ -450,7 +442,7 @@ if (typeof lang === 'undefined') {
           currentConfig.theme = availableThemes[nextIndex]!
         }
       } else {
-        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose'
+        const boolKey = key as 'autolapse' | 'autopoop'
         currentConfig[boolKey] = !currentConfig[boolKey]
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {
@@ -470,6 +462,7 @@ if (typeof lang === 'undefined') {
             }
           }
         }
+
       }
 
       updateValueText(currentButton)
@@ -508,4 +501,5 @@ if (typeof lang === 'undefined') {
 
   updateHighlight()
   loadConfig()
+
 })()

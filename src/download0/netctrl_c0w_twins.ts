@@ -1,7 +1,7 @@
 import { fn, syscalls, BigInt, utils, gadgets } from 'download0/types'
 import { libc_addr } from 'download0/userland'
 import { get_fwversion, hex, malloc, read16, read32, read64, send_notification, write16, write32, write64, write8, get_kernel_offset, kernel, jailbreak_shared, read8 } from 'download0/kernel'
-import { show_success, run_binloader } from 'download0/loader'
+import { show_success, run_binloader, exit_app, reboot_ps4 } from 'download0/loader'
 
 // include('userland.js')
 
@@ -113,11 +113,15 @@ const IPPROTO_IPV6 = 41
 // Network interface spoofing — trick the kernel into allocating
 // ifnet/in_ifaddr structures as if a cable is plugged in.
 // This improves heap layout before the main exploit race.
-const SIOCGIFFLAGS = 0xC0206911   // get iface flags  (ifreq)
-const SIOCSIFFLAGS = 0x80206910   // set iface flags  (ifreq)
-const IFF_UP = 0x0001
-const IFF_RUNNING = 0x0040
-const IFREQ_SIZE = 32           // sizeof(struct ifreq) on FreeBSD/PS4
+const SIOCGIFFLAGS  = 0xC0206911   // get iface flags  (ifreq)
+const SIOCSIFFLAGS  = 0x80206910   // set iface flags  (ifreq)
+const SIOCSIFADDR   = 0x8020690C   // set interface address (ifreq + sockaddr_in)
+const SIOCSIFDSTADDR= 0x8020690E   // set dest/broadcast addr
+const IFF_UP        = 0x0001
+const IFF_RUNNING   = 0x0040
+const IFF_BROADCAST = 0x0002
+const IFREQ_SIZE    = 32           // sizeof(struct ifreq) on FreeBSD/PS4
+const SOCKADDR_IN_SIZE = 16        // sizeof(struct sockaddr_in)
 
 const SO_SNDBUF = 0x1001
 const SOL_SOCKET = 0xffff
@@ -636,18 +640,16 @@ function wait_uio_writev () {
 }
 
 function init () {
-  log('╔══════════════════════════════╗')
-  log('║   PS4 NetCtrl Jailbreak      ║')
-  log('╚══════════════════════════════╝')
+  log('=== PS4 NetCtrl Jailbreak ===')
   log('build: %VERSION_STRING%')
   log('tag: %VERSION_TAG%')
 
   FW_VERSION = get_fwversion()
-  log('[✓] Firmware detected: ' + FW_VERSION)
+  log('[OK] Firmware detected: ' + FW_VERSION)
 
   if (FW_VERSION === null) {
-    log('[✗] Could not detect firmware version — aborting')
-    send_notification('[VAF] Firmware detection failed — aborting')
+    log('[ERR] Could not detect firmware version - aborting')
+    send_notification('[VAF] Firmware detection failed - aborting')
     return false
   }
 
@@ -662,13 +664,13 @@ function init () {
   }
 
   if (compare_version(FW_VERSION, '9.00') < 0 || compare_version(FW_VERSION, '13.00') > 0) {
-    log('[✗] Firmware ' + FW_VERSION + ' is not supported (9.00–13.00 required)')
-    send_notification('[VAF] Unsupported firmware — aborting')
+    log('[ERR] Firmware ' + FW_VERSION + ' is not supported (9.00-13.00 required)')
+    send_notification('[VAF] Unsupported firmware - aborting')
     return false
   }
 
   kernel_offset = get_kernel_offset(FW_VERSION)
-  log('[✓] Kernel offsets loaded for FW ' + FW_VERSION)
+  log('[OK] Kernel offsets loaded for FW ' + FW_VERSION)
 
   return true
 }
@@ -680,49 +682,103 @@ let cleanup_called: boolean = false
 // ---------------------------------------------------------------------------
 // Network-state spoofing
 // ---------------------------------------------------------------------------
-// Open an AF_INET/DGRAM socket and use ioctl(SIOCGIFFLAGS / SIOCSIFFLAGS) on
-// the loopback interface (lo0) to set IFF_UP | IFF_RUNNING.  This forces the
-// kernel to walk its ifnet list and mark lo0 as "link up", which:
-//   1. Allocates several in_ifaddr / ifaddr kernel structures at deterministic
-//      heap positions — improving feng shui for the UCred spray later.
-//   2. Makes the PS4's own netctl daemon believe a connection is present,
-//      suppressing watchdog resets that can abort long-running exploits.
-// The socket is closed immediately after; the kernel state persists.
-function spoof_network_connected () {
-  const ifreq = malloc(IFREQ_SIZE)
+// Tricks the PS4 kernel and netctl daemon into believing a network interface
+// is physically connected, without any real cable or WiFi.
+//
+// Strategy:
+//   1. Spoof lo0 flags — for heap feng shui (existing behaviour).
+//   2. Spoof en0 flags — set IFF_UP | IFF_RUNNING | IFF_BROADCAST on the
+//      real Ethernet adapter so netctl daemon stops raising "no cable" events.
+//   3. Assign a fake static IP (192.168.169.1/24) to en0 via SIOCSIFADDR —
+//      this convinces the PS4 IP stack that the interface has a local address,
+//      which is the minimum needed for apps to think a LAN is present.
+//
+// After this call the kernel state persists until next cold boot.
+// NOTE: This does NOT give real internet — it only suppresses connectivity
+//       checks that happen inside the exploit window.
 
-  // Write "lo0\0" into ifr_name (first 16 bytes of ifreq)
-  const name = 'lo0'
-  for (let i = 0; i < name.length; i++) {
+// Helper: write a null-terminated ASCII name into ifreq.ifr_name[16]
+function _write_ifname (ifreq: BigInt, name: string) {
+  for (let i = 0; i < Math.min(name.length, 15); i++) {
     write8(ifreq.add(i), name.charCodeAt(i))
   }
-  write8(ifreq.add(name.length), 0) // null-terminate
+  write8(ifreq.add(Math.min(name.length, 15)), 0)
+}
 
-  // Open a plain IPv4 UDP socket — just a handle to issue ioctl
+// Helper: build a sockaddr_in at `addr` for the given dotted-decimal IP
+// sockaddr_in layout (FreeBSD): sin_len(1), sin_family(1), sin_port(2), sin_addr(4), pad(8)
+function _write_sockaddr_in (buf: BigInt, ip_a: number, ip_b: number, ip_c: number, ip_d: number) {
+  write8(buf.add(0), SOCKADDR_IN_SIZE)  // sin_len
+  write8(buf.add(1), AF_INET)           // sin_family = 2
+  write16(buf.add(2), 0)               // sin_port = 0
+  write8(buf.add(4), ip_a)
+  write8(buf.add(5), ip_b)
+  write8(buf.add(6), ip_c)
+  write8(buf.add(7), ip_d)
+}
+
+function _spoof_iface_flags (sd: BigInt, ifreq: BigInt, name: string): boolean {
+  _write_ifname(ifreq, name)
+  const r = ioctl(sd, SIOCGIFFLAGS, ifreq)
+  if (r.eq(BigInt_Error)) {
+    debug('[net-spoof] SIOCGIFFLAGS failed for ' + name)
+    return false
+  }
+  const cur = Number(read16(ifreq.add(16)))
+  const nf = cur | IFF_UP | IFF_RUNNING | IFF_BROADCAST
+  write16(ifreq.add(16), nf)
+  ioctl(sd, SIOCSIFFLAGS, ifreq)
+  debug('[net-spoof] ' + name + ' flags -> 0x' + nf.toString(16))
+  return true
+}
+
+function _assign_fake_ip (sd: BigInt, name: string, ip_a: number, ip_b: number, ip_c: number, ip_d: number) {
+  // ifreq for SIOCSIFADDR is: ifr_name[16] + ifr_addr (sockaddr_in, 16 bytes)
+  const ifreq_addr = malloc(32)
+  _write_ifname(ifreq_addr, name)
+  _write_sockaddr_in(ifreq_addr.add(16), ip_a, ip_b, ip_c, ip_d)
+  const r = ioctl(sd, SIOCSIFADDR, ifreq_addr)
+  if (r.eq(BigInt_Error)) {
+    debug('[net-spoof] SIOCSIFADDR failed for ' + name + ' (may already have IP - OK)')
+  } else {
+    debug('[net-spoof] ' + name + ' IP -> ' + ip_a + '.' + ip_b + '.' + ip_c + '.' + ip_d)
+  }
+}
+
+function spoof_network_connected () {
   fn.register(0x61, 'socket_inet', ['number', 'number', 'number'], 'bigint')
   const sd = fn.socket_inet(AF_INET, SOCK_DGRAM, 0)
   if (sd.eq(BigInt_Error)) {
-    debug('[net-spoof] Could not open inet socket — skipping')
+    debug('[net-spoof] Could not open inet socket - skipping all spoofing')
     return
   }
 
-  // Read current flags
-  const r = ioctl(sd, SIOCGIFFLAGS, ifreq)
-  if (r.eq(BigInt_Error)) {
-    debug('[net-spoof] SIOCGIFFLAGS failed — skipping')
-    close(sd)
-    return
+  const ifreq = malloc(IFREQ_SIZE)
+
+  // 1. Spoof lo0 — heap feng shui (original behaviour)
+  _spoof_iface_flags(sd, ifreq, 'lo0')
+
+  // 2. Spoof en0 (Ethernet) — makes netctl daemon think cable is plugged in.
+  //    PS4 LAN interface names: try en0, then igb0, then em0.
+  const eth_ifaces = ['en0', 'igb0', 'em0']
+  let eth_spoofed = false
+  for (let i = 0; i < eth_ifaces.length; i++) {
+    if (_spoof_iface_flags(sd, ifreq, eth_ifaces[i]!)) {
+      // 3. Assign fake static IP so the IP stack sees a local address.
+      //    Use 192.168.169.1 — unlikely to clash with real LAN ranges.
+      _assign_fake_ip(sd, eth_ifaces[i]!, 192, 168, 169, 1)
+      eth_spoofed = true
+      debug('[net-spoof] LAN spoof complete on ' + eth_ifaces[i])
+      break
+    }
   }
 
-  // ifr_flags is at offset 16 (after ifr_name[16]), stored as int16
-  const current_flags = Number(read16(ifreq.add(16)))
-  const new_flags = current_flags | IFF_UP | IFF_RUNNING
-  write16(ifreq.add(16), new_flags)
-
-  ioctl(sd, SIOCSIFFLAGS, ifreq)
+  if (!eth_spoofed) {
+    debug('[net-spoof] No LAN interface found - only lo0 was spoofed')
+  }
 
   close(sd)
-  debug('[net-spoof] lo0 flags set to 0x' + new_flags.toString(16) + ' (IFF_UP|IFF_RUNNING)')
+  debug('[net-spoof] Network spoof done - netctl daemon should suppress disconnect events')
 }
 
 function setup () {
@@ -800,7 +856,7 @@ function setup () {
 
   init_workers()
 
-  debug('[init] Workers ready — iov[' + IOV_THREAD_NUM + '] | readv[' + UIO_THREAD_NUM + '] | writev[' + UIO_THREAD_NUM + ']')
+  debug('[init] Workers ready - iov[' + IOV_THREAD_NUM + '] | readv[' + UIO_THREAD_NUM + '] | writev[' + UIO_THREAD_NUM + ']')
 }
 
 function cleanup (kill_workers = false) {
@@ -898,7 +954,7 @@ function find_twins () {
     if (debugging.info.memory.available === 0) {
       zeroMemoryCount++
       if (zeroMemoryCount >= 10) {
-        log('[!] Memory exhausted — aborting current attempt...')
+        log('[!] Memory exhausted - aborting current attempt...')
         cleanup()
         return false
       }
@@ -924,13 +980,13 @@ function find_twins () {
       if ((val & 0xFFFF0000) === RTHDR_TAG && i !== j) {
         twins[0] = i
         twins[1] = j
-        log('[✓] UAF aliased sockets: [' + i + '] → [' + j + ']')
+        log('[OK] UAF aliased sockets: [' + i + '] -> [' + j + ']')
         return true
       }
     }
     count++
   }
-  log('[~] No aliased sockets found — retrying spray...')
+  log('[~] No aliased sockets found - retrying spray...')
   return false
   // cleanup();
   // throw new Error("find_twins failed");
@@ -1068,7 +1124,7 @@ function netctrl_exploit () {
 
 function exploit_phase_setup () {
   setup()
-  log('[*] Workers ready — round ' + (full_restart_count + 1) + '/' + (MAX_FULL_RESTARTS + 1))
+  log('[*] Workers ready - round ' + (full_restart_count + 1) + '/' + (MAX_FULL_RESTARTS + 1))
   exploit_count = 0
   exploit_end = false
   // Extra sched_yield passes let the scheduler settle before we race
@@ -1081,19 +1137,20 @@ function exploit_phase_trigger () {
     // All inner iterations exhausted — try a full restart instead of giving up
     if (full_restart_count < MAX_FULL_RESTARTS) {
       full_restart_count++
-      log('[~] No luck this round — resetting and trying again (' + full_restart_count + '/' + MAX_FULL_RESTARTS + ')...')
+      log('[~] No luck this round - resetting and trying again (' + full_restart_count + '/' + MAX_FULL_RESTARTS + ')...')
       cleanup_called = false  // allow cleanup to run again
       cleanup(true)           // kill workers
       yield_to_render(exploit_phase_setup)
     } else {
-      log('[✗] Exploit exhausted after ' + full_restart_count + ' restarts — please restart the PS4 and try again')
+      log('[ERR] Exploit exhausted after ' + full_restart_count + ' restarts - please restart the PS4 and try again')
       cleanup()
+      reboot_ps4(6000)  // reboot after 6 seconds
     }
     return
   }
 
   exploit_count++
-  log('[>] Attempt ' + exploit_count + '/' + MAIN_LOOP_ITERATIONS + ' (run ' + (full_restart_count + 1) + ') — spraying heap...')
+  log('[>] Attempt ' + exploit_count + '/' + MAIN_LOOP_ITERATIONS + ' (run ' + (full_restart_count + 1) + ') - spraying heap...')
 
   if (!trigger_ucred_triplefree()) {
     // Small pause before retrying to let the heap settle
@@ -1102,7 +1159,7 @@ function exploit_phase_trigger () {
     return
   }
 
-  log('[>] Heap corrupted — scanning for kqueue leak...')
+  log('[>] Heap corrupted - scanning for kqueue leak...')
   yield_to_render(exploit_phase_leak)
 }
 
@@ -1114,13 +1171,13 @@ function exploit_phase_leak () {
     return
   }
 
-  log('[>] Leak confirmed — building kernel R/W primitives...')
+  log('[>] Leak confirmed - building kernel R/W primitives...')
   yield_to_render(exploit_phase_rw)
 }
 
 function exploit_phase_rw () {
   setup_arbitrary_rw()
-  log('[>] Kernel R/W active — escaping sandbox...')
+  log('[>] Kernel R/W active - escaping sandbox...')
   yield_to_render(exploit_phase_jailbreak)
 }
 
@@ -1198,7 +1255,7 @@ function setup_arbitrary_rw () {
     debug('Reading master_r_pipe_data[' + i + '] : ' + hex(readed))
   }
 
-  log('[✓] Kernel R/W established')
+  log('[OK] Kernel R/W established')
 
   debug('Reading value in victim_r_pipe_file: ' + hex(kread64(victim_r_pipe_file)))
 }
@@ -1270,16 +1327,17 @@ function jailbreak () {
 
   // Calculate kernel base
   kernel.addr.base = kl_lock.sub((kernel_offset as { KL_LOCK: number }).KL_LOCK)
-  log('[✓] Kernel base: ' + hex(kernel.addr.base))
+  log('[OK] Kernel base: ' + hex(kernel.addr.base))
 
   jailbreak_shared(FW_VERSION)
 
-  log('[✓✓✓] JAILBREAK COMPLETE')
-  utils.notify('VAF NetCtrl — Done!\nYou are now free. Enjoy.')
+  log('[DONE] JAILBREAK COMPLETE')
+  utils.notify('VAF NetCtrl - Done! You are now free.')
 
-  cleanup(false) // Close sockets and kill workers on success
+  cleanup(false)
   show_success()
   run_binloader()
+  exit_app(4000)  // auto-exit after 4 seconds
 }
 
 function fhold (fp: BigInt) {
@@ -1482,7 +1540,7 @@ function trigger_ucred_triplefree () {
       continue
     }
 
-    log('[~] Twins locked — beginning UCred triple-free sequence...')
+    log('[~] Twins locked - beginning UCred triple-free sequence...')
 
     // Free one.
     free_rthdr(ipv6_socks[twins[1]])
@@ -1509,7 +1567,7 @@ function trigger_ucred_triplefree () {
     }
 
     if (count === 20000) {
-      log('[~] Reclaim window expired — restarting...')
+      log('[~] Reclaim window expired - restarting...')
       // Clean up and start again
       close(new BigInt(uaf_socket))
       continue
@@ -1525,7 +1583,7 @@ function trigger_ucred_triplefree () {
 
     // If error start again to better exploit possibility
     if (triplets[1] === -1) {
-      log('[~] Triplet #1 not found — restarting round...')
+      log('[~] Triplet #1 not found - restarting round...')
       // Clean up and start again
       // Release iov spray.
       // if we break on 'read32(leak_rthdr) == 1', we never released workers
@@ -1545,7 +1603,7 @@ function trigger_ucred_triplefree () {
 
     // If error start again to better exploit possibility
     if (triplets[2] === -1) {
-      log('[~] Triplet #2 not found — restarting round...')
+      log('[~] Triplet #2 not found - restarting round...')
       // Clean up and start again
       close(new BigInt(uaf_socket))
       // Start again
@@ -1559,7 +1617,7 @@ function trigger_ucred_triplefree () {
   }
 
   if (main_count === TRIPLEFREE_ITERATIONS) {
-    log('[~] Triple-free failed this round — retrying...')
+    log('[~] Triple-free failed this round - retrying...')
     return false
   }
   return true
@@ -1596,7 +1654,7 @@ function leak_kqueue () {
   }
   if (count === KQUEUE_ITERATIONS) {
     // Dropped out with no kqueue leak
-    log('[~] kqueue leak missed — retrying...')
+    log('[~] kqueue leak missed - retrying...')
     return false
   }
 
@@ -1606,7 +1664,7 @@ function leak_kqueue () {
   kq_fdp = read64(leak_rthdr.add(0x98))
 
   if (kq_fdp.eq(0)) {
-    log('[~] kqueue leak missed — retrying...')
+    log('[~] kqueue leak missed - retrying...')
     return false
   }
 
@@ -1653,7 +1711,7 @@ function kreadslow (addr: BigInt, size: number) {
 
   // Memory exhaustion check
   if (debugging.info.memory.available === 0) {
-    log('[!] Not enough memory for kreadslow — aborting...')
+    log('[!] Not enough memory for kreadslow - aborting...')
     cleanup()
     return BigInt_Error
   }
@@ -1693,7 +1751,7 @@ function kreadslow (addr: BigInt, size: number) {
     if (debugging.info.memory.available === 0) {
       zeroMemoryCount++
       if (zeroMemoryCount >= 10) {
-        log('[!] Memory exhausted — aborting current attempt...')
+        log('[!] Memory exhausted - aborting current attempt...')
         cleanup()
         return BigInt_Error
       }
@@ -1758,7 +1816,7 @@ function kreadslow (addr: BigInt, size: number) {
     if (debugging.info.memory.available === 0) {
       zeroMemoryCount2++
       if (zeroMemoryCount2 >= 5) {
-        log('[!] Memory exhausted — aborting current attempt...')
+        log('[!] Memory exhausted - aborting current attempt...')
         cleanup()
         return BigInt_Error
       }
@@ -1880,7 +1938,7 @@ function kwriteslow (addr: BigInt, buffer: BigInt, size: number) {
     if (debugging.info.memory.available === 0) {
       zeroMemoryCount++
       if (zeroMemoryCount >= 10) {
-        log('[!] Memory exhausted — aborting current attempt...')
+        log('[!] Memory exhausted - aborting current attempt...')
         cleanup()
         return BigInt_Error
       }
@@ -1924,7 +1982,7 @@ function kwriteslow (addr: BigInt, buffer: BigInt, size: number) {
     if (debugging.info.memory.available === 0) {
       zeroMemoryCount2++
       if (zeroMemoryCount2 >= 5) {
-        log('[!] Memory exhausted — aborting current attempt...')
+        log('[!] Memory exhausted - aborting current attempt...')
         cleanup()
         return BigInt_Error
       }

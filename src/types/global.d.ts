@@ -33,7 +33,6 @@ declare var is_jailbroken: boolean
 declare var CONFIG: {
   autolapse?: boolean;
   autopoop?: boolean;
-  autoclose?: boolean;
 } | undefined
 
 declare var payloads: string[] | undefined
@@ -112,3 +111,4 @@ declare class Video {
 
 declare var bg_success: Image
 declare var bg_fail: Image
+
