@@ -40,16 +40,21 @@ if (typeof lang === 'undefined') {
   }
 
   const currentConfig: {
-    autolapse: boolean
-    autopoop: boolean
     jb_behavior: number
+    auto_jailbreak: boolean
+    autoclose_delay: number
+    retry_on_fail: boolean
     theme: string
   } = {
-    autolapse: false,
-    autopoop: false,
     jb_behavior: 0,
+    auto_jailbreak: false,
+    autoclose_delay: 4000,
+    retry_on_fail: true,
     theme: 'default'
   }
+
+  const autoclose_delay_options = [2000, 4000, 6000, 10000]
+  const autoclose_delay_labels = ['2s', '4s', '6s', '10s']
 
   // Store user's payloads so we don't overwrite them
   let userPayloads: string[] = []
@@ -166,9 +171,10 @@ if (typeof lang === 'undefined') {
   }
 
   const configOptions = [
-    { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
-    { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
-    { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
+    { key: 'jb_behavior', label: lang.jbBehavior || 'JB Mode', imgKey: 'jbBehavior', type: 'cycle' },
+    { key: 'auto_jailbreak', label: 'Auto Jailbreak', imgKey: 'autoClose', type: 'toggle' },
+    { key: 'autoclose_delay', label: 'Close Delay', imgKey: 'autoClose', type: 'cycle' },
+    { key: 'retry_on_fail', label: 'Retry on Fail', imgKey: 'autoPoop', type: 'toggle' },
     { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
 
@@ -356,11 +362,13 @@ if (typeof lang === 'undefined') {
         } else {
           (valueText as jsmaf.Text).text = jbBehaviorLabels[currentConfig.jb_behavior] || jbBehaviorLabels[0]
         }
+      } else if (key === 'autoclose_delay') {
+        const idx = autoclose_delay_options.indexOf(currentConfig.autoclose_delay)
+        ;(valueText as jsmaf.Text).text = autoclose_delay_labels[idx >= 0 ? idx : 1]!
       } else if (key === 'theme') {
         const themeIndex = availableThemes.indexOf(currentConfig.theme)
-        const displayIndex = themeIndex >= 0 ? themeIndex : 0;
-
-        (valueText as jsmaf.Text).text = themeLabels[displayIndex] || themeLabels[0]!
+        const displayIndex = themeIndex >= 0 ? themeIndex : 0
+        ;(valueText as jsmaf.Text).text = themeLabels[displayIndex] || themeLabels[0]!
       }
     }
   }
@@ -371,9 +379,10 @@ if (typeof lang === 'undefined') {
     }
     const configData = {
       config: {
-        autolapse: currentConfig.autolapse,
-        autopoop: currentConfig.autopoop,
         jb_behavior: currentConfig.jb_behavior,
+        auto_jailbreak: currentConfig.auto_jailbreak,
+        autoclose_delay: currentConfig.autoclose_delay,
+        retry_on_fail: currentConfig.retry_on_fail,
         theme: currentConfig.theme
       },
       payloads: userPayloads
@@ -398,9 +407,10 @@ if (typeof lang === 'undefined') {
         if (configData.config) {
           const CONFIG = configData.config
 
-          currentConfig.autolapse = CONFIG.autolapse || false
-          currentConfig.autopoop = CONFIG.autopoop || false
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
+          currentConfig.auto_jailbreak = CONFIG.auto_jailbreak || false
+          currentConfig.autoclose_delay = (typeof CONFIG.autoclose_delay === 'number') ? CONFIG.autoclose_delay : 4000
+          currentConfig.retry_on_fail = (typeof CONFIG.retry_on_fail === 'boolean') ? CONFIG.retry_on_fail : true
 
           // Validate and set theme (themes are auto-discovered from directory scan)
           if (CONFIG.theme && availableThemes.includes(CONFIG.theme)) {
@@ -434,6 +444,10 @@ if (typeof lang === 'undefined') {
       if (option.type === 'cycle') {
         if (key === 'jb_behavior') {
           currentConfig.jb_behavior = (currentConfig.jb_behavior + 1) % jbBehaviorLabels.length
+        } else if (key === 'autoclose_delay') {
+          const idx = autoclose_delay_options.indexOf(currentConfig.autoclose_delay)
+          const next = (idx >= 0 ? idx + 1 : 1) % autoclose_delay_options.length
+          currentConfig.autoclose_delay = autoclose_delay_options[next]!
         } else if (key === 'theme') {
           const themeIndex = availableThemes.indexOf(currentConfig.theme)
           const displayIndex = themeIndex >= 0 ? themeIndex : 0
@@ -441,26 +455,8 @@ if (typeof lang === 'undefined') {
           currentConfig.theme = availableThemes[nextIndex]!
         }
       } else {
-        const boolKey = key as 'autolapse' | 'autopoop'
+        const boolKey = key as 'auto_jailbreak' | 'retry_on_fail'
         currentConfig[boolKey] = !currentConfig[boolKey]
-
-        if (key === 'autolapse' && currentConfig.autolapse === true) {
-          currentConfig.autopoop = false
-          for (let i = 0; i < configOptions.length; i++) {
-            if (configOptions[i]!.key === 'autopoop') {
-              updateValueText(i)
-              break
-            }
-          }
-        } else if (key === 'autopoop' && currentConfig.autopoop === true) {
-          currentConfig.autolapse = false
-          for (let i = 0; i < configOptions.length; i++) {
-            if (configOptions[i]!.key === 'autolapse') {
-              updateValueText(i)
-              break
-            }
-          }
-        }
       }
 
       updateValueText(currentButton)
