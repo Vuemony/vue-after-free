@@ -149,7 +149,7 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   buttonOrigPos.push({ x: exitX, y: exitY })
   textOrigPos.push({ x: exitText.x, y: exitText.y })
 
-  const zoomInRef: { value: number | null } = { value: null }
+  const zoomInRef:  { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
@@ -237,4 +237,17 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   }
 
   updateHighlight()
+
+  // auto_jailbreak: if enabled in config, skip menu and go straight to jailbreak
+  jsmaf.setTimeout(function () {
+    try {
+      if (typeof CONFIG !== 'undefined' && CONFIG.auto_jailbreak === true) {
+        log('[*] auto_jailbreak enabled - starting automatically...')
+        jsmaf.onKeyDown = function () {}
+        include('loader.js')
+      }
+    } catch (e) {
+      log('[ERR] auto_jailbreak failed: ' + (e as Error).message)
+    }
+  }, 500)
 })()
