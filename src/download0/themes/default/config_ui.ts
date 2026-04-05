@@ -171,11 +171,11 @@ if (typeof lang === 'undefined') {
   }
 
   const configOptions = [
-    { key: 'jb_behavior',     label: lang.jbBehavior || 'JB Mode',       imgKey: 'jbBehavior',    type: 'cycle'  },
-    { key: 'auto_jailbreak',  label: 'Auto Jailbreak',                    imgKey: 'autoClose',     type: 'toggle' },
-    { key: 'autoclose_delay', label: 'Close Delay',                       imgKey: 'autoClose',     type: 'cycle'  },
-    { key: 'retry_on_fail',   label: 'Retry on Fail',                     imgKey: 'autoPoop',      type: 'toggle' },
-    { key: 'theme',           label: lang.theme || 'Theme',               imgKey: 'theme',         type: 'cycle'  }
+    { key: 'jb_behavior', label: lang.jbBehavior || 'JB Mode', imgKey: 'jbBehavior', type: 'cycle' },
+    { key: 'auto_jailbreak', label: 'Auto Jailbreak', imgKey: 'autoClose', type: 'toggle' },
+    { key: 'autoclose_delay', label: 'Close Delay', imgKey: 'autoClose', type: 'cycle' },
+    { key: 'retry_on_fail', label: 'Retry on Fail', imgKey: 'autoPoop', type: 'toggle' },
+    { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
 
   const centerX = 960
@@ -291,14 +291,13 @@ if (typeof lang === 'undefined') {
   }
   jsmaf.root.children.push(backHint)
 
-  const zoomInRef:  { value: number | null } = { value: null }
+  const zoomInRef: { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
-
 
   function updateHighlight () {
     // Animate out the previous button
@@ -496,5 +495,4 @@ if (typeof lang === 'undefined') {
 
   updateHighlight()
   loadConfig()
-
 })()
