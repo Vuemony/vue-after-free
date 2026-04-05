@@ -1876,8 +1876,8 @@ function make_kernel_arw (pktopts_sds: BigInt[], reqs1_addr: BigInt, kernel_addr
 
 export function lapse () {
   // ── Setup visible log screen so user sees progress ────────────────────────
-  const LAPSE_LOG_MAX  = 26
-  const LAPSE_LOG_H    = 32
+  const LAPSE_LOG_MAX = 26
+  const LAPSE_LOG_H = 32
   const lapseLogBuf: string[] = []
   const lapseLogLines: jsmaf.Text[] = []
 
@@ -1888,29 +1888,35 @@ export function lapse () {
 
     const bg = new Image({
       url: 'file:///../download0/img/multiview_bg_VAF.png',
-      x: 0, y: 0, width: 1920, height: 1080
+      x: 0,
+      y: 0,
+      width: 1920,
+      height: 1080
     })
     jsmaf.root.children.push(bg)
 
     const logo = new Image({
       url: 'file:///../download0/img/logo.png',
-      x: 1620, y: 0, width: 300, height: 169
+      x: 1620,
+      y: 0,
+      width: 300,
+      height: 169
     })
     jsmaf.root.children.push(logo)
 
     const titleTxt = new jsmaf.Text()
-    titleTxt.text  = 'Lapse Jailbreak Running...'
-    titleTxt.x     = 40
-    titleTxt.y     = 40
+    titleTxt.text = 'Lapse Jailbreak Running...'
+    titleTxt.x = 40
+    titleTxt.y = 40
     titleTxt.style = 'lapse_title'
     jsmaf.root.children.push(titleTxt)
 
     for (let i = 0; i < LAPSE_LOG_MAX; i++) {
       const line = new jsmaf.Text()
-      line.text  = ''
+      line.text = ''
       line.style = 'lapse_log'
-      line.x     = 40
-      line.y     = 100 + i * LAPSE_LOG_H
+      line.x = 40
+      line.y = 100 + i * LAPSE_LOG_H
       jsmaf.root.children.push(line)
       lapseLogLines.push(line)
     }
