@@ -19,7 +19,6 @@ include('binloader.js')
 include('lapse.js')
 include('kernel.js')
 include('check-jailbroken.js')
-log('All scripts loaded')
 
 export function show_success (immediate?: boolean) {
   if (immediate) {
@@ -33,8 +32,54 @@ export function show_success (immediate?: boolean) {
   }
 }
 
-if (typeof startBgmIfEnabled === 'function') {
-  startBgmIfEnabled()
+// ── Auto-exit: kill the Vue app after jailbreak success ──────────────────
+// Sends SIGKILL to self then calls jsmaf.exit() as fallback.
+export function exit_app (delayMs: number = 3000) {
+  // Use autoclose_delay from config if available
+  if (typeof CONFIG !== 'undefined' && typeof CONFIG.autoclose_delay === 'number') {
+    delayMs = CONFIG.autoclose_delay
+  }
+  log('[*] Auto-exit in ' + (delayMs / 1000) + 's...')
+  utils.notify('Jailbreak done!\nClosing in ' + (delayMs / 1000) + 's...')
+  jsmaf.setTimeout(function () {
+    try {
+      fn.register(0x14, 'getpid_exit', [], 'bigint')
+      fn.register(0x25, 'kill_exit', ['bigint', 'bigint'], 'bigint')
+      const pid = fn.getpid_exit()
+      log('[*] Sending SIGKILL to PID ' + ((pid instanceof BigInt) ? pid.lo : pid))
+      fn.kill_exit(pid, new BigInt(0, 9))
+    } catch (e) {
+      log('[!] kill failed: ' + (e as Error).message)
+    }
+    jsmaf.exit()
+  }, delayMs)
+}
+
+// ── Auto-reboot: restart the PS4 after exploit failure ───────────────────
+// FreeBSD reboot(2) → syscall 0x37 (55).  howto=0 = RB_AUTOBOOT (normal reboot).
+// Requires root — only call this AFTER jailbreak credentials are patched,
+// or if the kernel is already broken enough that a hard reset is appropriate.
+export function reboot_ps4 (delayMs: number = 5000) {
+  // If retry_on_fail is false, show error but do NOT reboot
+  if (typeof CONFIG !== 'undefined' && CONFIG.retry_on_fail === false) {
+    log('[!] Exploit failed. retry_on_fail=false - staying on screen.')
+    utils.notify('Exploit failed.\nPress X to try again.')
+    return
+  }
+  log('[!] Auto-reboot in ' + (delayMs / 1000) + 's...')
+  utils.notify('Exploit failed.\nRebooting in ' + (delayMs / 1000) + 's...')
+  jsmaf.setTimeout(function () {
+    try {
+      fn.register(0x37, 'reboot_sys', ['number'], 'bigint')
+      fn.reboot_sys(0)
+    } catch (e) {
+      log('[!] reboot syscall failed: ' + (e as Error).message)
+      try {
+        fn.register(0x25, 'kill_init', ['bigint', 'bigint'], 'bigint')
+        fn.kill_init(new BigInt(0, 1), new BigInt(0, 9))
+      } catch (_) {}
+    }
+  }, delayMs)
 }
 
 const is_jailbroken = checkJailbroken()
@@ -89,7 +134,6 @@ function get_fwversion () {
 const FW_VERSION: string | null = get_fwversion()
 
 if (FW_VERSION === null) {
-  log('ERROR: Failed to determine FW version')
   throw new Error('Failed to determine FW version')
 }
 
@@ -111,26 +155,52 @@ if (!is_jailbroken) {
   let use_lapse = false
 
   if (jb_behavior === 1) {
-    log('JB Behavior: NetControl (forced)')
+    log('[*] Mode: NetCtrl (forced by user)')
     include('netctrl_c0w_twins.js')
   } else if (jb_behavior === 2) {
-    log('JB Behavior: Lapse (forced)')
+    log('[*] Mode: Lapse (forced by user)')
     use_lapse = true
-    lapse()
+    const lapse_ok = lapse()
+    // FW 9.00–12.02 supports both — fallback to netctrl if lapse fails
+    if (!lapse_ok && compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+      log('[~] Lapse failed - trying NetCtrl fallback on FW ' + FW_VERSION + '...')
+      utils.notify('[VAF] Lapse failed - switching to NetCtrl...')
+      include('netctrl_c0w_twins.js')
+      use_lapse = false
+    }
   } else {
-    log('JB Behavior: Auto Detect')
-    if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+    log('[*] Mode: Auto (' + FW_VERSION + ')')
+
+    if (compare_version(FW_VERSION, '7.00') >= 0 && compare_version(FW_VERSION, '8.52') <= 0) {
+      // FW 7.00–8.52: Lapse only — netctrl not stable here
+      log('[*] FW ' + FW_VERSION + ' -> Lapse (primary)')
       use_lapse = true
       lapse()
+    } else if (compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
+      // FW 9.00–12.02: both exploits work — try lapse first, fallback to netctrl
+      log('[*] FW ' + FW_VERSION + ' -> Lapse (primary) + NetCtrl (fallback)')
+      use_lapse = true
+      const lapse_ok = lapse()
+      if (!lapse_ok) {
+        log('[~] Lapse failed on FW ' + FW_VERSION + ' - falling back to NetCtrl...')
+        utils.notify('[VAF] Lapse failed - trying NetCtrl...')
+        include('netctrl_c0w_twins.js')
+        use_lapse = false
+      }
     } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
+      // FW 12.50–13.00: NetCtrl only
+      log('[*] FW ' + FW_VERSION + ' -> NetCtrl (primary)')
       include('netctrl_c0w_twins.js')
+    } else {
+      log('[ERR] No exploit available for FW ' + FW_VERSION)
+      utils.notify('[VAF] No exploit for FW ' + FW_VERSION + ' - check for updates')
     }
   }
 
   // Only wait for lapse - netctrl handles its own completion
   if (use_lapse) {
     const start_time = Date.now()
-    const max_wait_seconds = 5
+    const max_wait_seconds = 600
     const max_wait_ms = max_wait_seconds * 1000
 
     while (!is_exploit_complete()) {
@@ -150,20 +220,16 @@ if (!is_jailbroken) {
     const total_wait = ((Date.now() - start_time) / 1000).toFixed(1)
     log('Exploit completed successfully after ' + total_wait + ' seconds')
   }
-  if (use_lapse) {
-    log('Initializing binloader...')
-
+  // NOTE: lapse calls run_binloader() internally at jailbreak completion.
+  // Only initialize binloader here if lapse did NOT already do it.
+  if (use_lapse && !jsmaf.binloader_has_run) {
+    log('[*] Initializing binloader from loader...')
     try {
+      jsmaf.binloader_has_run = true
       binloader_init()
-      log('Binloader initialized and running!')
+      log('[OK] Binloader initialized')
     } catch (e) {
-      log('ERROR: Failed to initialize binloader')
-      log('Error message: ' + (e as Error).message)
-      log('Error name: ' + (e as Error).name)
-      if ((e as Error).stack) {
-        log('Stack trace: ' + (e as Error).stack)
-      }
-      throw e
+      log('[ERR] Binloader init failed: ' + (e as Error).message)
     }
   }
 } else {
@@ -172,18 +238,17 @@ if (!is_jailbroken) {
 }
 
 export function run_binloader () {
-  log('Initializing binloader...')
-
+  // Guard against double-init (loader polling may also trigger after lapse completes)
+  if (jsmaf.binloader_has_run) {
+    log('[*] Binloader already running - skipping duplicate init')
+    return
+  }
+  jsmaf.binloader_has_run = true
   try {
     binloader_init()
-    log('Binloader initialized and running!')
+    log('[OK] Binloader initialized and running')
   } catch (e) {
-    log('ERROR: Failed to initialize binloader')
-    log('Error message: ' + (e as Error).message)
-    log('Error name: ' + (e as Error).name)
-    if ((e as Error).stack) {
-      log('Stack trace: ' + (e as Error).stack)
-    }
+    log('[ERR] Binloader init failed: ' + (e as Error).message)
     throw e
   }
 }

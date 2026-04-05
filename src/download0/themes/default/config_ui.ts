@@ -1,6 +1,7 @@
 import { libc_addr } from 'download0/userland'
 import { lang, useImageText, textImageBase } from 'download0/languages'
 import { fn, mem, BigInt } from 'download0/types'
+import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCancel } from 'download0/themes/default/anim'
 
 if (typeof libc_addr === 'undefined') {
   include('userland.js')
@@ -10,8 +11,9 @@ if (typeof lang === 'undefined') {
   include('languages.js')
 }
 
-(function () {
-  log('Loading config UI...')
+;(function () {
+  include('themes/default/anim.js')
+  initSfx()
 
   const fs = {
     write: function (filename: string, content: string, callback: (error: Error | null) => void) {
@@ -40,17 +42,11 @@ if (typeof lang === 'undefined') {
   const currentConfig: {
     autolapse: boolean
     autopoop: boolean
-    autoclose: boolean
-    autoclose_delay: number
-    music: boolean
     jb_behavior: number
     theme: string
   } = {
     autolapse: false,
     autopoop: false,
-    autoclose: false,
-    autoclose_delay: 0,
-    music: true,
     jb_behavior: 0,
     theme: 'default'
   }
@@ -100,7 +96,6 @@ if (typeof lang === 'undefined') {
         fn.close_sys(fd)
       }
     } catch (e) {
-      log('Theme scan failed: ' + (e as Error).message)
     }
 
     const idx = themes.indexOf('default')
@@ -115,7 +110,6 @@ if (typeof lang === 'undefined') {
   }
 
   const availableThemes = scanThemes()
-  log('Discovered themes: ' + availableThemes.join(', '))
   const themeLabels: string[] = availableThemes.map((theme: string) => theme.charAt(0).toUpperCase() + theme.slice(1))
   const themeImgKeys: string[] = availableThemes.map((theme: string) => 'theme' + theme.charAt(0).toUpperCase() + theme.slice(1))
 
@@ -174,8 +168,6 @@ if (typeof lang === 'undefined') {
   const configOptions = [
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
-    { key: 'autoclose', label: lang.autoClose, imgKey: 'autoClose', type: 'toggle' },
-    { key: 'music', label: lang.music, imgKey: 'music', type: 'toggle' },
     { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
     { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
@@ -259,9 +251,16 @@ if (typeof lang === 'undefined') {
         valueLabel.x = btnX + 250
         valueLabel.y = btnY + 28
         valueLabel.style = 'white'
+      } else {
+        // Fallback for any future cycle options
+        valueLabel = new jsmaf.Text()
+        ;(valueLabel as jsmaf.Text).text = ''
+        ;(valueLabel as jsmaf.Text).x = btnX + 250
+        ;(valueLabel as jsmaf.Text).y = btnY + 28
+        ;(valueLabel as jsmaf.Text).style = 'white'
       }
-      valueTexts.push(valueLabel)
-      jsmaf.root.children.push(valueLabel)
+      valueTexts.push(valueLabel!)
+      jsmaf.root.children.push(valueLabel!)
     }
 
     buttonOrigPos.push({ x: btnX, y: btnY })
@@ -286,76 +285,12 @@ if (typeof lang === 'undefined') {
   }
   jsmaf.root.children.push(backHint)
 
-  let zoomInInterval: number | null = null
-  let zoomOutInterval: number | null = null
+  const zoomInRef: { value: number | null } = { value: null }
+  const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
-  }
-
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.0
-    const endScale = 1.1
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomInInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomInInterval ?? -1)
-        zoomInInterval = null
-      }
-    }, step)
-  }
-
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.1
-    const endScale = 1.0
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomOutInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1) {
-        jsmaf.clearInterval(zoomOutInterval ?? -1)
-        zoomOutInterval = null
-      }
-    }, step)
   }
 
   function updateHighlight () {
@@ -368,7 +303,7 @@ if (typeof lang === 'undefined') {
       prevButtonObj.borderColor = 'transparent'
       prevButtonObj.borderWidth = 0
       if (buttonMarker) buttonMarker.visible = false
-      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y)
+      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y, buttonWidth, buttonHeight, zoomOutRef)
     }
 
     // Set styles for all buttons
@@ -385,7 +320,7 @@ if (typeof lang === 'undefined') {
         button.borderColor = 'rgb(100,180,255)'
         button.borderWidth = 3
         if (buttonMarker) buttonMarker.visible = true
-        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y)
+        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y, buttonWidth, buttonHeight, zoomInRef)
       } else if (i !== prevButton) {
         button.url = normalButtonImg
         button.alpha = 0.7
@@ -432,16 +367,12 @@ if (typeof lang === 'undefined') {
 
   function saveConfig () {
     if (!configLoaded) {
-      log('Config not loaded yet, skipping save')
       return
     }
     const configData = {
       config: {
         autolapse: currentConfig.autolapse,
         autopoop: currentConfig.autopoop,
-        autoclose: currentConfig.autoclose,
-        autoclose_delay: currentConfig.autoclose_delay,
-        music: currentConfig.music,
         jb_behavior: currentConfig.jb_behavior,
         theme: currentConfig.theme
       },
@@ -450,19 +381,14 @@ if (typeof lang === 'undefined') {
 
     const configContent = JSON.stringify(configData, null, 2)
 
-    fs.write('config.json', configContent, function (err) {
-      if (err) {
-        log('ERROR: Failed to save config: ' + err.message)
-      } else {
-        log('Config saved successfully')
-      }
+    fs.write('config.json', configContent, function (_err) {
+      // save complete
     })
   }
 
   function loadConfig () {
     fs.read('config.json', function (err: Error | null, data?: string) {
       if (err) {
-        log('ERROR: Failed to read config: ' + err.message)
         return
       }
 
@@ -474,16 +400,12 @@ if (typeof lang === 'undefined') {
 
           currentConfig.autolapse = CONFIG.autolapse || false
           currentConfig.autopoop = CONFIG.autopoop || false
-          currentConfig.autoclose = CONFIG.autoclose || false
-          currentConfig.autoclose_delay = CONFIG.autoclose_delay || 0
-          currentConfig.music = CONFIG.music !== false
           currentConfig.jb_behavior = CONFIG.jb_behavior || 0
 
           // Validate and set theme (themes are auto-discovered from directory scan)
           if (CONFIG.theme && availableThemes.includes(CONFIG.theme)) {
             currentConfig.theme = CONFIG.theme
           } else {
-            log('WARNING: Theme "' + (CONFIG.theme || 'undefined') + '" not found in available themes, using default')
             currentConfig.theme = availableThemes[0] || 'default'
           }
 
@@ -495,16 +417,9 @@ if (typeof lang === 'undefined') {
           for (let i = 0; i < configOptions.length; i++) {
             updateValueText(i)
           }
-          if (currentConfig.music) {
-            startBgmIfEnabled()
-          } else {
-            stopBgm()
-          }
           configLoaded = true
-          log('Config loaded successfully')
         }
       } catch (e) {
-        log('ERROR: Failed to parse config: ' + (e as Error).message)
         configLoaded = true // Allow saving even on error
       }
     })
@@ -515,31 +430,19 @@ if (typeof lang === 'undefined') {
       const option = configOptions[currentButton]!
       const key = option.key
 
+      playConfirm()
       if (option.type === 'cycle') {
         if (key === 'jb_behavior') {
           currentConfig.jb_behavior = (currentConfig.jb_behavior + 1) % jbBehaviorLabels.length
-          log(key + ' = ' + jbBehaviorLabels[currentConfig.jb_behavior])
         } else if (key === 'theme') {
           const themeIndex = availableThemes.indexOf(currentConfig.theme)
           const displayIndex = themeIndex >= 0 ? themeIndex : 0
           const nextIndex = (displayIndex + 1) % availableThemes.length
           currentConfig.theme = availableThemes[nextIndex]!
-          log(key + ' = ' + currentConfig.theme)
         }
       } else {
-        const boolKey = key as 'autolapse' | 'autopoop' | 'autoclose' | 'music'
+        const boolKey = key as 'autolapse' | 'autopoop'
         currentConfig[boolKey] = !currentConfig[boolKey]
-
-        if (boolKey === 'music') {
-          if (typeof CONFIG !== 'undefined') {
-            CONFIG.music = currentConfig.music
-          }
-          if (currentConfig.music) {
-            startBgmIfEnabled()
-          } else {
-            stopBgm()
-          }
-        }
 
         if (key === 'autolapse' && currentConfig.autolapse === true) {
           currentConfig.autopoop = false
@@ -549,7 +452,6 @@ if (typeof lang === 'undefined') {
               break
             }
           }
-          log('autopoop disabled (autolapse enabled)')
         } else if (key === 'autopoop' && currentConfig.autopoop === true) {
           currentConfig.autolapse = false
           for (let i = 0; i < configOptions.length; i++) {
@@ -558,10 +460,7 @@ if (typeof lang === 'undefined') {
               break
             }
           }
-          log('autolapse disabled (autopoop enabled)')
         }
-
-        log(key + ' = ' + currentConfig[boolKey])
       }
 
       updateValueText(currentButton)
@@ -575,24 +474,29 @@ if (typeof lang === 'undefined') {
   jsmaf.onKeyDown = function (keyCode) {
     if (keyCode === 6 || keyCode === 5) {
       currentButton = (currentButton + 1) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === 4 || keyCode === 7) {
       currentButton = (currentButton - 1 + buttons.length) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === confirmKey) {
       handleButtonPress()
     } else if (keyCode === backKey) {
-      log('Restarting...')
-      // Save config before restart
+      playCancel()
       saveConfig()
       jsmaf.setTimeout(function () {
-        debugging.restart()
+        if (typeof debugging !== 'undefined' && debugging) {
+          debugging.restart()
+        } else {
+          try {
+            include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/main.js')
+          } catch (e) {}
+        }
       }, 100)
     }
   }
 
   updateHighlight()
   loadConfig()
-
-  log('Config UI loaded.')
 })()

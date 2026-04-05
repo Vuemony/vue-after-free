@@ -66,7 +66,7 @@ function startBgmIfEnabled () {
         if (typeof CONFIG !== 'undefined' && CONFIG.music && !bgmClip) {
             clip = new jsmaf.AudioClip();
             clip.volume = 0.5;
-            clip.open('file://../download0/sfx/bgm.wav');
+            clip.open('file://../download0/audio/bgm.wav');
             bgmClip = clip;
         }
     } catch (e) {
@@ -169,23 +169,16 @@ try {
     
     
     
-    // Random image selection for success/fail screens
-    var successImageCount = 50;
-    var failImageCount = 60;
-    var randomSuccessNum = Math.floor(Math.random() * successImageCount) + 1;
-    var randomFailNum = Math.floor(Math.random() * failImageCount) + 1;
-
     var bg_success = new Image({
-        url: "file:///../download0/img/susec/" + randomSuccessNum + ".jpg",
+        url: 'file:///../download0/img/bg-success.jpg',
         x: 0,
         y: 0,
         width: 1920,
         height: 1080
     });
 
-    // Background
     var bg_fail = new Image({
-        url: "file:///../download0/img/feil/" + randomFailNum + ".jpg",
+        url: 'file:///../download0/img/bg-fail.jpg',
         x: 0,
         y: 0,
         width: 1920,

@@ -1,10 +1,11 @@
 import { lang, useImageText, textImageBase } from 'download0/languages'
-import { libc_addr } from 'download0/userland'
-import { fn, BigInt } from 'download0/types'
+import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCancel } from 'download0/themes/default/anim'
 
 (function () {
   include('languages.js')
-  log('Loading main menu...')
+  include('themes/default/anim.js')
+
+  initSfx()
 
   let currentButton = 0
   const buttons: Image[] = []
@@ -20,10 +21,6 @@ import { fn, BigInt } from 'download0/types'
 
   new Style({ name: 'white', color: 'white', size: 24 })
   new Style({ name: 'title', color: 'white', size: 32 })
-
-  if (typeof startBgmIfEnabled === 'function') {
-    startBgmIfEnabled()
-  }
 
   const background = new Image({
     url: 'file:///../download0/img/multiview_bg_VAF.png',
@@ -152,80 +149,11 @@ import { fn, BigInt } from 'download0/types'
   buttonOrigPos.push({ x: exitX, y: exitY })
   textOrigPos.push({ x: exitText.x, y: exitText.y })
 
-  let zoomInInterval: number | null = null
-  let zoomOutInterval: number | null = null
+  const zoomInRef: { value: number | null } = { value: null }
+  const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
-  function easeInOut (t: number) {
-    return (1 - Math.cos(t * Math.PI)) / 2
-  }
-
-  function animateZoomIn (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomInInterval) jsmaf.clearInterval(zoomInInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.0
-    const endScale = 1.1
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomInInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1 && zoomInInterval) {
-        jsmaf.clearInterval(zoomInInterval)
-        zoomInInterval = null
-      }
-    }, step)
-  }
-
-  function animateZoomOut (btn: Image, text: jsmaf.Text, btnOrigX: number, btnOrigY: number, textOrigX: number, textOrigY: number) {
-    if (zoomOutInterval) jsmaf.clearInterval(zoomOutInterval)
-    const btnW = buttonWidth
-    const btnH = buttonHeight
-    const startScale = btn.scaleX || 1.1
-    const endScale = 1.0
-    const duration = 175
-    let elapsed = 0
-    const step = 16
-
-    zoomOutInterval = jsmaf.setInterval(function () {
-      elapsed += step
-      const t = Math.min(elapsed / duration, 1)
-      const eased = easeInOut(t)
-      const scale = startScale + (endScale - startScale) * eased
-
-      btn.scaleX = scale
-      btn.scaleY = scale
-      btn.x = btnOrigX - (btnW * (scale - 1)) / 2
-      btn.y = btnOrigY - (btnH * (scale - 1)) / 2
-      text.scaleX = scale
-      text.scaleY = scale
-      text.x = textOrigX - (btnW * (scale - 1)) / 2
-      text.y = textOrigY - (btnH * (scale - 1)) / 2
-
-      if (t >= 1 && zoomOutInterval) {
-        jsmaf.clearInterval(zoomOutInterval)
-        zoomOutInterval = null
-      }
-    }, step)
-  }
-
   function updateHighlight () {
-    // Animate out the previous button
     const prevButtonObj = buttons[prevButton]
     const buttonMarker = buttonMarkers[prevButton]
     if (prevButton >= 0 && prevButton !== currentButton && prevButtonObj && buttonMarker) {
@@ -234,10 +162,9 @@ import { fn, BigInt } from 'download0/types'
       prevButtonObj.borderColor = 'transparent'
       prevButtonObj.borderWidth = 0
       buttonMarker.visible = false
-      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y)
+      animateZoomOut(prevButtonObj, buttonTexts[prevButton]!, buttonOrigPos[prevButton]!.x, buttonOrigPos[prevButton]!.y, textOrigPos[prevButton]!.x, textOrigPos[prevButton]!.y, buttonWidth, buttonHeight, zoomOutRef)
     }
 
-    // Set styles for all buttons
     for (let i = 0; i < buttons.length; i++) {
       const button = buttons[i]
       const buttonMarker = buttonMarkers[i]
@@ -251,7 +178,7 @@ import { fn, BigInt } from 'download0/types'
         button.borderColor = 'rgb(100,180,255)'
         button.borderWidth = 3
         buttonMarker.visible = true
-        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y)
+        animateZoomIn(button, buttonText, buttonOrigPos_.x, buttonOrigPos_.y, textOrigPos_.x, textOrigPos_.y, buttonWidth, buttonHeight, zoomInRef)
       } else if (i !== prevButton) {
         button.url = normalButtonImg
         button.alpha = 0.7
@@ -274,6 +201,7 @@ import { fn, BigInt } from 'download0/types'
 
   function handleButtonPress () {
     if (currentButton === buttons.length - 1) {
+      playCancel()
       include('includes/kill_vue.js')
     } else if (currentButton < menuOptions.length) {
       const selectedOption = menuOptions[currentButton]
@@ -281,7 +209,7 @@ import { fn, BigInt } from 'download0/types'
       if (selectedOption.script === 'loader.js') {
         jsmaf.onKeyDown = function () {}
       }
-      log('Loading ' + selectedOption.script + '...')
+      playConfirm()
       try {
         if (selectedOption.script.includes('loader.js')) {
           include(selectedOption.script)
@@ -289,8 +217,7 @@ import { fn, BigInt } from 'download0/types'
           include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/' + selectedOption.script)
         }
       } catch (e) {
-        log('ERROR loading ' + selectedOption.script + ': ' + (e as Error).message)
-        if ((e as Error).stack) log((e as Error).stack!)
+        // silent
       }
     }
   }
@@ -298,9 +225,11 @@ import { fn, BigInt } from 'download0/types'
   jsmaf.onKeyDown = function (keyCode) {
     if (keyCode === 6 || keyCode === 5) {
       currentButton = (currentButton + 1) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === 4 || keyCode === 7) {
       currentButton = (currentButton - 1 + buttons.length) % buttons.length
+      playCursor()
       updateHighlight()
     } else if (keyCode === 14) {
       handleButtonPress()
@@ -308,6 +237,4 @@ import { fn, BigInt } from 'download0/types'
   }
 
   updateHighlight()
-
-  log('Main menu loaded.')
 })()

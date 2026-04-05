@@ -9,7 +9,6 @@ export const lang: Record<string, string> = {
   autoLapse: 'Auto Lapse',
   autoPoop: 'Auto Poop',
   autoClose: 'Auto Close',
-  music: 'Music',
   jbBehavior: 'JB Behavior',
   jbBehaviorAuto: 'Auto Detect',
   jbBehaviorNetctrl: 'NetControl',
@@ -26,8 +25,6 @@ let detectedLocale = jsmaf.locale
 if (!detectedLocale) {
   detectedLocale = 'ar'
 }
-
-log('Detected locale: ' + detectedLocale)
 
 const IMAGE_TEXT_LOCALES = ['ar', 'ja', 'ko', 'zh']
 if (IMAGE_TEXT_LOCALES.includes(detectedLocale)) {
@@ -50,7 +47,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Auto Cerrar'
-    lang.music = 'Musica'
     lang.jbBehavior = 'Comportamiento JB'
     lang.jbBehaviorAuto = 'Auto Detectar'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -69,7 +65,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Fechar Auto'
-    lang.music = 'Musica'
     lang.jbBehavior = 'Comportamento JB'
     lang.jbBehaviorAuto = 'Auto Detectar'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -88,7 +83,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Fermer Auto'
-    lang.music = 'Musique'
     lang.jbBehavior = 'Comportement JB'
     lang.jbBehaviorAuto = 'Auto Detecter'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -107,7 +101,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Auto Schliessen'
-    lang.music = 'Musik'
     lang.jbBehavior = 'JB Verhalten'
     lang.jbBehaviorAuto = 'Auto Erkennen'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -126,7 +119,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Chiudi Auto'
-    lang.music = 'Musica'
     lang.jbBehavior = 'Comportamento JB'
     lang.jbBehaviorAuto = 'Auto Rileva'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -145,7 +137,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Auto Sluiten'
-    lang.music = 'Muziek'
     lang.jbBehavior = 'JB Gedrag'
     lang.jbBehaviorAuto = 'Auto Detectie'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -164,7 +155,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Auto Zamknij'
-    lang.music = 'Muzyka'
     lang.jbBehavior = 'Zachowanie JB'
     lang.jbBehaviorAuto = 'Auto Wykryj'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -183,7 +173,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'Otomatik Kapat'
-    lang.music = 'Muzik'
     lang.jbBehavior = 'JB Davranisi'
     lang.jbBehaviorAuto = 'Otomatik Algilama'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -202,7 +191,6 @@ switch (detectedLocale) {
     lang.autoLapse = 'Auto Lapse'
     lang.autoPoop = 'Auto Poop'
     lang.autoClose = 'اغلاق تلقائي'
-    lang.music = 'موسيقى'
     lang.jbBehavior = 'نوع التهكير'
     lang.jbBehaviorAuto = 'كشف تلقائي'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -221,7 +209,6 @@ switch (detectedLocale) {
     lang.autoLapse = '自動Lapse'
     lang.autoPoop = '自動Poop'
     lang.autoClose = '自動終了'
-    lang.music = '音楽'
     lang.jbBehavior = 'JB動作'
     lang.jbBehaviorAuto = '自動検出'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -240,7 +227,6 @@ switch (detectedLocale) {
     lang.autoLapse = '자동 Lapse'
     lang.autoPoop = '자동 Poop'
     lang.autoClose = '자동 닫기'
-    lang.music = '음악'
     lang.jbBehavior = 'JB 동작'
     lang.jbBehaviorAuto = '자동 감지'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -259,7 +245,6 @@ switch (detectedLocale) {
     lang.autoLapse = '自动Lapse'
     lang.autoPoop = '自动Poop'
     lang.autoClose = '自动关闭'
-    lang.music = '音乐'
     lang.jbBehavior = 'JB行为'
     lang.jbBehaviorAuto = '自动检测'
     lang.jbBehaviorNetctrl = 'NetControl'
@@ -274,5 +259,3 @@ switch (detectedLocale) {
     // English (default) which is already set
     break
 }
-
-log('Language loaded: ' + detectedLocale)

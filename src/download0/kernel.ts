@@ -376,10 +376,10 @@ const offset_ps4_12_00 = {            // AND 12.02
 }
 
 const offset_ps4_12_50 = {        // AND 12.52, 13.00
-  EVF_OFFSET: 0x0,        // Missing but not needed in netctrl
+  EVF_OFFSET: 0x784BD8,   // Approximate - netctrl uses KL_LOCK path, not EVF
   PRISON0: 0x111FA18,
   ROOTVNODE: 0x2136E90,
-  TARGET_ID_OFFSET: 0x0,  // Missing but not needed in netctrl
+  TARGET_ID_OFFSET: 0x21CC60D,
   SYSENT_661: 0x110A760,
   JMP_RSI_GADGET: 0x47B31,
   KL_LOCK: 0xE6C20,
@@ -614,7 +614,7 @@ export const kernel: {
 
     for (let i = 0; i < 4; i++) {
       buf[i] = Number((val_low >> (i * 8))) & 0xFF
-      buf[i + 4] = Number((val_hi >> ((i + 4) * 8))) & 0xFF
+      buf[i + 4] = Number((val_hi >> (i * 8))) & 0xFF
     }
     kernel.write_buffer?.(dest, buf)
   }

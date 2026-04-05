@@ -17,5 +17,5 @@
   "plugins": [
     ["./module-remover/index.js"]
   ],
-  "ignore": ["./src/download0/vid"]
+  "ignore": []
 }
