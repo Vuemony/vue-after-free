@@ -86,12 +86,10 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
     // }
   }
 
-
   const path_addr = mem.malloc(256)
   const buf = mem.malloc(4096)
 
   for (const currentPath of scanPaths) {
-
     for (let i = 0; i < currentPath.length; i++) {
       mem.view(path_addr).setUint8(i, currentPath.charCodeAt(i))
     }
@@ -131,7 +129,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
       fn.close_sys(fd)
     }
   }
-
 
   const startY = 200
   const buttonSpacing = 90
@@ -205,7 +202,7 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   }
   jsmaf.root.children.push(backHint)
 
-  const zoomInRef:  { value: number | null } = { value: null }
+  const zoomInRef: { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
@@ -261,7 +258,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   const backKey = jsmaf.circleIsAdvanceButton ? 14 : 13
 
   jsmaf.onKeyDown = function (keyCode) {
-
     const fileButtonCount = fileList.length
 
     if (keyCode === 6) {
@@ -319,7 +315,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
       const filePath = selectedEntry.path
       const fileName = selectedEntry.name
 
-
       try {
         if (fileName.toLowerCase().endsWith('.js')) {
           // Local JavaScript file case (from "/download0/payloads")
@@ -366,7 +361,6 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
 
           const { bl_load_from_file } = binloader_init()
 
-
           bl_load_from_file(filePath)
         }
       } catch (e) {
@@ -377,5 +371,4 @@ import { animateZoomIn, animateZoomOut, initSfx, playCursor, playConfirm, playCa
   }
 
   updateHighlight()
-
 })()

@@ -111,4 +111,3 @@ declare class Video {
 
 declare var bg_success: Image
 declare var bg_fail: Image
-

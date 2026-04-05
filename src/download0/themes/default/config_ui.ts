@@ -168,7 +168,7 @@ if (typeof lang === 'undefined') {
   const configOptions = [
     { key: 'autolapse', label: lang.autoLapse, imgKey: 'autoLapse', type: 'toggle' },
     { key: 'autopoop', label: lang.autoPoop, imgKey: 'autoPoop', type: 'toggle' },
-{ key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
+    { key: 'jb_behavior', label: lang.jbBehavior, imgKey: 'jbBehavior', type: 'cycle' },
     { key: 'theme', label: lang.theme || 'Theme', imgKey: 'theme', type: 'cycle' }
   ]
 
@@ -285,14 +285,13 @@ if (typeof lang === 'undefined') {
   }
   jsmaf.root.children.push(backHint)
 
-  const zoomInRef:  { value: number | null } = { value: null }
+  const zoomInRef: { value: number | null } = { value: null }
   const zoomOutRef: { value: number | null } = { value: null }
   let prevButton = -1
 
   function easeInOut (t: number) {
     return (1 - Math.cos(t * Math.PI)) / 2
   }
-
 
   function updateHighlight () {
     // Animate out the previous button
@@ -462,7 +461,6 @@ if (typeof lang === 'undefined') {
             }
           }
         }
-
       }
 
       updateValueText(currentButton)
@@ -501,5 +499,4 @@ if (typeof lang === 'undefined') {
 
   updateHighlight()
   loadConfig()
-
 })()
