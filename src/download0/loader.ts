@@ -35,16 +35,12 @@ export function show_success (immediate?: boolean) {
 // ── Auto-exit: kill the Vue app after jailbreak success ──────────────────
 // Sends SIGKILL to self then calls jsmaf.exit() as fallback.
 export function exit_app (delayMs: number = 3000) {
-  // Use autoclose_delay from config if available
-  if (typeof CONFIG !== 'undefined' && typeof CONFIG.autoclose_delay === 'number') {
-    delayMs = CONFIG.autoclose_delay
-  }
-  log('[*] Auto-exit in ' + (delayMs / 1000) + 's...')
-  utils.notify('Jailbreak done!\nClosing in ' + (delayMs / 1000) + 's...')
+  log('[*] Auto-exit scheduled in ' + (delayMs / 1000) + 's...')
+  utils.notify('Jailbreak done!\nClosing app in ' + (delayMs / 1000) + 's...')
   jsmaf.setTimeout(function () {
     try {
       fn.register(0x14, 'getpid_exit', [], 'bigint')
-      fn.register(0x25, 'kill_exit',   ['bigint', 'bigint'], 'bigint')
+      fn.register(0x25, 'kill_exit', ['bigint', 'bigint'], 'bigint')
       const pid = fn.getpid_exit()
       log('[*] Sending SIGKILL to PID ' + ((pid instanceof BigInt) ? pid.lo : pid))
       fn.kill_exit(pid, new BigInt(0, 9))
@@ -60,20 +56,15 @@ export function exit_app (delayMs: number = 3000) {
 // Requires root — only call this AFTER jailbreak credentials are patched,
 // or if the kernel is already broken enough that a hard reset is appropriate.
 export function reboot_ps4 (delayMs: number = 5000) {
-  // If retry_on_fail is false, show error but do NOT reboot
-  if (typeof CONFIG !== 'undefined' && CONFIG.retry_on_fail === false) {
-    log('[!] Exploit failed. retry_on_fail=false - staying on screen.')
-    utils.notify('Exploit failed.\nPress X to try again.')
-    return
-  }
-  log('[!] Auto-reboot in ' + (delayMs / 1000) + 's...')
-  utils.notify('Exploit failed.\nRebooting in ' + (delayMs / 1000) + 's...')
+  log('[!] Auto-reboot scheduled in ' + (delayMs / 1000) + 's...')
+  utils.notify('Exploit failed.\nRebooting PS4 in ' + (delayMs / 1000) + 's...')
   jsmaf.setTimeout(function () {
     try {
       fn.register(0x37, 'reboot_sys', ['number'], 'bigint')
-      fn.reboot_sys(0)
+      fn.reboot_sys(0)   // RB_AUTOBOOT
     } catch (e) {
       log('[!] reboot syscall failed: ' + (e as Error).message)
+      // Fallback: kill init (PID 1) which forces a kernel panic / reset
       try {
         fn.register(0x25, 'kill_init', ['bigint', 'bigint'], 'bigint')
         fn.kill_init(new BigInt(0, 1), new BigInt(0, 9))
@@ -157,7 +148,6 @@ if (!is_jailbroken) {
   if (jb_behavior === 1) {
     log('[*] Mode: NetCtrl (forced by user)')
     include('netctrl_c0w_twins.js')
-
   } else if (jb_behavior === 2) {
     log('[*] Mode: Lapse (forced by user)')
     use_lapse = true
@@ -169,7 +159,6 @@ if (!is_jailbroken) {
       include('netctrl_c0w_twins.js')
       use_lapse = false
     }
-
   } else {
     log('[*] Mode: Auto (' + FW_VERSION + ')')
 
@@ -178,7 +167,6 @@ if (!is_jailbroken) {
       log('[*] FW ' + FW_VERSION + ' -> Lapse (primary)')
       use_lapse = true
       lapse()
-
     } else if (compare_version(FW_VERSION, '9.00') >= 0 && compare_version(FW_VERSION, '12.02') <= 0) {
       // FW 9.00–12.02: both exploits work — try lapse first, fallback to netctrl
       log('[*] FW ' + FW_VERSION + ' -> Lapse (primary) + NetCtrl (fallback)')
@@ -190,12 +178,10 @@ if (!is_jailbroken) {
         include('netctrl_c0w_twins.js')
         use_lapse = false
       }
-
     } else if (compare_version(FW_VERSION, '12.50') >= 0 && compare_version(FW_VERSION, '13.00') <= 0) {
       // FW 12.50–13.00: NetCtrl only
       log('[*] FW ' + FW_VERSION + ' -> NetCtrl (primary)')
       include('netctrl_c0w_twins.js')
-
     } else {
       log('[ERR] No exploit available for FW ' + FW_VERSION)
       utils.notify('[VAF] No exploit for FW ' + FW_VERSION + ' - check for updates')

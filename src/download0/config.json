@@ -1,9 +1,8 @@
 {
   "config": {
+    "autolapse": false,
+    "autopoop": false,
     "jb_behavior": 0,
-    "auto_jailbreak": false,
-    "autoclose_delay": 4000,
-    "retry_on_fail": true,
     "theme": "default"
   },
   "payloads": []
