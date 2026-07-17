@@ -94,6 +94,7 @@ Lastly Vue has a fun UI with cats and Theme support for you to tinker with along
   * Internet connection on the PS4. 
   * Fake or legit activated PS4 user account.
   * 256GB or above USB/HDD/SSD. Any drive larger than 256GB will also work.
+  * The drive or drive adapter must be USB 3.0 compatible. 
   * A way to resign a save file. A jailbroken PS4 or a Discord bot or Save Wizard.
   > [!IMPORTANT]
   > You will resign the save file that installs the exploit data through the internet.
