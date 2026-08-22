@@ -6,7 +6,8 @@
         "autoclose_delay": 3000,
         "music": true,
         "jb_behavior": 0,
-        "theme": "default"
+        "theme": "default",
+        "jb_retries": 3
     },
     "payloads": []
 }

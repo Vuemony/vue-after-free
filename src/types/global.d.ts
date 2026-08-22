@@ -34,6 +34,14 @@ declare var CONFIG: {
   autolapse?: boolean;
   autopoop?: boolean;
   autoclose?: boolean;
+  autoclose_delay?: number;
+  jb_behavior?: number;
+  jb_retries?: number;
+  main_loop_iterations?: number;
+  triplefree_iterations?: number;
+  kqueue_iterations?: number;
+  max_rounds_twin?: number;
+  max_rounds_triplet?: number;
   music?: boolean;
 } | undefined
 
