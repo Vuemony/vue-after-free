@@ -139,12 +139,29 @@ const MSG_IOV_NUM = 0x17
 const IPV6_SOCK_NUM = 96
 const IOV_THREAD_NUM = 8
 const UIO_THREAD_NUM = 8
-const MAIN_LOOP_ITERATIONS = 3
-const TRIPLEFREE_ITERATIONS = 8
-const KQUEUE_ITERATIONS = 5000
 
-const MAX_ROUNDS_TWIN = 5
-const MAX_ROUNDS_TRIPLET = 200
+// Tunables: overridable via config.json (CONFIG.*), defaults preserved
+function cfg_num (key: string, def: number): number {
+  // CONFIG is injected by the host from download0/config.json
+  if (typeof CONFIG !== 'undefined' && typeof (CONFIG as Record<string, unknown>)[key] === 'number') {
+    const v = Number((CONFIG as Record<string, unknown>)[key])
+    if (v > 0) return v
+  }
+  return def
+}
+
+const MAIN_LOOP_ITERATIONS = cfg_num('main_loop_iterations', 3)
+const TRIPLEFREE_ITERATIONS = cfg_num('triplefree_iterations', 8)
+const KQUEUE_ITERATIONS = cfg_num('kqueue_iterations', 5000)
+
+const MAX_ROUNDS_TWIN = cfg_num('max_rounds_twin', 5)
+const MAX_ROUNDS_TRIPLET = cfg_num('max_rounds_triplet', 200)
+
+// Outer auto-retry: on clean failure ("Failed to acquire kernel R/W") restart
+// the whole exploit chain in-process instead of forcing a manual app relaunch.
+const JB_RETRIES_DEFAULT = 3
+const JB_RETRY_DELAY_MS = 2000
+let outer_retry = 0
 
 const MAIN_CORE = 4
 const MAIN_RTPRIO = 0x100
@@ -994,6 +1011,7 @@ let exploit_count = 0
 let exploit_end = false
 
 function netctrl_exploit () {
+  outer_retry = 0
   setup_log_screen()
 
   const supported_fw = init()
@@ -1016,6 +1034,20 @@ function exploit_phase_setup () {
 function exploit_phase_trigger () {
   if (exploit_count >= MAIN_LOOP_ITERATIONS) {
     log('Failed to acquire kernel R/W')
+    // Clean failure: heap state is still sane, so instead of giving up and
+    // forcing a manual app relaunch, restart the whole chain in-process.
+    const max_outer = (typeof CONFIG !== 'undefined' && typeof CONFIG.jb_retries === 'number') ? CONFIG.jb_retries : JB_RETRIES_DEFAULT
+    if (outer_retry < max_outer) {
+      outer_retry++
+      log('Auto-retry ' + outer_retry + '/' + max_outer + ': rebuilding workers in ' + (JB_RETRY_DELAY_MS / 1000) + 's...')
+      cleanup(true) // kill leftover workers so setup() can recreate them
+      cleanup_called = false // allow cleanup to run again on the next attempt
+      setTimeout(function () {
+        yield_to_render(exploit_phase_setup)
+      }, JB_RETRY_DELAY_MS)
+      return
+    }
+    log('Auto-retry budget exhausted (' + max_outer + '). Give up.')
     cleanup()
     return
   }
