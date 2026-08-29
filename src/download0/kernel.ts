@@ -48,7 +48,7 @@ const kpatch_mmap_offsets: Record<string, [number, number]> = {
   '7.50': [0xdb17d, 0xdb180],     // TODO: verify
   '8.00': [0xfd03a, 0xfd03d],     // TODO: verify
   '8.50': [0x826ea, 0x826ed],     // TODO: verify
-  '9.00': [0x16632a, 0x16632d],   // TODO: verify
+  '9.00': [0x16632a, 0x16632d],
   '9.03': [0x1662da, 0x1662dd],   // TODO: verify
   '9.50': [0x122d7a, 0x122d7d],   // TODO: verify
   '10.00': [0xed59a, 0xed59d],    // TODO: verify
