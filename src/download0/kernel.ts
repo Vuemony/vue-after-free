@@ -390,6 +390,15 @@ const offset_ps4_12_50 = {        // AND 12.52, 13.00
   KL_LOCK: 0xE6C20,
 }
 
+var offset_ps4_13_02 = {
+  EVF_OFFSET: 0x784798,         //and 13.02 . 13.04
+  PRISON0: 0x111FA18,
+  ROOTVNODE: 0x2136E90,
+  TARGET_ID_OFFSET: 0x21CC60D,
+  SYSENT_661: 0x110A760,
+  JMP_RSI_GADGET: 0x47B31,
+  KL_LOCK: 0xE6C20
+}
 // Map firmware versions to offset objects
 export const ps4_kernel_offset_list = {
   '5.00': offset_ps4_5_00,
