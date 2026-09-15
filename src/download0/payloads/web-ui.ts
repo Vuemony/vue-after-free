@@ -3,6 +3,9 @@ import { fn, mem, BigInt } from 'download0/types'
 
 // simple server
 
+const previousOnEnterFrame = jsmaf.onEnterFrame
+const previousOnKeyDown = jsmaf.onKeyDown
+
 if (libc_addr === null) {
   include('userland.js')
 }
@@ -128,7 +131,7 @@ const html = '<!DOCTYPE html>\n' +
 '<script>\n' +
 'const logEl=document.getElementById("log");\n' +
 'const statusEl=document.getElementById("status");\n' +
-'const ws=null;\n' +
+'let ws=null;\n' +
 'function addLog(msg){const div=document.createElement("div");div.className="line";div.textContent=msg;logEl.appendChild(div);logEl.scrollTop=logEl.scrollHeight;}\n' +
 'function connectWS(){try{ws=new WebSocket("ws://127.0.0.1:40404");ws.onopen=function(){statusEl.textContent="connected";statusEl.style.opacity="1";addLog("[connected to ws]");};ws.onmessage=function(e){addLog(e.data);};ws.onclose=function(){statusEl.textContent="disconnected";statusEl.style.opacity="0.5";addLog("[disconnected]");setTimeout(connectWS,2000);};ws.onerror=function(){statusEl.textContent="error";statusEl.style.opacity="0.5";};}catch(e){addLog("[ws error: "+e.message+"]");setTimeout(connectWS,5000);}}\n' +
 'function goFullscreen(){const elem=document.documentElement;try{if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}else{addLog("[fullscreen not supported]");}}catch(e){addLog("[fullscreen error: "+e.message+"]");}}\n' +
@@ -361,7 +364,8 @@ jsmaf.onKeyDown = function (keyCode) {
     serverRunning = false
     close_sys(srv)
     log('server closed')
-    jsmaf.onEnterFrame = null
-    jsmaf.onKeyDown = null
+    // restore UI controls
+    jsmaf.onEnterFrame = previousOnEnterFrame
+    jsmaf.onKeyDown = previousOnKeyDown
   }
 }

@@ -71,6 +71,7 @@ declare namespace jsmaf {
 
   declare var onEnterFrame: (() => void) | null
   declare var onKeyDown: ((keyCode: number) => void) | null
+  declare var circleIsAdvanceButton: boolean
 
   declare var remotePlay: boolean
 

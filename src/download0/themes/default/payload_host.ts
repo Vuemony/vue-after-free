@@ -209,7 +209,9 @@ import { checkJailbroken } from 'download0/check-jailbroken'
     })
   } else {
     backHint = new jsmaf.Text()
-    backHint.text = jsmaf.circleIsAdvanceButton ? lang.xToGoBack : lang.oToGoBack
+    backHint.text = jsmaf.circleIsAdvanceButton
+      ? (lang.xToGoBack ?? 'X to go back')
+      : (lang.oToGoBack ?? 'O to go back')
     backHint.x = 890
     backHint.y = 1000
     backHint.style = 'white'

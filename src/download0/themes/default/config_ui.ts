@@ -58,6 +58,14 @@ if (typeof lang === 'undefined') {
   // Store user's payloads so we don't overwrite them
   let userPayloads: string[] = []
   let configLoaded = false
+  let initialConfigSnapshot: string | null = null
+
+  function getConfigSnapshot () {
+    return JSON.stringify({
+      config: currentConfig,
+      payloads: userPayloads
+    })
+  }
 
   const jbBehaviorLabels = [lang.jbBehaviorAuto, lang.jbBehaviorNetctrl, lang.jbBehaviorLapse]
   const jbBehaviorImgKeys = ['jbBehaviorAuto', 'jbBehaviorNetctrl', 'jbBehaviorLapse']
@@ -279,7 +287,9 @@ if (typeof lang === 'undefined') {
     })
   } else {
     backHint = new jsmaf.Text()
-    backHint.text = jsmaf.circleIsAdvanceButton ? lang.xToGoBack : lang.oToGoBack
+    backHint.text = jsmaf.circleIsAdvanceButton
+      ? (lang.xToGoBack ?? 'X to go back')
+      : (lang.oToGoBack ?? 'O to go back')
     backHint.x = centerX - 60
     backHint.y = startY + configOptions.length * buttonSpacing + 120
     backHint.style = 'white'
@@ -501,6 +511,7 @@ if (typeof lang === 'undefined') {
             stopBgm()
           }
           configLoaded = true
+          initialConfigSnapshot = getConfigSnapshot()
           log('Config loaded successfully')
         }
       } catch (e) {
@@ -582,6 +593,11 @@ if (typeof lang === 'undefined') {
     } else if (keyCode === confirmKey) {
       handleButtonPress()
     } else if (keyCode === backKey) {
+      if (configLoaded && initialConfigSnapshot === getConfigSnapshot()) {
+        log('No config changes, returning to main menu')
+        include('themes/' + (typeof CONFIG !== 'undefined' && CONFIG.theme ? CONFIG.theme : 'default') + '/main.js')
+        return
+      }
       log('Restarting...')
       // Save config before restart
       saveConfig()
